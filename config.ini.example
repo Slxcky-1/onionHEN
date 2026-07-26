@@ -15,6 +15,13 @@ schema_version=1
 # system follows the PS5 system language when it can be detected.
 language=system
 
+[logging]
+# level controls how much OnionHEN records to its log files.
+# Available values: off, error, warn, info, debug, trace
+# Raise to debug when reproducing an issue for a bug report.
+# Release builds compile out debug and trace, so those behave as info.
+level=info
+
 [home_screen]
 # show_title_ids displays app Title IDs on the PS5 home screen.
 # Available values: true, false

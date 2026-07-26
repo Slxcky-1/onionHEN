@@ -28,6 +28,8 @@ static int test_defaults_and_serialize_keys(void) {
   TEST_ASSERT_TRUE(text.find("schema_version=1") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("[toolbox]") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("language=system") != std::string::npos);
+  TEST_ASSERT_TRUE(text.find("[logging]") != std::string::npos);
+  TEST_ASSERT_TRUE(text.find("level=info") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("temperature_threshold_celsius=77") !=
                    std::string::npos);
   TEST_ASSERT_TRUE(text.find("stop_utility_daemon_on_entry=false") !=
@@ -49,6 +51,7 @@ static int test_roundtrip_file(void) {
   in.cheats_shortcut_opt = 2;
   in.rest_mode_delay_seconds = 7;
   in.ui_lang = onion::kUiLanguageEn;
+  in.log_level = onion::kLogLevelDebug;
 
   TEST_ASSERT_TRUE(onion::settings_save_file(path.c_str(), in));
 
@@ -59,6 +62,7 @@ static int test_roundtrip_file(void) {
   TEST_ASSERT_EQ_INT(2, out.cheats_shortcut_opt);
   TEST_ASSERT_EQ_U64(7, out.rest_mode_delay_seconds);
   TEST_ASSERT_EQ_INT(onion::kUiLanguageEn, out.ui_lang);
+  TEST_ASSERT_EQ_INT(onion::kLogLevelDebug, out.log_level);
   TEST_ASSERT_EQ_INT(onion::kSettingsSchemaVersion, out.schema_version);
 
   unlink(path.c_str());
@@ -299,6 +303,24 @@ static int test_config_mtime_helpers(void) {
   return 0;
 }
 
+/* An unrecognised level must fall back to the default, not to off. */
+static int test_log_level_invalid_falls_back(void) {
+  const std::string path = temp_ini_path();
+  TEST_ASSERT_TRUE(!path.empty());
+
+  FILE *f = fopen(path.c_str(), "w");
+  TEST_ASSERT_TRUE(f != nullptr);
+  fputs("[meta]\nschema_version=1\n\n[logging]\nlevel=verbose\n", f);
+  fclose(f);
+
+  onion::Settings out{};
+  TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
+  TEST_ASSERT_EQ_INT(onion::kLogLevelInfo, out.log_level);
+
+  unlink(path.c_str());
+  return 0;
+}
+
 extern "C" int test_settings_suite(void) {
   int failures = 0;
   failures += onion_test_run("settings_defaults_serialize", test_defaults_and_serialize_keys);
@@ -313,5 +335,7 @@ extern "C" int test_settings_suite(void) {
   failures += onion_test_run("settings_store_snapshot_update",
                              test_settings_store_snapshot_update);
   failures += onion_test_run("settings_config_mtime_helpers", test_config_mtime_helpers);
+  failures += onion_test_run("settings_log_level_invalid",
+                             test_log_level_invalid_falls_back);
   return failures;
 }

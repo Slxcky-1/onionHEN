@@ -122,6 +122,34 @@ const char *language_name(int v) {
   }
 }
 
+int parse_log_level(const char *s, int def) {
+  if (streq_ci(s, "off")) return kLogLevelOff;
+  if (streq_ci(s, "error")) return kLogLevelError;
+  if (streq_ci(s, "warn") || streq_ci(s, "warning")) return kLogLevelWarn;
+  if (streq_ci(s, "info")) return kLogLevelInfo;
+  if (streq_ci(s, "debug")) return kLogLevelDebug;
+  if (streq_ci(s, "trace")) return kLogLevelTrace;
+  return def;
+}
+
+const char *log_level_name(int v) {
+  switch (v) {
+  case kLogLevelOff:
+    return "off";
+  case kLogLevelError:
+    return "error";
+  case kLogLevelWarn:
+    return "warn";
+  case kLogLevelDebug:
+    return "debug";
+  case kLogLevelTrace:
+    return "trace";
+  case kLogLevelInfo:
+  default:
+    return "info";
+  }
+}
+
 bool parse_libhijacker_backend(const char *s, bool def) {
   if (streq_ci(s, "default")) {
     return false;
@@ -377,6 +405,8 @@ bool apply_parser(IniParser *parser, Settings *out) {
   out->schema_version = version;
   out->ui_lang =
       parse_language(ini_get(parser, "toolbox.language"), out->ui_lang);
+  out->log_level =
+      parse_log_level(ini_get(parser, "logging.level"), out->log_level);
   out->display_tids = parse_bool(
       ini_get(parser, "home_screen.show_title_ids"), out->display_tids);
   out->onionhen_game_opts =
@@ -488,6 +518,13 @@ std::string settings_serialize(const Settings &in) {
   b += "# Available values: system, zh-Hans, en\n";
   b += "# system follows the PS5 system language when it can be detected.\n";
   b += "language=" + std::string(language_name(in.ui_lang)) + "\n";
+  b += "\n";
+  b += "[logging]\n";
+  b += "# level controls how much OnionHEN records to its log files.\n";
+  b += "# Available values: off, error, warn, info, debug, trace\n";
+  b += "# Raise to debug when reproducing an issue for a bug report.\n";
+  b += "# Release builds compile out debug and trace, so those behave as info.\n";
+  b += "level=" + std::string(log_level_name(in.log_level)) + "\n";
   b += "\n";
   b += "[home_screen]\n";
   b += "# show_title_ids displays app Title IDs on the PS5 home screen.\n";

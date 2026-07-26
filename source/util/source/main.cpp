@@ -17,6 +17,7 @@ along with this program; see the file COPYING. If not, see
 #include "ipc.hpp"
 #include "cheats/cheat_service.hpp"
 #include <onion/settings.hpp>
+#include <onion/log_settings.hpp>
 #include <onion/platform.h>
 #include <onion/ucred.h>
 #include <onion/proc_query.h>
@@ -82,6 +83,13 @@ bool LoadSettings() {
                      onion::kConfigPathPrimary);
     } else {
         OnionHEN_log("Loaded settings from %s", onion::settings_last_loaded_path());
+    }
+
+    const onion_log_level effective = onion::apply_log_settings(s);
+    if (effective != static_cast<onion_log_level>(s.log_level)) {
+        OnionHEN_log("log level '%s' unavailable in this build; using '%s'",
+                     onion_log_level_name(static_cast<onion_log_level>(s.log_level)),
+                     onion_log_level_name(effective));
     }
 
     g_settings.store(s);

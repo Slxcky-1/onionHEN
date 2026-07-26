@@ -8,6 +8,7 @@
 #include <onion/platform.h>
 #include <onion/notify_i18n.h>
 #include <onion/settings.hpp>
+#include <onion/log_settings.hpp>
 
 extern "C" int sceSystemServiceParamGetInt(int param_id, int *value);
 
@@ -57,6 +58,15 @@ bool LoadSettings() {
   }
   OnionHEN_log("fan_threshold: %d", s.fan_threshold);
   OnionHEN_log("enable_fan_speed: %d", s.enable_fan_speed ? 1 : 0);
+
+  /* Apply before the rest: a reload that raises the level should take effect
+     for the messages that follow it in this same call. */
+  const onion_log_level effective = onion::apply_log_settings(s);
+  if (effective != static_cast<onion_log_level>(s.log_level)) {
+    OnionHEN_log("[Daemon] log level '%s' unavailable in this build; using '%s'",
+                 onion_log_level_name(static_cast<onion_log_level>(s.log_level)),
+                 onion_log_level_name(effective));
+  }
 
   g_settings.store(s);
   int system_language = 1;

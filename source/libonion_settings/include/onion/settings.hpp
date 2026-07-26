@@ -55,6 +55,17 @@ inline constexpr int kUiLanguageSystem = 0;
 inline constexpr int kUiLanguageZhHans = 1;
 inline constexpr int kUiLanguageEn = 2;
 
+// Mirrors onion_log_level from <onion/log.h>. Duplicated rather than included
+// so libonion_settings stays independent of libonion_platform; the processes
+// that bridge the two (see onion_apply_log_settings) static_assert that the
+// values still line up.
+inline constexpr int kLogLevelOff = 0;
+inline constexpr int kLogLevelError = 1;
+inline constexpr int kLogLevelWarn = 2;
+inline constexpr int kLogLevelInfo = 3;
+inline constexpr int kLogLevelDebug = 4;
+inline constexpr int kLogLevelTrace = 5;
+
 inline constexpr std::size_t kMaxAppJailbreakExactTitleIds = 20;
 inline constexpr std::size_t kMaxAppJailbreakTitleIdPrefixes = 20;
 
@@ -103,6 +114,12 @@ struct Settings {
   // [toolbox]
   // 0 = system (default), 1 = zh-Hans, 2 = English
   int ui_lang = kUiLanguageSystem;
+
+  // [logging]
+  // Runtime log threshold, matching onion_log_level (1=error .. 5=trace).
+  // Lets a user raise verbosity for a bug report without a debug payload;
+  // levels stripped at compile time cannot be re-enabled this way.
+  int log_level = kLogLevelInfo;
 
   // Meta
   int schema_version = kSettingsSchemaVersion;
