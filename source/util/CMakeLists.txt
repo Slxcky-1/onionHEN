@@ -43,6 +43,8 @@ target_sources(${PROJECT_NAME} PRIVATE ${SrcFiles} "${ONIONHEN_COMMON_DIR}/elfld
 target_include_directories(${PROJECT_NAME} PRIVATE
   "${D_CWD}/include"
   "${ONIONHEN_THIRD_PARTY_DIR}/cjson"
+  # miniz / sha256 / mc4 headers live beside their vendored .c files.
+  "${ONIONHEN_THIRD_PARTY_DIR}/cheat_support"
   "${ONIONHEN_THIRD_PARTY_DIR}/keystone/include"
   "${PROJECT_ROOT}/libonion_settings/include"
   "${PROJECT_ROOT}/libonion_ipc/include"

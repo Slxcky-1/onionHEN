@@ -31,6 +31,7 @@ COMMON_FLAGS := -Wall -Wextra -g -O0 -DONION_HOST_TEST=1 -DCBC=1 \
 	-I$(REPO_ROOT)/source/libonion_ready \
 	-I$(REPO_ROOT)/source/daemon/include \
 	-I$(THIRD_PARTY_ROOT)/cjson \
+	-I$(THIRD_PARTY_ROOT)/cheat_support \
 	-I$(REPO_ROOT)/source/shellui/include \
 	-I$(BUILD_DIR)/generated \
 	$(KEYSTONE_CFLAGS)
