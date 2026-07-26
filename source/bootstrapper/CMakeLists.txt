@@ -3,33 +3,10 @@ cmake_minimum_required (VERSION 3.20)
 set(basename "bootstrapper")
 project(${basename} C CXX ASM)
 
-# Language Standard Defaults
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-
-set(CMAKE_CXX_EXTENSIONS ON)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_STANDARD 20)
-
-# Check for sub-project as part of main build or external build
-if (NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-	set(IS_SUBPROJECT TRUE)
-else()
-	set(IS_SUBPROJECT FALSE)
-endif()
-
-message("IS_SUBPROJECT: ${IS_SUBPROJECT}")
+onion_module_prologue(C_STANDARD 11 CXX_STANDARD 20)
 
 set(D_CWD "${CMAKE_CURRENT_SOURCE_DIR}")
-if(DEFINED ONIONHEN_OUT_BIN)
-	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ONIONHEN_OUT_BIN})
-	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ONIONHEN_OUT_LIB})
-	set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${ONIONHEN_OUT_LIB})
-else()
-	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${D_CWD}/../bin)
-	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${D_CWD}/bin)
-	set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${D_CWD}/bin)
-endif()
+onion_output_dirs()
 set(D_SRC ${D_CWD}/source)
 
 # SVG menu icons are the source of truth. Rasterize them into the build tree so
@@ -97,19 +74,8 @@ foreach(_raster_icon IN ITEMS
 	list(APPEND _generated_icon_files "${_raster_output}")
 endforeach()
 
-# Headers
-include_directories	(SYSTEM "${PS5_PAYLOAD_SDK}")
-include_directories	(SYSTEM "${PS5_PAYLOAD_SDK}/include")
-
 add_executable(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${PROJECT_NAME}.elf")
-
-# Must build with clang
-if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "[Cc]lang")
-	set(IS_CLANG 1)
-else()
-	message(FATAL_ERROR "${PROJECT_NAME} is meant to be built with clang! CompilerID: ${CMAKE_CXX_COMPILER_ID}")
-endif()
 
 # Finalize main target sources
 target_compile_options(${PROJECT_NAME} PUBLIC
@@ -118,17 +84,15 @@ target_compile_options(${PROJECT_NAME} PUBLIC
 	$<$<COMPILE_LANGUAGE:ASM>:${ASM_FLAGS}>
 )
 
-message("========== build: ${PROJECT_NAME} ==========")
-
-
 # Byepervisor removed from OnionHEN — bootstrapper sources only.
 # pt.c / elfldr.c live in libonion_elfldr (raise_privileges + inject primitives).
-file(GLOB SrcFiles ${D_SRC}/*.c ${D_SRC}/*.cpp ${D_SRC}/../include/*.h ${D_SRC}/../include/*.hpp ${D_SRC}/*.s ${ONIONHEN_COMMON_DIR}/backtrace.cpp)
+file(GLOB SrcFiles CONFIGURE_DEPENDS ${D_SRC}/*.c ${D_SRC}/*.cpp ${D_SRC}/../include/*.h ${D_SRC}/../include/*.hpp ${D_SRC}/*.s ${ONIONHEN_COMMON_DIR}/backtrace.cpp)
 list(FILTER SrcFiles EXCLUDE REGEX ".*/(pt|elfldr)\\.c$")
 
-set(CMAKE_C_FLAGS "--target=x86_64-sie-ps5 -DPPR -DPS5 -DPS5_FW_VERSION=${V_FW} ")
+set(CMAKE_C_FLAGS "${ONION_PS5_TARGET_FLAGS} ")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -Werror -fstack-protector-all")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -DDEBUG -gfull -gdwarf-2 -O0 -pedantic -pedantic-errors")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDEBUG")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -gfull -gdwarf-2 -O0 -pedantic -pedantic-errors")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
 
 target_sources(${PROJECT_NAME} PRIVATE ${SrcFiles})
@@ -168,7 +132,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_link_directories	(${PROJECT_NAME} PUBLIC "${ONIONHEN_PS5_STUB_DIR}")
 target_sources(${PROJECT_NAME} PRIVATE "${ONIONHEN_COMMON_DIR}/elfldr_remote.c")
 target_link_libraries	(${PROJECT_NAME} PUBLIC onion_proc onion_platform onion_settings onion_payload onion_ready onion_elfldr SceNotification SceSystemService)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_custom_target(${PROJECT_NAME}_assets DEPENDS ${_generated_icon_files})
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_assets)
 add_dependencies(${PROJECT_NAME} daemon util shellui onion_elfldr_server onion_proc onion_platform onion_settings onion_payload onion_ready onion_elfldr)
@@ -180,10 +143,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 )
 
 # Add post-build command
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_OBJCOPY} --remove-section .debug_info --remove-section .debug_abbrev --remove-section .debug_line --remove-section .debug_str --remove-section .debug_loc --remove-section .debug_aranges --remove-section .debug_ranges --remove-section .debug_pubnames --remove-section .debug_pubtypes --remove-section .debug_frame --strip-unneeded $<TARGET_FILE:${PROJECT_NAME}>
-    COMMENT "Stripping debugging information from ${PROJECT_NAME}.elf"
-)
+onion_strip_debug(${PROJECT_NAME})
 
 # Portable size + lzma pack (Linux GNU stat / macOS BSD stat; lzma or xz)
 # PROJECT_ROOT is source/; pack script lives at repo scripts/

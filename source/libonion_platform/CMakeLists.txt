@@ -7,12 +7,8 @@ cmake_minimum_required(VERSION 3.20)
 set(basename "onion_platform")
 project(${basename} C)
 
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
+onion_module_prologue(C_STANDARD 11)
 set(D_CWD "${PROJECT_SOURCE_DIR}")
-
-include_directories(SYSTEM "${PS5_PAYLOAD_SDK}")
-include_directories(SYSTEM "${PS5_PAYLOAD_SDK}/include")
 
 add_library(${PROJECT_NAME} STATIC
   source/fs.c
@@ -22,8 +18,6 @@ add_library(${PROJECT_NAME} STATIC
   source/notify_i18n.c
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
-
-message("========== build: ${PROJECT_NAME} ==========")
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
@@ -47,11 +41,10 @@ add_custom_command(
 add_custom_target(onion_platform_i18n_catalog DEPENDS "${NOTIFY_I18N_CATALOG}")
 add_dependencies(${PROJECT_NAME} onion_platform_i18n_catalog)
 
-set(CMAKE_C_FLAGS "--target=x86_64-sie-ps5 -march=znver2 -DPPR -DPS5 -DPS5_FW_VERSION=${V_FW} -fPIC -fstack-protector-all -O2 -Wall -Wextra -Werror")
+set(CMAKE_C_FLAGS "${ONION_PS5_TARGET_FLAGS_MARCH} -fPIC -fstack-protector-all -O2 -Wall -Wextra -Werror")
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC  "${D_CWD}/include"
   PRIVATE "${D_CWD}/../include" "${I18N_GENERATED_DIR}"
 )
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

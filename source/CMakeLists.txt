@@ -3,6 +3,8 @@ cmake_minimum_required (VERSION 3.20)
 project("OnionHEN")
 
 set(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(OnionTarget)
 get_filename_component(ONIONHEN_ROOT "${PROJECT_ROOT}/.." ABSOLUTE)
 set(ONIONHEN_THIRD_PARTY_DIR "${ONIONHEN_ROOT}/third_party" CACHE PATH
 	"Third-party dependency source directory")

@@ -9,25 +9,9 @@ cmake_minimum_required (VERSION 3.20)
 set(basename "NineS")
 project(${basename} C)
 
-# Language Standard Defaults
-set(CMAKE_C_STANDARD 17)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-
-# Check for sub-project as part of main build or external build
-if (NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-	set(IS_SUBPROJECT TRUE)
-else()
-	set(IS_SUBPROJECT FALSE)
-endif()
-
-message("IS_SUBPROJECT: ${IS_SUBPROJECT}")
-
 set(D_CWD "${PROJECT_SOURCE_DIR}")
 
-
-# Headers
-include_directories	(SYSTEM "${PS5_PAYLOAD_SDK}")
-include_directories	(SYSTEM "${PS5_PAYLOAD_SDK}/include")
+onion_module_prologue(C_STANDARD 17)
 
 set(D_SRC ${D_CWD}/src)
 
@@ -46,9 +30,7 @@ target_compile_options(${PROJECT_NAME} PUBLIC
 	$<$<COMPILE_LANGUAGE:C>:${C_DEFS} ${C_FLAGS}>
 )
 
-message("========== build: ${PROJECT_NAME} ==========")
-
-set(CMAKE_C_FLAGS "--target=x86_64-sie-ps5 -march=znver2 -DPPR -DPS5 -DPS5_FW_VERSION=${V_FW} ")
+set(CMAKE_C_FLAGS "${ONION_PS5_TARGET_FLAGS_MARCH} ")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112 -D__BSD_VISIBLE=1 -D__XSI_VISIBLE=500")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-builtin -nostdlib -Wall") #  -nostartfiles
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
@@ -75,4 +57,3 @@ if(TARGET onion_elfldr)
   add_dependencies(${PROJECT_NAME} onion_elfldr)
   target_link_libraries(${PROJECT_NAME} PUBLIC onion_elfldr)
 endif()
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
