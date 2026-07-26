@@ -1,5 +1,5 @@
 ###################################################################################################
-# OnionHEN platform leaves: fs / log / notify
+# OnionHEN platform leaves: fs / log / net / notify
 ###################################################################################################
 
 cmake_minimum_required(VERSION 3.20)
@@ -17,6 +17,7 @@ include_directories(SYSTEM "${PS5_PAYLOAD_SDK}/include")
 add_library(${PROJECT_NAME} STATIC
   source/fs.c
   source/log.c
+  source/net.c
   source/notify.c
   source/notify_i18n.c
 )

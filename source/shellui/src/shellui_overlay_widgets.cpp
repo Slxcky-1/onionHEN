@@ -27,7 +27,6 @@ MonoObject *CreateLabel(const char *name, float x, float y, const char *text,
 void Widget_Append_Child(MonoObject *widget, MonoObject *child);
 MonoObject *CreateUIFont(int size, int style, int weight);
 MonoObject *CreateUIColor(float r, float g, float b, float a);
-int get_ip_address(char *ip_address);
 
 namespace {
 

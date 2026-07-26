@@ -17,6 +17,7 @@ along with this program; see the file COPYING. If not, see
 // Include files
 #include <cstdint>
 #include <onion/ucred.h>
+#include <onion/net.h>
 #include <onion/proc_query.h>
 #include <onion/platform.h>
 #include "daemon_ops.hpp"
@@ -272,7 +273,7 @@ int main() {
       },
       []() -> int { return sceSystemServiceGetAppIdOfRunningBigApp(); });
 
-  get_ip_address(&buz[0]);
+  (void)onion_net_get_ip_address(&buz[0], sizeof(buz));
   start_worker_threads(&fifo_thr, &msg_thr);
   onion_ready_signal(ONION_READY_DAEMON);
 

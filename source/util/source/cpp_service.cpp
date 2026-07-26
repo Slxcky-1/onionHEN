@@ -45,12 +45,12 @@ void check_addr_change(void) {
   pthread_mutex_lock(&ip_lock);
   char func_ip_address[40];
 
-  if (get_ip_address(&func_ip_address[0]) < 0) {
+  if (get_ip_address(&func_ip_address[0], sizeof(func_ip_address)) < 0) {
     pthread_mutex_unlock(&ip_lock);
     return;
   }
 
-  if (get_ip_address(&ip_address[0]) < 0) {
+  if (get_ip_address(&ip_address[0], sizeof(ip_address)) < 0) {
     pthread_mutex_unlock(&ip_lock);
     return;
   }
@@ -72,7 +72,7 @@ void *ip_thread(void *arg) {
   (void)arg;
   do {
     sleep(1);
-  } while (get_ip_address(&ip_address[0]) < 0);
+  } while (get_ip_address(&ip_address[0], sizeof(ip_address)) < 0);
 
   while (true) {
     check_addr_change();

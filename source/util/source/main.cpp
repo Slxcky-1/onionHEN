@@ -147,16 +147,16 @@ int main(void) {
 
     for (;;) {
         // Rest Mode: wait until network is back, then reinject toolbox if needed.
-        if (get_ip_address(&tmp_buf[0]) < 0) {
+        if (get_ip_address(&tmp_buf[0], sizeof(tmp_buf)) < 0) {
             sleep(1);
 
-            bool fail1 = get_ip_address(&tmp_buf[0]) < 0;
+            bool fail1 = get_ip_address(&tmp_buf[0], sizeof(tmp_buf)) < 0;
             if (!fail1)
                 continue;
 
             sleep(2);
 
-            bool fail2 = get_ip_address(&tmp_buf[0]) < 0;
+            bool fail2 = get_ip_address(&tmp_buf[0], sizeof(tmp_buf)) < 0;
             if (!fail2)
                 continue;
 

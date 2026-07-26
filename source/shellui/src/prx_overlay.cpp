@@ -5,6 +5,7 @@
 #include "homeui_top_nav_patch.hpp"
 #include "ipc.hpp"
 #include "external_symbols.hpp"
+#include <onion/net.h>
 #include <onion/settings.hpp>
 #include <cstring>
 #include <cstdio>
@@ -21,7 +22,6 @@ void CreateGameWidget(CreateWidget widget);
 MonoObject* CreateLabel(const char* name, float x, float y, const char* text, MonoObject* fontObj, int horzAlign, int vertAlign, float r, float g, float b, float a);
 void Widget_Append_Child(MonoObject* widget, MonoObject* child);
 MonoObject* CreateUIFont(int size, int style, int weight);
-int get_ip_address(char* ip_address);
 
 struct OrbisKernelTimespec {
     int64_t tv_sec;
@@ -152,7 +152,6 @@ void calc_usage(unsigned int idle_tid[8], thread_usages* cur, thread_usages* pre
         usage_out[i] = (1.0f - Idle_Usage) * 100.0f;
     }
 }
-int get_ip_address(char* ip_address);
 
 namespace {
 
@@ -465,7 +464,7 @@ void update_overlay_metrics(unsigned int idle_tid[kCpuCores], int& current_bank)
   }
 
   if (g_settings.overlay_ip)
-    get_ip_address(ip_address);
+    (void)onion_net_get_ip_address(ip_address, sizeof(ip_address));
 
   if (g_settings.overlay_cpu || g_settings.all_cpu_usage) {
     int cpu_t = 0;

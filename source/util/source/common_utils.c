@@ -44,34 +44,29 @@ int sceKernelGetProcessName(int pid, char *name);
 int sceKernelGetAppInfo(int pid, app_info_t *title);
 atomic_bool not_connected = false;
 
-#define SCE_NET_CTL_ERROR_NOT_CONNECTED 0x80412108
-#define SCE_NET_CTL_ERROR_NOT_AVAIL 0x80412109
-
 /* OnionHEN: user payloads launch exclusively via private elfldr :9020.
  * ptrace attach/mmap: libonion_elfldr (pt_attach / pt_mmap). Authid is raised
  * once in util main via set_ucred_to_ptrace(), not flipped per ptrace call.
  */
 
-int get_ip_address(char *ip_address)
+/*
+ * Thin wrapper over the shared helper: `not_connected` drives util's rest-mode
+ * recovery, so it stays util-local rather than moving into libonion_platform.
+ *
+ * The previous local implementation stored sceNetCtlGetInfo's result in an
+ * `unsigned int` and tested `ret < 0`, which is never true — the error branch
+ * was unreachable, so this never reported failure, never set not_connected,
+ * and copied an uninitialised SceNetCtlInfo to the caller on failure.
+ */
+int get_ip_address(char *ip_address, size_t size)
 {
-	unsigned int ret = 0;
-	SceNetCtlInfo info;
+	const onion_net_ip_status status = onion_net_get_ip_address(ip_address, size);
 
-	ret = sceNetCtlGetInfo(14, &info);
-	if (ret < 0){
-		if(ret == SCE_NET_CTL_ERROR_NOT_CONNECTED || ret == SCE_NET_CTL_ERROR_NOT_AVAIL){
-			not_connected = true;
-		}
-		goto error;
+	if (status == ONION_NET_IP_DISCONNECTED || status == ONION_NET_IP_UNAVAILABLE) {
+		not_connected = true;
 	}
 
-	memcpy(ip_address, info.ip_address, sizeof(info.ip_address));
-
-	return ret;
-
-error:
-	memcpy(ip_address, "IP NOT FOUND", sizeof(info.ip_address));
-	return -1;
+	return status == ONION_NET_IP_OK ? 0 : -1;
 }
 
 

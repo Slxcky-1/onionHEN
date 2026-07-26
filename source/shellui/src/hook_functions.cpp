@@ -83,7 +83,6 @@ MonoClass* MemoryStream_IO = nullptr;
 // widgets → shellui_overlay_widgets.cpp
 extern "C"{
 int sceShellCoreUtilIsUsbMassStorageMounted(int num);
-int sceNetCtlGetInfo(int number,  SceNetCtlInfo *info);
 int sceNetSend(int sockfd, const void *buf, size_t len, int flags);
 }
 
@@ -169,25 +168,6 @@ MonoString *GetString_Hook(MonoObject *Instance, MonoString *str) {
   }
   
 
-
-int get_ip_address(char* ip_address)
-{
-    unsigned int ret = 0;
-    SceNetCtlInfo info;
-
-    ret = sceNetCtlGetInfo(14, &info);
-    if (ret < 0) {
-        goto error;
-    }
-
-    memcpy(ip_address, info.ip_address, sizeof(info.ip_address));
-
-    return ret;
-
-error:
-    memcpy(ip_address, "IP NOT FOUND", sizeof(info.ip_address));
-    return -1;
-}
 
 /*
  * Hermes stores non-ASCII strings as UTF-16LE in the decrypted RNPS/HBC

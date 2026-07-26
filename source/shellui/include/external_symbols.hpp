@@ -116,48 +116,12 @@ typedef struct
 #define SCE_NET_CTL_HTTP_PROXY_OFF	0
 #define SCE_NET_CTL_HTTP_PROXY_ON	1
 
-#define SCE_NET_CTL_SSID_LEN				(32 + 1)
-#define SCE_NET_CTL_WIFI_SECURITY_KEY_LEN	(64 + 1)
-#define SCE_NET_CTL_AUTH_NAME_LEN			(127 + 1)
-#define SCE_NET_CTL_AUTH_KEY_LEN			(127 + 1)
-#define SCE_NET_CTL_HOSTNAME_LEN			(255 + 1)
-#define SCE_NET_CTL_IPV4_ADDR_STR_LEN		(16)
-
-#define SCE_NET_ETHER_ADDR_LEN	6
-#define SCE_NET_ETHER_ADDRSTRLEN	18
-
-typedef struct SceNetEtherAddr {
-	uint8_t data[SCE_NET_ETHER_ADDR_LEN];
-} SceNetEtherAddr;
-
-typedef void (*SceNetCtlCallback)(
-	int eventType,		/* SCE_NET_CTL_EVENT_TYPE_XXX */
-	void *arg
-	);
-
-typedef union SceNetCtlInfo {
-	uint32_t device;
-	SceNetEtherAddr ether_addr;
-	uint32_t mtu;
-	uint32_t link;
-	SceNetEtherAddr bssid;
-	char ssid[SCE_NET_CTL_SSID_LEN];
-	uint32_t wifi_security;
-	int32_t rssi_dbm;
-	uint8_t rssi_percentage;
-	uint8_t channel;
-	uint32_t ip_config;
-	char dhcp_hostname[SCE_NET_CTL_HOSTNAME_LEN];
-	char pppoe_auth_name[SCE_NET_CTL_AUTH_NAME_LEN];
-	char ip_address[SCE_NET_CTL_IPV4_ADDR_STR_LEN];
-	char netmask[SCE_NET_CTL_IPV4_ADDR_STR_LEN];
-	char default_route[SCE_NET_CTL_IPV4_ADDR_STR_LEN];
-	char primary_dns[SCE_NET_CTL_IPV4_ADDR_STR_LEN];
-	char secondary_dns[SCE_NET_CTL_IPV4_ADDR_STR_LEN];
-	uint32_t http_proxy_config;
-	char http_proxy_server[SCE_NET_CTL_HOSTNAME_LEN];
-	uint16_t http_proxy_port;
-} SceNetCtlInfo;
+/*
+ * SceNetCtlInfo / SceNetEtherAddr / the SCE_NET_CTL_*_LEN constants and the
+ * sceNetCtlGetInfo prototype now live in the shared ABI header. To read the
+ * console address use onion_net_get_ip_address() from <onion/net.h>.
+ */
+#include <ps5/net_ctl.h>
 
 // Token: 0x040002CA RID: 714
 #define SCE_NET_SHOW_BUFFER_SIZE 8192

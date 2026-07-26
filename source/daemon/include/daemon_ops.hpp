@@ -62,7 +62,7 @@ void handleIPC(clientArgs *client, std::string &inputStr, DaemonCommands command
 
 /* ---- shared helpers (daemon_utils.cpp) ---- */
 bool GetFileContents(const char *path, char **buffer);
-int get_ip_address(char *ip_address);
+/* Console IP: onion_net_get_ip_address() from <onion/net.h>. */
 bool Get_Running_App_TID(std::string &title_id, int &BigAppid);
 bool isUserLoggedIn();
 bool Open_Utility_Elf(const char *path, uint8_t **buffer);

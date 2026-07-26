@@ -16,6 +16,7 @@ extern "C" int test_settings_suite(void);
 extern "C" int test_ready_suite(void);
 extern "C" int test_platform_fs_suite(void);
 extern "C" int test_platform_log_suite(void);
+extern "C" int test_platform_net_suite(void);
 extern "C" int test_platform_notify_suite(void);
 extern "C" int test_msg_protocol_suite(void);
 extern "C" int test_app_jailbreak_policy_suite(void);
@@ -51,6 +52,7 @@ int main() {
   failures += test_ready_suite();
   failures += test_platform_fs_suite();
   failures += test_platform_log_suite();
+  failures += test_platform_net_suite();
   failures += test_platform_notify_suite();
   failures += test_msg_protocol_suite();
   failures += test_app_jailbreak_policy_suite();

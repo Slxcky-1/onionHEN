@@ -53,6 +53,7 @@ PROD_C_SRCS := \
 	$(UTIL_ROOT)/source/cheats/cheat_flatten.c \
 	$(REPO_ROOT)/source/libonion_platform/source/fs.c \
 	$(REPO_ROOT)/source/libonion_platform/source/log.c \
+	$(REPO_ROOT)/source/libonion_platform/source/net.c \
 	$(REPO_ROOT)/source/libonion_platform/source/notify.c \
 	$(REPO_ROOT)/source/libonion_platform/source/notify_i18n.c \
 	$(REPO_ROOT)/source/libonion_ready/source/ready.c \
@@ -86,6 +87,7 @@ TEST_C_SRCS := \
 	test_ready.c \
 	test_platform_fs.c \
 	test_platform_log.c \
+	test_platform_net.c \
 	test_platform_notify.c \
 	test_toolbox_timing.c \
 	test_hijack_retry.c \
@@ -114,6 +116,7 @@ TEST_CXX_SRCS := \
 PROD_C_OBJS := $(patsubst $(UTIL_ROOT)/%.c,$(BUILD_DIR)/prod/%.o,$(filter $(UTIL_ROOT)/%,$(PROD_C_SRCS)))
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_platform/fs.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_platform/log.o
+PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_platform/net.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_platform/notify.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_platform/notify_i18n.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_ready/ready.o
@@ -235,6 +238,10 @@ $(BUILD_DIR)/prod/libonion_platform/fs.o: $(REPO_ROOT)/source/libonion_platform/
 	$(HOST_CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/prod/libonion_platform/log.o: $(REPO_ROOT)/source/libonion_platform/source/log.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(HOST_CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/prod/libonion_platform/net.o: $(REPO_ROOT)/source/libonion_platform/source/net.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(HOST_CC) $(CFLAGS) -c -o $@ $<
 

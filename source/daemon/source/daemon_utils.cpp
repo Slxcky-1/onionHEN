@@ -17,7 +17,6 @@
 #include <sys/stat.h>
 
 extern "C" {
-  int sceNetCtlGetInfo(int32_t s, void *b);
   int sceUserServiceGetLoginUserIdList(void *list);
   int sceUserServiceGetUserName(const int userId, char *userName, const size_t size);
   int sceSystemServiceGetAppIdOfRunningBigApp();
@@ -25,34 +24,6 @@ extern "C" {
 }
 
 namespace {
-
-typedef struct SceNetEtherAddr {
-  uint8_t data[6];
-} SceNetEtherAddr;
-
-typedef union SceNetCtlInfo {
-  uint32_t device;
-  SceNetEtherAddr ether_addr;
-  uint32_t mtu;
-  uint32_t link;
-  SceNetEtherAddr bssid;
-  char ssid[33];
-  uint32_t wifi_security;
-  int32_t rssi_dbm;
-  uint8_t rssi_percentage;
-  uint8_t channel;
-  uint32_t ip_config;
-  char dhcp_hostname[256];
-  char pppoe_auth_name[128];
-  char ip_address[16];
-  char netmask[16];
-  char default_route[16];
-  char primary_dns[16];
-  char secondary_dns[16];
-  uint32_t http_proxy_config;
-  char http_proxy_server[256];
-  uint16_t http_proxy_port;
-} SceNetCtlInfo;
 
 struct UserServiceLoginUserIdList {
   int user_id[4];
@@ -93,17 +64,6 @@ bool GetFileContents(const char *path, char **buffer) {
   fclose(fp);
   (*buffer)[size] = '\0';
   return true;
-}
-
-int get_ip_address(char *ip_address) {
-  SceNetCtlInfo info{};
-  int ret = sceNetCtlGetInfo(14, &info);
-  if (ret < 0) {
-    memcpy(ip_address, "IP NOT FOUND", sizeof("IP NOT FOUND"));
-    return -1;
-  }
-  memcpy(ip_address, info.ip_address, sizeof(info.ip_address));
-  return ret;
 }
 
 bool Get_Running_App_TID(std::string &title_id, int &BigAppid) {

@@ -6,6 +6,7 @@
  * This file only supplies symbols that are PS5-runtime-only.
  */
 #include <elfldr_remote.h>
+#include <ps5/net_ctl.h>
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -188,5 +189,30 @@ int util_file_read_alloc(const char *path, char **buf_out, size_t *size_out,
   if (size_out != NULL) {
     *size_out = (size_t)file_size;
   }
+  return 0;
+}
+
+/* --- SceNetCtl (device-only; drives test_platform_net.c) --- */
+
+static int32_t g_netctl_ret = 0;
+static char g_netctl_ip[SCE_NET_CTL_IPV4_ADDR_STR_LEN];
+
+void onion_test_netctl_set_result(int32_t ret, const char *ip_address) {
+  g_netctl_ret = ret;
+  memset(g_netctl_ip, 0, sizeof(g_netctl_ip));
+  if (ip_address != NULL) {
+    /* strncpy semantics: a 16-char address fills the field with no NUL. */
+    strncpy(g_netctl_ip, ip_address, sizeof(g_netctl_ip));
+  }
+}
+
+int32_t sceNetCtlGetInfo(int32_t code, SceNetCtlInfo *info) {
+  if (code != SCE_NET_CTL_INFO_IP_ADDRESS || info == NULL) {
+    return -1;
+  }
+  if (g_netctl_ret < 0) {
+    return g_netctl_ret;
+  }
+  memcpy(info->ip_address, g_netctl_ip, sizeof(info->ip_address));
   return 0;
 }
