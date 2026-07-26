@@ -24,6 +24,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 CPP = (REPO / "source/shellui/src/homeui_top_nav_patch.cpp").read_text()
+INC = (REPO / "source/shellui/src/homeui_top_nav_profiles.inc").read_text()
 HERMES = bytes([0xC6, 0x1F, 0xBC, 0x03, 0xC1, 0x03, 0x19, 0x1F])
 
 # Exact dump list requested by user (paths resolved under sibling tree).
@@ -45,145 +46,8 @@ DUMPS = [
     DUMP_ROOT / "10.01DUMP",
 ]
 
-# Mirrors source/shellui/src/homeui_top_nav_patch.cpp kHomeUiPatchProfiles.
-# offset keys match HomeUiPatchOffsets order including app_error_body.
-PROFILES = [
-    {
-        "name": "10.01 NPXS40002 HomeUI",
-        "byte_set": "1001",
-        "file_length": 0x1B3318,
-        "source_hash": bytes.fromhex(
-            "ae256655beaeea9e752e23256bbdddf1af254aea"
-        ),
-        "offsets": {
-            "title_id": 0x4768E,
-            "app_error_event_trigger": 0x4444C,
-            "navigate_to_home": 0x53B35,
-            "home_icon_order": 0xBCC22,
-            "fps_factory": 0x1752C3,
-            "download_error_string": 0x39D18,
-            "custom_icon_value": 0xC0129,
-            "custom_icon_uri": 0x520C5,
-            "top_nav_link_uri": 0x49CC6,
-            "custom_title_value": 0xC012D,
-            "fps_body": 0x175A00,
-            "app_error_body": 0x175967,
-        },
-    },
-    {
-        "name": "10.4/10.6 NPXS40002 HomeUI",
-        "byte_set": "1060",
-        "file_length": 0x1B3BCC,
-        "source_hash": bytes.fromhex(
-            "2cac5cc444ba0473ea8ee632a7942f281482a68a"
-        ),
-        "offsets": {
-            "title_id": 0x473FA,
-            "app_error_event_trigger": 0x44718,
-            "navigate_to_home": 0x53990,
-            "home_icon_order": 0xBCD9C,
-            "fps_factory": 0x17593C,
-            "download_error_string": 0x39D0C,
-            "custom_icon_value": 0xC0259,
-            "custom_icon_uri": 0x4CD5E,
-            "top_nav_link_uri": 0x499ED,
-            "custom_title_value": 0xC025D,
-            "fps_body": 0x176079,
-            "app_error_body": 0x175FE0,
-        },
-    },
-    {
-        "name": "11.0 NPXS40002 HomeUI",
-        "byte_set": "1100",
-        "file_length": 0x1B3010,
-        "source_hash": bytes.fromhex(
-            "e21110895e8fb6c85f49db972d51fc101bb8fc52"
-        ),
-        "offsets": {
-            "title_id": 0x451C1,
-            "app_error_event_trigger": 0x44542,
-            "navigate_to_home": 0x53E2C,
-            "home_icon_order": 0xBD018,
-            "fps_factory": 0x1765A2,
-            "download_error_string": 0x3A14D,
-            "custom_icon_value": 0xC0532,
-            "custom_icon_uri": 0x5368C,
-            "top_nav_link_uri": 0x49D54,
-            "custom_title_value": 0xC0536,
-            "fps_body": 0x176998,
-            "app_error_body": 0x1768FF,
-        },
-    },
-    {
-        "name": "11.4/11.6 NPXS40002 HomeUI",
-        "byte_set": "1160",
-        "file_length": 0x1B2CC8,
-        "source_hash": bytes.fromhex(
-            "f321f83f9143035f5d97ee5ad98ceb75133c890e"
-        ),
-        "offsets": {
-            "title_id": 0x450F2,
-            "app_error_event_trigger": 0x443FB,
-            "navigate_to_home": 0x53B3E,
-            "home_icon_order": 0xBCF40,
-            "fps_factory": 0x175CBD,
-            "download_error_string": 0x3A01F,
-            "custom_icon_value": 0xC0451,
-            "custom_icon_uri": 0x533ED,
-            "top_nav_link_uri": 0x49CD3,
-            "custom_title_value": 0xC0455,
-            "fps_body": 0x1760B3,
-            "app_error_body": 0x17601A,
-        },
-    },
-    {
-        "name": "12.7 NPXS40002 HomeUI",
-        "byte_set": "1270",
-        "file_length": 0x1B73BC,
-        "source_hash": bytes.fromhex(
-            "9dd2dc47c6024843f685af80ae9273e6a075337d"
-        ),
-        "offsets": {
-            "title_id": 0x46444,
-            "app_error_event_trigger": 0x455BA,
-            "navigate_to_home": 0x55558,
-            "home_icon_order": 0xBF71A,
-            "fps_factory": 0x1793B7,
-            "download_error_string": 0x468EE,
-            "custom_icon_value": 0xC3049,
-            "custom_icon_uri": 0x54E9F,
-            "top_nav_link_uri": 0x4B726,
-            "custom_title_value": 0xC304D,
-            "fps_body": 0x1797AD,
-            "app_error_body": 0x179714,
-        },
-    },
-    {
-        "name": "12.20 NPXS40002 HomeUI",
-        "byte_set": "1220",
-        "file_length": 0x1B70E4,
-        "source_hash": bytes.fromhex(
-            "d9aa3ec2fcf7cc0bb0a7fe6362079c494948cf5e"
-        ),
-        "offsets": {
-            "title_id": 0x46424,
-            "app_error_event_trigger": 0x4559A,
-            "navigate_to_home": 0x55598,
-            "home_icon_order": 0xBF6CA,
-            "fps_factory": 0x1792B3,
-            "download_error_string": 0x468CE,
-            "custom_icon_value": 0xC2FFA,
-            "custom_icon_uri": 0x54EDF,
-            "top_nav_link_uri": 0x4B7CF,
-            "custom_title_value": 0xC2FFE,
-            "fps_body": 0x1796A9,
-            "app_error_body": 0x179610,
-        },
-    },
-]
-
-
 def extract_array(name: str) -> bytes:
+    """Read a firmware-independent constant from the patch .cpp."""
     m = re.search(
         rf"static const unsigned char {re.escape(name)}\[\] = \{{([^}}]+)\}};",
         CPP,
@@ -206,31 +70,72 @@ def extract_array(name: str) -> bytes:
     return bytes(out)
 
 
-def load_bytesets() -> dict:
-    out = {}
-    for bs in ("1001", "1060", "1100", "1160", "1270", "1220"):
-        out[bs] = {
-            "old_order": extract_array(f"k{bs}OldIconOrder"),
-            "app_error_order": extract_array(f"k{bs}LegacyAppErrorIconOrder"),
-            "fps_slot_order": extract_array(f"k{bs}NewIconOrder"),
-            "stock_app_error": extract_array(f"k{bs}StockAppErrorBody"),
-            "onion": extract_array(f"k{bs}OnionHenButtonBody"),
-            "old_fps_prefix": extract_array(f"k{bs}OldFpsBodyPrefix"),
-            "old_icon_val": extract_array(f"k{bs}OldCustomIconValue"),
-            "new_icon_val": extract_array(f"k{bs}NewCustomIconValue"),
-            "old_title_val": extract_array(f"k{bs}OldCustomTitleValue"),
+def _hex_bytes(text: str) -> bytes:
+    return bytes(int(x, 16) for x in re.findall(r"0x([0-9a-fA-F]{2})", text))
+
+
+def load_profiles() -> list[dict]:
+    """
+    Parse kHomeUiPatchProfiles out of homeui_top_nav_profiles.inc.
+
+    The .inc is the single source of truth for per-firmware data; this script
+    used to keep a hand-maintained copy of the offsets and hashes, which meant
+    adding a firmware required editing both.
+    """
+    profiles = []
+    for entry in re.findall(r"\n    \{\n(.*?)\n    \},", INC, re.S):
+        offs_text = re.search(
+            r"/\* offsets \*/ \{(.*?)\n        \}", entry, re.S
+        ).group(1)
+        offsets = {
+            m.group(1): int(m.group(2), 16)
+            for m in re.finditer(r"/\* (\w+)\s+\*/ (0x[0-9a-f]+),", offs_text)
         }
-        assert (
-            len(out[bs]["stock_app_error"])
-            == len(out[bs]["onion"])
-            == len(out[bs]["old_fps_prefix"])
-            == 77
-        ), bs
-    return out
+        bytes_text = re.search(
+            r"/\* bytes \*/ \{(.*)\n        \},", entry, re.S
+        ).group(1)
+        fields = {
+            m.group(1): _hex_bytes(m.group(2))
+            for m in re.finditer(
+                r"/\* (\w+) \*/ \{(.*?)\n            \}", bytes_text, re.S
+            )
+        }
+        has_legacy = (
+            re.search(r"/\* has_legacy_button_body \*/ (true|false)", bytes_text)
+            .group(1)
+            == "true"
+        )
+        profiles.append({
+            "name": re.search(r'/\* name\s+\*/ "([^"]+)"', entry).group(1),
+            "file_length": int(
+                re.search(r"/\* file_length\s+\*/ (0x[0-9a-f]+)", entry).group(1), 16
+            ),
+            "source_hash": _hex_bytes(
+                re.search(
+                    r"/\* source_hash\s+\*/ \{(.*?)\n        \}", entry, re.S
+                ).group(1)
+            ),
+            "offsets": offsets,
+            "bytes": fields,
+            "legacy_button_body": (
+                fields["legacy_onion_hen_button_body"] if has_legacy else None
+            ),
+        })
+    if not profiles:
+        raise SystemExit("no profiles parsed from homeui_top_nav_profiles.inc")
+    return profiles
 
 
-BYTESETS = load_bytesets()
-LEGACY_1160_ONION = extract_array("k1160LegacyOnionHenButtonBody")
+PROFILES = load_profiles()
+for _p in PROFILES:
+    _b = _p["bytes"]
+    assert (
+        len(_b["stock_app_error_body"])
+        == len(_b["onion_hen_button_body"])
+        == len(_b["old_fps_body_prefix"])
+        == 77
+    ), _p["name"]
+
 NEW_ICON_URI = extract_array("kNewCustomIconUri")
 OLD_ICON_URI = extract_array("kOldCustomIconUri")
 NEW_LINK = extract_array("kNewTopNavLinkUri")
@@ -296,7 +201,7 @@ def patch_at(hbc, name, off, expected_opts, replacement, notes) -> bool:
 
 
 def apply_patch(hbc: bytearray, p: dict) -> list[str]:
-    bs = BYTESETS[p["byte_set"]]
+    b = p["bytes"]
     o = p["offsets"]
     notes: list[str] = []
     ok = True
@@ -304,30 +209,30 @@ def apply_patch(hbc: bytearray, p: dict) -> list[str]:
         hbc,
         "icon_order",
         o["home_icon_order"],
-        [bs["old_order"], bs["fps_slot_order"], bs["app_error_order"]],
-        bs["app_error_order"],
+        [b["old_icon_order"], b["legacy_fps_slot_icon_order"], b["app_error_icon_order"]],
+        b["app_error_icon_order"],
         notes,
     )
-    fps_alts = [bs["onion"], bs["old_fps_prefix"]]
-    if p["byte_set"] == "1160":
-        fps_alts.append(LEGACY_1160_ONION)
+    fps_alts = [b["onion_hen_button_body"], b["old_fps_body_prefix"]]
+    if p["legacy_button_body"] is not None:
+        fps_alts.append(p["legacy_button_body"])
     ok &= patch_at(
         hbc,
         "fps_repair",
         o["fps_body"],
         fps_alts,
-        bs["old_fps_prefix"],
+        b["old_fps_body_prefix"],
         notes,
     )
-    app_alts = [bs["stock_app_error"], bs["onion"]]
-    if p["byte_set"] == "1160":
-        app_alts.append(LEGACY_1160_ONION)
+    app_alts = [b["stock_app_error_body"], b["onion_hen_button_body"]]
+    if p["legacy_button_body"] is not None:
+        app_alts.append(p["legacy_button_body"])
     ok &= patch_at(
         hbc,
         "app_error_onion",
         o["app_error_body"],
         app_alts,
-        bs["onion"],
+        b["onion_hen_button_body"],
         notes,
     )
     ok &= patch_at(
@@ -350,15 +255,15 @@ def apply_patch(hbc: bytearray, p: dict) -> list[str]:
         hbc,
         "icon_val",
         o["custom_icon_value"],
-        [bs["old_icon_val"], bs["new_icon_val"]],
-        bs["new_icon_val"],
+        [b["old_custom_icon_value"], b["new_custom_icon_value"]],
+        b["new_custom_icon_value"],
         notes,
     )
     ok &= patch_at(
         hbc,
         "title_val",
         o["custom_title_value"],
-        [bs["old_title_val"], NEW_TITLE],
+        [b["old_custom_title_value"], NEW_TITLE],
         NEW_TITLE,
         notes,
     )
@@ -380,28 +285,28 @@ def apply_patch(hbc: bytearray, p: dict) -> list[str]:
 
 def verify(hbc: bytes, p: dict, tag: str) -> list[str]:
     errs: list[str] = []
-    bs = BYTESETS[p["byte_set"]]
+    b = p["bytes"]
     o = p["offsets"]
 
     order = bytes(hbc[o["home_icon_order"] : o["home_icon_order"] + 9])
-    if order != bs["app_error_order"]:
+    if order != b["app_error_icon_order"]:
         errs.append(f"{tag}: order not AppError-slot ({order.hex()})")
 
     fps = bytes(hbc[o["fps_body"] : o["fps_body"] + 77])
     app = bytes(hbc[o["app_error_body"] : o["app_error_body"] + 77])
 
     # Fix A — crash host must not be Fps
-    if fps == bs["onion"] or (
-        p["byte_set"] == "1160" and fps == LEGACY_1160_ONION
+    if fps == b["onion_hen_button_body"] or (
+        p["legacy_button_body"] is not None and fps == p["legacy_button_body"]
     ):
         errs.append(f"{tag}: FixA FAIL — Fps still OnionHEN (crash regression)")
-    if fps != bs["old_fps_prefix"]:
+    if fps != b["old_fps_body_prefix"]:
         errs.append(f"{tag}: FixA FAIL — Fps prefix not stock ({fps[:8].hex()})")
-    if app != bs["onion"]:
+    if app != b["onion_hen_button_body"]:
         errs.append(
             f"{tag}: FixA FAIL — AppError not OnionHEN host ({app[:8].hex()})"
         )
-    if app == bs["stock_app_error"]:
+    if app == b["stock_app_error_body"]:
         errs.append(f"{tag}: FixA FAIL — AppError still stock")
     if o["fps_body"] - o["app_error_body"] != 153:
         errs.append(
@@ -440,50 +345,50 @@ def verify(hbc: bytes, p: dict, tag: str) -> list[str]:
 
 def precheck(hbc: bytes, p: dict) -> list[str]:
     errs: list[str] = []
-    bs = BYTESETS[p["byte_set"]]
+    b = p["bytes"]
     o = p["offsets"]
     order = bytes(hbc[o["home_icon_order"] : o["home_icon_order"] + 9])
-    if order not in (bs["old_order"], bs["fps_slot_order"], bs["app_error_order"]):
+    if order not in (b["old_icon_order"], b["legacy_fps_slot_icon_order"], b["app_error_icon_order"]):
         errs.append(f"pre: unexpected order {order.hex()}")
     app = bytes(hbc[o["app_error_body"] : o["app_error_body"] + 77])
-    if app not in (bs["stock_app_error"], bs["onion"]) and not (
-        p["byte_set"] == "1160" and app == LEGACY_1160_ONION
+    if app not in (b["stock_app_error_body"], b["onion_hen_button_body"]) and not (
+        p["legacy_button_body"] is not None and app == p["legacy_button_body"]
     ):
         errs.append(f"pre: AppError body unexpected ({app[:8].hex()})")
     # Virgin dumps must match C++ stock AppError exactly.
-    if app != bs["stock_app_error"] and app != bs["onion"]:
+    if app != b["stock_app_error_body"] and app != b["onion_hen_button_body"]:
         errs.append("pre: AppError neither stock nor already-onion")
-    if app == bs["stock_app_error"] and app != bs["stock_app_error"]:
+    if app == b["stock_app_error_body"] and app != b["stock_app_error_body"]:
         pass
     if bytes(hbc[o["app_error_body"] : o["app_error_body"] + 77]) != bs[
         "stock_app_error"
     ]:
         # If dump is already patched onion, still OK for migration path.
-        if bytes(hbc[o["app_error_body"] : o["app_error_body"] + 77]) != bs["onion"]:
+        if bytes(hbc[o["app_error_body"] : o["app_error_body"] + 77]) != b["onion_hen_button_body"]:
             errs.append("pre: AppError body != C++ stock (and not onion)")
     else:
         # Exact match stock — good.
         pass
     fps = bytes(hbc[o["fps_body"] : o["fps_body"] + 77])
-    if fps not in (bs["old_fps_prefix"], bs["onion"]) and not (
-        p["byte_set"] == "1160" and fps == LEGACY_1160_ONION
+    if fps not in (b["old_fps_body_prefix"], b["onion_hen_button_body"]) and not (
+        p["legacy_button_body"] is not None and fps == p["legacy_button_body"]
     ):
         errs.append(f"pre: Fps prefix unexpected ({fps[:8].hex()})")
     # Require virgin AppError/Fps/order match C++ for true original dumps.
     if (
-        order == bs["old_order"]
-        and app != bs["stock_app_error"]
+        order == b["old_icon_order"]
+        and app != b["stock_app_error_body"]
     ):
         errs.append("pre: virgin order but AppError not stock")
-    if app == bs["stock_app_error"] and app != bytes(
+    if app == b["stock_app_error_body"] and app != bytes(
         hbc[o["app_error_body"] : o["app_error_body"] + 77]
     ):
         errs.append("pre: stock AppError compare bug")
     # Strong check: stock body bytes equal C++ table
-    if order == bs["old_order"]:
-        if app != bs["stock_app_error"]:
+    if order == b["old_icon_order"]:
+        if app != b["stock_app_error_body"]:
             errs.append("pre: stock dump AppError != C++ StockAppErrorBody")
-        if fps != bs["old_fps_prefix"]:
+        if fps != b["old_fps_body_prefix"]:
             errs.append("pre: stock dump Fps prefix != C++ OldFpsBodyPrefix")
     return errs
 
@@ -535,7 +440,7 @@ def run_pass(pass_id: int):
         ok = not errs
         print(
             f"[{'OK' if ok else 'FAIL'}] {name:12} → {p['name']} "
-            f"[bs={p['byte_set']}]"
+            f"[{p['name']}]"
         )
         if ok:
             print(
