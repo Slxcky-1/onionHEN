@@ -218,58 +218,31 @@ along with this program; see the file COPYING. If not, see
  extern uint8_t sicon_start[];
  extern const unsigned int sicon_size;
 
- extern uint8_t icon_xml_package_start[];
- extern const unsigned int icon_xml_package_size;
- extern uint8_t icon_xml_plugins_start[];
- extern const unsigned int icon_xml_plugins_size;
- extern uint8_t icon_xml_game_start[];
- extern const unsigned int icon_xml_game_size;
- extern uint8_t icon_xml_monitor_start[];
- extern const unsigned int icon_xml_monitor_size;
- extern uint8_t icon_xml_account_start[];
- extern const unsigned int icon_xml_account_size;
- extern uint8_t icon_xml_network_start[];
- extern const unsigned int icon_xml_network_size;
- extern uint8_t icon_xml_settings_start[];
- extern const unsigned int icon_xml_settings_size;
- extern uint8_t icon_xml_shortcuts_start[];
- extern const unsigned int icon_xml_shortcuts_size;
- extern uint8_t icon_xml_debug_start[];
- extern const unsigned int icon_xml_debug_size;
- extern uint8_t icon_xml_about_start[];
- extern const unsigned int icon_xml_about_size;
- extern uint8_t icon_xml_kstuff_start[];
- extern const unsigned int icon_xml_kstuff_size;
- extern uint8_t icon_xml_overlay_start[];
- extern const unsigned int icon_xml_overlay_size;
- extern uint8_t icon_xml_title_id_start[];
- extern const unsigned int icon_xml_title_id_size;
- extern uint8_t icon_xml_menu_option_start[];
- extern const unsigned int icon_xml_menu_option_size;
- extern uint8_t icon_xml_fan_start[];
- extern const unsigned int icon_xml_fan_size;
- extern uint8_t icon_xml_restmode_start[];
- extern const unsigned int icon_xml_restmode_size;
- extern uint8_t icon_xml_hardrive_start[];
- extern const unsigned int icon_xml_hardrive_size;
- extern uint8_t icon_xml_disc_license_start[];
- extern const unsigned int icon_xml_disc_license_size;
- extern uint8_t icon_xml_remote_play_start[];
- extern const unsigned int icon_xml_remote_play_size;
- extern uint8_t icon_xml_donations_start[];
- extern const unsigned int icon_xml_donations_size;
- extern uint8_t icon_xml_thanks_start[];
- extern const unsigned int icon_xml_thanks_size;
- extern uint8_t icon_xml_project_start[];
- extern const unsigned int icon_xml_project_size;
- extern uint8_t icon_xml_author_avatar_start[];
- extern const unsigned int icon_xml_author_avatar_size;
- extern uint8_t icon_xml_donator_ljf_start[];
- extern const unsigned int icon_xml_donator_ljf_size;
- extern uint8_t icon_xml_donator_szx_start[];
- extern const unsigned int icon_xml_donator_szx_size;
- extern uint8_t icon_xml_donator_aglx_start[];
- extern const unsigned int icon_xml_donator_aglx_size;
+/*
+ * Toolbox icon symbols and the runtime manifest both come from the generated
+ * icon list, so adding an icon means dropping an SVG into assets/ and nothing
+ * else. See bootstrapper/CMakeLists.txt.
+ */
+#define ONION_ICON(name)                                                       \
+  extern uint8_t name##_start[];                                               \
+  extern const unsigned int name##_size;
+#include "icon_manifest.inc"
+#undef ONION_ICON
+
+namespace {
+struct EmbeddedIcon {
+  const char *name;
+  const uint8_t *data;
+  unsigned int size;
+};
+
+/* Not constexpr: the _size symbols are resolved at link time. */
+const EmbeddedIcon kEmbeddedIcons[] = {
+#define ONION_ICON(name) {#name, name##_start, name##_size},
+#include "icon_manifest.inc"
+#undef ONION_ICON
+};
+} // namespace
  
  /******************************************************************************
   * Global Variables
@@ -369,32 +342,12 @@ static void cleanup(void);
         "/data/OnionHEN/onionhen.png", &sicon_start, sicon_size);
 
     // Toolbox category icons
-    write_blob_file("/data/OnionHEN/assets/icon_xml_package.png", &icon_xml_package_start, icon_xml_package_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_plugins.png", &icon_xml_plugins_start, icon_xml_plugins_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_game.png", &icon_xml_game_start, icon_xml_game_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_monitor.png", &icon_xml_monitor_start, icon_xml_monitor_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_account.png", &icon_xml_account_start, icon_xml_account_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_network.png", &icon_xml_network_start, icon_xml_network_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_settings.png", &icon_xml_settings_start, icon_xml_settings_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_shortcuts.png", &icon_xml_shortcuts_start, icon_xml_shortcuts_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_debug.png", &icon_xml_debug_start, icon_xml_debug_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_about.png", &icon_xml_about_start, icon_xml_about_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_kstuff.png", &icon_xml_kstuff_start, icon_xml_kstuff_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_overlay.png", &icon_xml_overlay_start, icon_xml_overlay_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_title_id.png", &icon_xml_title_id_start, icon_xml_title_id_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_menu_option.png", &icon_xml_menu_option_start, icon_xml_menu_option_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_fan.png", &icon_xml_fan_start, icon_xml_fan_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_restmode.png", &icon_xml_restmode_start, icon_xml_restmode_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_hardrive.png", &icon_xml_hardrive_start, icon_xml_hardrive_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_disc_license.png", &icon_xml_disc_license_start, icon_xml_disc_license_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_remote_play.png", &icon_xml_remote_play_start, icon_xml_remote_play_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_donations.png", &icon_xml_donations_start, icon_xml_donations_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_thanks.png", &icon_xml_thanks_start, icon_xml_thanks_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_project.png", &icon_xml_project_start, icon_xml_project_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_author_avatar.png", &icon_xml_author_avatar_start, icon_xml_author_avatar_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_donator_ljf.png", &icon_xml_donator_ljf_start, icon_xml_donator_ljf_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_donator_szx.png", &icon_xml_donator_szx_start, icon_xml_donator_szx_size);
-    write_blob_file("/data/OnionHEN/assets/icon_xml_donator_aglx.png", &icon_xml_donator_aglx_start, icon_xml_donator_aglx_size);
+    for (const EmbeddedIcon &icon : kEmbeddedIcons) {
+      char path[256];
+      snprintf(path, sizeof(path), "/data/OnionHEN/assets/%s.png", icon.name);
+      write_blob_file(path, icon.data, icon.size);
+    }
+
 
     mkdir("/system_ex/vsh_asset/", 0777);
     write_blob_file("/system_ex/vsh_asset/onionhen.png", &sicon_start,
