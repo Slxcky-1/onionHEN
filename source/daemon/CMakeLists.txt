@@ -28,7 +28,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -gfull -gdwarf-2 -O0 -pedantic -pedantic-e
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 ")
 
 target_sources(${PROJECT_NAME} PRIVATE ${SrcFiles} "${ONIONHEN_COMMON_DIR}/elfldr_remote.c")
-# .incbin in embeddded_payloads.c is invisible to the compiler dependency scanner.
+# .incbin in embedded_payloads.c is invisible to the compiler dependency scanner.
 # Without OBJECT_DEPENDS, embedded payload rebuilds do not re-embed into daemon.elf.
 if(DEFINED ONIONHEN_OUT_BIN)
 	set(_onion_util_elf "${ONIONHEN_OUT_BIN}/util.elf")
@@ -38,7 +38,7 @@ else()
 	set(_onion_elfldr_elf "${PROJECT_ROOT}/bin/onion_elfldr.elf")
 endif()
 set_source_files_properties(
-	${D_SRC}/embeddded_payloads.c
+	${D_SRC}/embedded_payloads.c
 	PROPERTIES OBJECT_DEPENDS
 		"${ONIONHEN_OUT_BIN}/shellui.elf;${_onion_util_elf};${_onion_elfldr_elf}"
 )
