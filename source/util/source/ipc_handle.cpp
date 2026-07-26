@@ -251,10 +251,13 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     reply(sender_app, true);
     break;
   case BREW_KILL_DAEMON:{
+    /* Reply before exiting — the previous order put exit(1337) first, so the
+     * kill() and reply() below it were unreachable and the caller never got a
+     * response. Matches the daemon's handler. */
     is_handler_enabled = false;
-    exit(1337);
-    kill(getpid(), SIGKILL);
     reply(sender_app, false);
+    usleep(50 * 1000);
+    exit(1337);
     break;
   }
   case BREW_RELOAD_SETTINGS: {
