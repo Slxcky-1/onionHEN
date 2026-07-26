@@ -53,12 +53,11 @@ file(GLOB SrcFiles CONFIGURE_DEPENDS ${D_SRC}/*.c ${D_SRC}/*.cpp ${D_SRC}/../inc
 
 set(CMAKE_C_FLAGS "${ONION_PS5_TARGET_FLAGS} ")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-nested-anon-types -Wno-gnu-anonymous-struct -Wno-zero-length-array -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -Werror -fstack-protector-all")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDEBUG")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -gfull -gdwarf-2 -O0 -pedantic -pedantic-errors")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 ")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -gfull -gdwarf-2 -pedantic -pedantic-errors")
 
 target_sources(${PROJECT_NAME} PRIVATE ${SrcFiles})
 add_dependencies(${PROJECT_NAME} shellui_i18n_catalog onion_version onion_ipc onion_settings onion_detour onion_proc onion_platform onion_ready)
+onion_target_debug_define(${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PRIVATE
 	"${D_CWD}/include"
 	"${I18N_GENERATED_DIR}"

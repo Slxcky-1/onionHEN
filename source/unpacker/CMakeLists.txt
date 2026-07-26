@@ -35,9 +35,7 @@ set(SrcFiles ${D_SRC}/main.c ${LZMA_LIB})
 
 set(CMAKE_C_FLAGS "${ONION_PS5_TARGET_FLAGS} ")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -Werror -fstack-protector-all")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDEBUG")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O0")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}")
 
 target_sources(${PROJECT_NAME} PRIVATE ${SrcFiles})
 set_source_files_properties(
@@ -45,6 +43,7 @@ set_source_files_properties(
 	PROPERTIES OBJECT_DEPENDS
 		"${ONIONHEN_OUT_BIN}/bootstrapper.elf.lzma;${ONIONHEN_OUT_BIN}/bootstrapper.elf.lzma.size"
 )
+onion_target_debug_define(${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PRIVATE
 	"${D_CWD}/include"
 	"${LZMA_ROOT}"

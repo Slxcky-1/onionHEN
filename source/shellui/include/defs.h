@@ -20,7 +20,22 @@ along with this program; see the file COPYING. If not, see
 
 #define PUBLIC_TEST 0
 #define PRE_RELEASE 0
+
+/*
+ * Guards ~50 verbose diagnostic blocks in the ShellUI hooks. It was hardcoded
+ * to 1, so those blocks shipped in release payloads — ShellUI is an injected
+ * system process, and the chattiest logs in the project ran on every boot.
+ *
+ * Follows the build type via NDEBUG; override with -DSHELL_DEBUG=1 to get the
+ * verbose blocks in a release build when chasing a report.
+ */
+#ifndef SHELL_DEBUG
+#ifdef NDEBUG
+#define SHELL_DEBUG 0
+#else
 #define SHELL_DEBUG 1
+#endif
+#endif
 
 #define libSceKernelHandle 0x2001
 #define KERNEL_DLSYM(handle, sym) \

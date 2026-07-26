@@ -49,8 +49,11 @@ constexpr const char *kOnionHenTopNavIconPath =
     "/system_ex/vsh_asset/onionhen.png";
 
 std::atomic<bool> g_homeui_top_nav_reload_pending{false};
+#if SHELL_DEBUG == 1
+/* Latches so an unsupported HomeUI is reported once, not every reload. */
 std::atomic<bool> g_logged_non_homeui_skip{false};
 std::atomic<bool> g_logged_unsupported_homeui_skip{false};
+#endif
 void (*g_react_button_set_icon_source_orig)(MonoObject *instance,
                                             MonoObject *source) = nullptr;
 void (*g_react_button_set_inverted_icon_source)(MonoObject *instance,
@@ -264,6 +267,7 @@ static bool hbc_source_hash_matches(const HbcView &hbc,
                      kHbcSourceHashSize);
 }
 
+#if SHELL_DEBUG == 1
 static void format_hbc_source_hash(const HbcView &hbc, char *out,
                                    size_t out_size) {
   static const char kHex[] = "0123456789abcdef";
@@ -284,6 +288,7 @@ static void format_hbc_source_hash(const HbcView &hbc, char *out,
   }
   out[kHbcSourceHashSize * 2] = '\0';
 }
+#endif
 
 static bool validate_homeui_profile_markers(const HbcView &hbc,
                                             const HomeUiPatchProfile &profile) {
@@ -312,6 +317,7 @@ find_homeui_patch_profile(const HbcView &hbc, size_t file_length,
   return nullptr;
 }
 
+#if SHELL_DEBUG == 1
 static bool looks_like_profiled_homeui(const HbcView &hbc) {
   for (size_t i = 0;
        i < sizeof(kHomeUiPatchProfiles) / sizeof(kHomeUiPatchProfiles[0]);
@@ -324,6 +330,7 @@ static bool looks_like_profiled_homeui(const HbcView &hbc) {
 
   return false;
 }
+#endif
 
 static bool validate_patch(const HbcView &hbc, const BytePatch &patch,
                            bool *already_applied) {

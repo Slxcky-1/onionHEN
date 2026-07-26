@@ -89,6 +89,16 @@ macro(onion_output_dirs)
 	endif()
 endmacro()
 
+# Define DEBUG for non-Release builds only.
+#
+# DEBUG used to be hardcoded into the flag string, so a --release build defined
+# both DEBUG and NDEBUG. That left every #ifdef DEBUG branch — extra checks in
+# libhijacker's containers, verbose logging — compiled into shipped payloads,
+# and made "Release" mean nothing for them.
+function(onion_target_debug_define target)
+	target_compile_definitions(${target} PRIVATE $<$<NOT:$<CONFIG:Release>>:DEBUG>)
+endfunction()
+
 # Drop DWARF sections from a linked ELF. Keeps the on-device payload small;
 # the unstripped object files stay in the build tree for symbolication.
 function(onion_strip_debug target)

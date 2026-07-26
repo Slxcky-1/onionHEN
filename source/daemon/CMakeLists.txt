@@ -23,9 +23,7 @@ file(GLOB SrcFiles CONFIGURE_DEPENDS ${D_SRC}/*.c ${D_SRC}/*.cpp ${D_SRC}/../inc
 
 set(CMAKE_C_FLAGS "${ONION_PS5_TARGET_FLAGS} ")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -Werror -fstack-protector-all")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDEBUG")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -gfull -gdwarf-2 -O0 -pedantic -pedantic-errors")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 ")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -gfull -gdwarf-2 -pedantic -pedantic-errors")
 
 target_sources(${PROJECT_NAME} PRIVATE ${SrcFiles} "${ONIONHEN_COMMON_DIR}/elfldr_remote.c")
 # .incbin in embedded_payloads.c is invisible to the compiler dependency scanner.
@@ -47,6 +45,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 		ONIONHEN_UTIL_ELF="${_onion_util_elf}"
 		ONIONHEN_ELFLDR_ELF="${_onion_elfldr_elf}"
 )
+onion_target_debug_define(${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PRIVATE
 	"${D_CWD}/include"
 	"${ONIONHEN_THIRD_PARTY_DIR}/cjson"

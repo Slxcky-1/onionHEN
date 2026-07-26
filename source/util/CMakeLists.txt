@@ -35,11 +35,10 @@ file(GLOB SrcFiles CONFIGURE_DEPENDS
 
 set(CMAKE_C_FLAGS "${ONION_PS5_TARGET_FLAGS} ")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -Werror -fstack-protector-all -Wno-unused-const-variable -Wno-deprecated-declarations")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDEBUG")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -gfull -gdwarf-2 -O0 -pedantic -pedantic-errors")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -gfull -gdwarf-2 -pedantic -pedantic-errors")
 
 target_sources(${PROJECT_NAME} PRIVATE ${SrcFiles} "${ONIONHEN_COMMON_DIR}/elfldr_remote.c")
+onion_target_debug_define(${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PRIVATE
   "${D_CWD}/include"
   "${ONIONHEN_THIRD_PARTY_DIR}/cjson"
