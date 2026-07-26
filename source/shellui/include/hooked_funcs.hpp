@@ -127,6 +127,9 @@ extern  void (*OnShareButton_orig)(MonoObject* data);
 extern void (*CaptureScreen_orig_old)(MonoObject * inst, int userId, long deviceId, int capType, MonoObject* capacityInfo);
 extern void (*CaptureScreen_orig_new)(MonoObject* inst, int userId, long deviceId, int capType,  MonoString* format, MonoObject* capInfo);
 extern int (*LaunchApp_orig)(MonoString* titleId, uint64_t* args, int argsSize, LaunchAppParam *param);
+extern void (*OnRender_orig)(MonoObject* instance);
+extern void (*Orig_ReloadApp)(MonoString* str);
+extern MonoMethod* set_value_method;
 extern MonoImage * react_common_img;
 
 /* =============================== mono utils =============================================================================*/

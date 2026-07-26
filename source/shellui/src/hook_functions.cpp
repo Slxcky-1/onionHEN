@@ -77,7 +77,6 @@ MonoClass* MemoryStream_IO = nullptr;
 
 // UI runtime state: g_ui (shellui_state.hpp / shellui_globals.cpp)
 
-int usbpath();
 #define MAX_CHEATS 256
 
 

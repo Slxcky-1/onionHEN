@@ -34,7 +34,6 @@
 #include "shellui_state.hpp"
 #include "toolbox_helpers.hpp"
 
-int usbpath();
 void escapeXML(std::string& input);
 bool Get_Running_App_TID(std::string& title_id, int& BigAppid);
 

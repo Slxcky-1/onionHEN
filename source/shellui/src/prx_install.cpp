@@ -11,8 +11,6 @@
 #include <string>
 #include <pthread.h>
 
-extern void (*Orig_ReloadApp)(MonoString *str);
-extern int (*Orig_AppInstUtilInstallByPackage)(MonoString* uri, MonoString* ex_uri, MonoString* playgo_scenario_id, MonoString* content_id, MonoString* content_name, MonoString* icon_url, uint32_t slot, bool is_playgo_enabled, MonoObject* pkg_info, MonoArray* languages, MonoArray* playgo_scenario_ids, MonoArray* content_ids);
 extern bool is_6xx, is_3xx;
 extern bool app_launched;
 

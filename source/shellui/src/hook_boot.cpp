@@ -15,8 +15,6 @@
 #include <atomic>
 #include <cstring>
 
-extern bool (*boot_orig)(MonoString* uri, int opt, MonoString* titleIdForBootAction);
-extern bool (*boot_orig_2)(MonoString* uri, int opt);
 #include "shellui_state.hpp"
 #include <onion/platform.h>
 

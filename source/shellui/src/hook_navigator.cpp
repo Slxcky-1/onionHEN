@@ -26,8 +26,6 @@
  * the flag stayed true forever → 2nd GetModel no-ops + skips orig → blank RN page.
  */
 
-extern bool (*boot_orig)(MonoString *uri, int opt, MonoString *titleIdForBootAction);
-extern bool (*boot_orig_2)(MonoString *uri, int opt);
 
 /** Ignore duplicate GetModel + UpdateNavigationState within this window. */
 static constexpr auto kLegacyNavDebounce = std::chrono::milliseconds(750);

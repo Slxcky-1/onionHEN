@@ -15,8 +15,6 @@
 
 #include <string>
 
-extern int (*oOnPreCreate)(MonoObject *Instance, MonoObject *element);
-extern MonoMethod *set_value_method;
 
 std::string GetPropertyValue(MonoObject *element, const char *propertyName);
 

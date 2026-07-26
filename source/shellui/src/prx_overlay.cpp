@@ -11,7 +11,6 @@
 #include <cstdlib>
 #include <vector>
 
-extern void (*OnRender_orig)(MonoObject* instance);
 extern MonoObject* rootWidget;
 extern MonoObject* font;
 extern OverlayLayout g_overlay_layout;

@@ -3,8 +3,7 @@
  */
 #include "onpress.hpp"
 #include "onpress_policy.hpp"
-
-extern int (*oOnPress)(MonoObject *Instance, MonoObject *element, MonoObject *e);
+#include "hooked_funcs.hpp"
 #include "shellui_state.hpp"
 
 namespace {

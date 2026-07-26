@@ -16,9 +16,6 @@
 #include <cstring>
 #include <algorithm>
 
-extern void (*CaptureScreen_orig_old)(MonoObject * inst, int userId, long deviceId, int capType, MonoObject* capacityInfo);
-extern void (*CaptureScreen_orig_new)(MonoObject * inst, int userId, long deviceId, int capType, MonoString* format, MonoObject* capacityInfo);
-extern void (*OnShareButton_orig)(MonoObject* data);
 
 bool CaptureScreen();
 
