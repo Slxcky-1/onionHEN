@@ -31,13 +31,13 @@ bool ensure_set_value_method() {
   MonoAssembly *Legacy_assembly =
       mono_domain_assembly_open(Root_Domain, legacy_dec.c_str());
   if (!Legacy_assembly) {
-    shellui_log("Failed to open assembly.");
+    LOG_ERROR("Failed to open assembly.");
     return false;
   }
 
   MonoImage *leg_img = mono_assembly_get_image(Legacy_assembly);
   if (!leg_img) {
-    shellui_log("Failed to get image.");
+    LOG_ERROR("Failed to get image.");
     return false;
   }
 
@@ -50,13 +50,13 @@ bool ensure_set_value_method() {
 
   MonoProperty *s_Property = mono_class_get_property_from_name(klass, "Value");
   if (!s_Property) {
-    shellui_log("Failed to find property");
+    LOG_ERROR("Failed to find property");
     return false;
   }
 
   set_value_method = mono_property_get_set_method(s_Property);
   if (!set_value_method) {
-    shellui_log("Failed to find set method");
+    LOG_ERROR("Failed to find set method");
     return false;
   }
   return true;
@@ -70,7 +70,7 @@ int OnPreCreate_Hook(MonoObject *Instance, MonoObject *element) {
 
   if (!Instance || !element) {
 #if SHELL_DEBUG == 1
-    shellui_log("[LM HOOK] OnPreCreate_Hook: args are null");
+    LOG_DEBUG("[LM HOOK] OnPreCreate_Hook: args are null");
 #endif
     return call_original(Instance, element);
   }

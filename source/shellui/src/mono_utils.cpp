@@ -196,7 +196,7 @@ void* GoToURIThread(void *arg) {
 
 void GoToURI(const char* uri) {
   if (!uri) {
-      shellui_log("GoToURI: URI is null");
+      LOG_DEBUG("GoToURI: URI is null");
       return;
   }
   
@@ -205,7 +205,7 @@ void GoToURI(const char* uri) {
   
   pthread_t t;
   if (pthread_create(&t, nullptr, GoToURIThread, data) != 0) {
-      shellui_log("Failed to create thread for GoToURI");
+      LOG_ERROR("Failed to create thread for GoToURI");
       delete data;  // Clean up on failure
       return;
   }

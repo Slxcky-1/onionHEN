@@ -132,7 +132,7 @@ bool wait_private_loader_ready(int timeout_ms) {
     if (elfldr_remote_onion_available()) {
       const pid_t pid = private_loader_pid();
       if (pid > 1) {
-        OnionHEN_log("runtime supervisor: private elfldr ready pid=%d", (int)pid);
+        LOG_INFO("runtime supervisor: private elfldr ready pid=%d", (int)pid);
         return true;
       }
     }
@@ -147,21 +147,21 @@ RecoveryResult recover_private_loader(bool recover_timed_out_busy_loader) {
 
   const pid_t old_pid = private_loader_pid();
   if (private_loader_busy(old_pid) && !recover_timed_out_busy_loader) {
-    OnionHEN_log("runtime supervisor: private elfldr pid=%d is busy; defer recovery",
+    LOG_INFO("runtime supervisor: private elfldr pid=%d is busy; defer recovery",
                  (int)old_pid);
     return RecoveryResult::Busy;
   }
 
   if (old_pid > 1) {
-    OnionHEN_log("runtime supervisor: stopping unresponsive private elfldr pid=%d",
+    LOG_INFO("runtime supervisor: stopping unresponsive private elfldr pid=%d",
                  (int)old_pid);
     if (kill(old_pid, SIGKILL) != 0 && errno != ESRCH) {
-      OnionHEN_log("runtime supervisor: kill(%d) failed: %s", (int)old_pid,
+      LOG_ERROR("runtime supervisor: kill(%d) failed: %s", (int)old_pid,
                    strerror(errno));
       return RecoveryResult::Failed;
     }
     if (!wait_process_exit(old_pid, 3000)) {
-      OnionHEN_log("runtime supervisor: private elfldr pid=%d did not exit",
+      LOG_INFO("runtime supervisor: private elfldr pid=%d did not exit",
                    (int)old_pid);
       return RecoveryResult::Failed;
     }
@@ -171,14 +171,14 @@ RecoveryResult recover_private_loader(bool recover_timed_out_busy_loader) {
   unlink(ONION_SYSTEM_TMP_ELFLDR_BUSY);
 
   if (!elfldr_remote_available()) {
-    OnionHEN_log("runtime supervisor: external recovery elfldr :9021 unavailable");
+    LOG_WARN("runtime supervisor: external recovery elfldr :9021 unavailable");
     return RecoveryResult::Failed;
   }
 
-  OnionHEN_log("runtime supervisor: launching embedded private elfldr via :9021");
+  LOG_INFO("runtime supervisor: launching embedded private elfldr via :9021");
   if (!elfldr_remote_send_bytes_to(ELFLDR_REMOTE_PORT, onion_elfldr_elf_start,
                                    onion_elfldr_elf_size)) {
-    OnionHEN_log("runtime supervisor: failed to send private elfldr to :9021");
+    LOG_ERROR("runtime supervisor: failed to send private elfldr to :9021");
     return RecoveryResult::Failed;
   }
 
@@ -229,7 +229,7 @@ void *runtime_supervisor_thread(void *args) noexcept {
   bool util_outage_notified = false;
   uint64_t loader_busy_since = 0;
 
-  OnionHEN_log("runtime supervisor started (:9021 recovery -> :9020 -> util)");
+  LOG_INFO("runtime supervisor started (:9021 recovery -> :9020 -> util)");
 
   while (!g_stack_shutting_down.load(std::memory_order_acquire)) {
     if (!elfldr_remote_onion_available()) {
@@ -253,7 +253,7 @@ void *runtime_supervisor_thread(void *args) noexcept {
       }
 
       if (busy_timed_out) {
-        OnionHEN_log("runtime supervisor: private elfldr busy for at least %llu seconds; forcing recovery",
+        LOG_INFO("runtime supervisor: private elfldr busy for at least %llu seconds; forcing recovery",
                      (unsigned long long)kLoaderBusyGraceSeconds);
       }
 
@@ -281,7 +281,7 @@ void *runtime_supervisor_thread(void *args) noexcept {
         continue;
       } else {
         ++loader_recovery_failures;
-        OnionHEN_log("runtime supervisor: loader recovery failed (%d)",
+        LOG_ERROR("runtime supervisor: loader recovery failed (%d)",
                      loader_recovery_failures);
         if (loader_recovery_failures == 3) {
           onion_notify(true,
@@ -304,13 +304,13 @@ void *runtime_supervisor_thread(void *args) noexcept {
       }
 
       if (restart_util_via_private_loader()) {
-        OnionHEN_log("runtime supervisor: util recovered through private :9020");
+        LOG_INFO("runtime supervisor: util recovered through private :9020");
         onion_notify(true, "OnionHEN Utility services successfully restarted");
         util_recovery_failures = 0;
         util_outage_notified = false;
       } else {
         ++util_recovery_failures;
-        OnionHEN_log("runtime supervisor: util recovery failed (%d)",
+        LOG_ERROR("runtime supervisor: util recovery failed (%d)",
                      util_recovery_failures);
         if (util_recovery_failures == 3) {
           onion_notify(true,
@@ -327,6 +327,6 @@ void *runtime_supervisor_thread(void *args) noexcept {
     sleep(kHealthySleepSeconds);
   }
 
-  OnionHEN_log("runtime supervisor stopped (stack shutdown)");
+  LOG_INFO("runtime supervisor stopped (stack shutdown)");
   return nullptr;
 }

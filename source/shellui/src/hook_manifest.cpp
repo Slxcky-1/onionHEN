@@ -38,7 +38,7 @@ uint64_t GetManifestResourceStream_Hook(uint64_t inst, MonoString *FileName) {
   MonoDomain *domain = current_mono_domain();
 
 #if SHELL_DEBUG == 1
-  shellui_log("GetManifestResourceStream_Hook: %s domain=%p root=%p",
+  LOG_DEBUG("GetManifestResourceStream_Hook: %s domain=%p root=%p",
               resourceName.c_str(), (void *)domain, (void *)Root_Domain);
 #endif
 
@@ -69,7 +69,7 @@ uint64_t GetManifestResourceStream_Hook(uint64_t inst, MonoString *FileName) {
       g_ui.active_page, route.page, resourceName));
   if (was_remote_play &&
       !g_ui.is_active_page(toolbox::Page::RemotePlay)) {
-    shellui_log("[remote_play] left toolbox page — end registration");
+    LOG_DEBUG("[remote_play] left toolbox page — end registration");
     StopConfirmRegistLoop();
   }
 
@@ -89,25 +89,25 @@ uint64_t GetManifestResourceStream_Hook(uint64_t inst, MonoString *FileName) {
 
   if (!MemoryStream_IO) {
     if (!domain) {
-      shellui_log("GetManifestResourceStream_Hook: no mono domain");
+      LOG_DEBUG("GetManifestResourceStream_Hook: no mono domain");
       return GetManifestResourceStream_Original(inst, FileName);
     }
     MonoAssembly *Assembly = mono_domain_assembly_open(
         domain, "/system_ex/common_ex/lib/mscorlib.dll");
     if (!Assembly) {
-      shellui_log("Failed to open mscorlib assembly");
+      LOG_ERROR("Failed to open mscorlib assembly");
       return GetManifestResourceStream_Original(inst, FileName);
     }
     MonoImage *mscorelib_image = mono_assembly_get_image(Assembly);
     if (!mscorelib_image) {
-      shellui_log("Failed to get mscorelib image");
+      LOG_ERROR("Failed to get mscorelib image");
       return GetManifestResourceStream_Original(inst, FileName);
     }
 
     MemoryStream_IO =
         mono_class_from_name(mscorelib_image, "System.IO", "MemoryStream");
     if (!MemoryStream_IO) {
-      shellui_log("Failed to open class MemoryStream");
+      LOG_ERROR("Failed to open class MemoryStream");
       return GetManifestResourceStream_Original(inst, FileName);
     }
   }

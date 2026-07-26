@@ -1,3 +1,4 @@
+#include <onion/log.h>
 #include "hijacker.hpp"
 #include "offsets.hpp"
 #include "util.hpp"
@@ -30,7 +31,7 @@ int Hijacker::getMainThreadId() const {
 			}
 		}
 		if (mainThreadId == -1) [[unlikely]] {
-			puts("main thread id not found");
+			LOG_ERROR("main thread id not found");
 		}
 	}
 	return mainThreadId;
@@ -67,7 +68,7 @@ void Hijacker::jailbreak(bool escapeSandbox) const {
 	int uid = -1;
 	kernel_copyout(ucred + 0x04, &uid, 0x4);
 	if(uid == 0 && !escapeSandbox){
-		puts("already jailbroken");
+		LOG_WARN("already jailbroken");
 		return;
 	}
 	UniquePtr<uint8_t[]> rootvnode_area_store{new uint8_t[0x100]};

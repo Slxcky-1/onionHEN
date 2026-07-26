@@ -83,7 +83,7 @@ void Get_Page_Table_Stats(int vm, int type, int* Used, int* Free, int* Total)
     int _Total = 0, _Free = 0;
 
     if (get_page_table_stats(vm, type, &_Total, &_Free) == -1) {
-        shellui_log("get_page_table_stats() Failed.\n");
+        LOG_ERROR("get_page_table_stats() Failed.");
         return;
     }
 

@@ -17,6 +17,7 @@ along with this program; see the file COPYING. If not, see
 #pragma once
 
 #include <msg.hpp>
+#include <onion/log.h>
 #include <mutex>
 #include <string>
 
@@ -32,13 +33,7 @@ along with this program; see the file COPYING. If not, see
 //   - JSON string fields are built with cJSON (escape-safe).
 // ---------------------------------------------------------------------------
 
-// Legacy free loggers used by shellui (Detour, Mono, hooks).
-// Both forward to the same klog sink.
-// Note: no printf format attribute — existing call sites pass typed pointers
-// with %p under -Wformat-pedantic / -Werror (historical header-only logger).
-void shellui_log(const char *fmt, ...);
-void game_log(const char *fmt, ...);
-void onion_ipc_log(const char *fmt, ...);
+// Logging: the shared LOG_* macros from <onion/log.h>, included above.
 
 // Optional: host may install a notify sink (e.g. shellui bubble). Default: none.
 using OnionIpcNotifyFn = void (*)(const char *text);

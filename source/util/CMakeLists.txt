@@ -30,7 +30,7 @@ file(GLOB SrcFiles CONFIGURE_DEPENDS
   ${D_SRC}/*.s
   ${ONIONHEN_THIRD_PARTY_DIR}/cjson/*.cpp
   ${ONIONHEN_THIRD_PARTY_DIR}/cjson/*.hpp
-  ${ONIONHEN_COMMON_DIR}/backtrace.cpp
+ 
 )
 
 set(CMAKE_C_FLAGS "${ONION_PS5_TARGET_FLAGS} ")

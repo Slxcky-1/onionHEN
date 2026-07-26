@@ -17,7 +17,7 @@
 
 static pid_t shellui_payload_drop_stale_pid(const char *pid_path,
                                             const char *key) {
-  shellui_log("Stale payload PID file for %s, removing", key ? key : "?");
+  LOG_WARN("Stale payload PID file for %s, removing", key ? key : "?");
   if (pid_path) {
     unlink(pid_path);
   }
@@ -50,7 +50,7 @@ pid_t shellui_payload_validate_pid(pid_t pid, const char *pid_path,
                                    const char *key) {
   if (pid <= 1) {
     if (pid == 1) {
-      shellui_log("Ignoring bogus payload PID 1 for %s", key ? key : "?");
+      LOG_WARN("Ignoring bogus payload PID 1 for %s", key ? key : "?");
       if (pid_path) {
         unlink(pid_path);
       }

@@ -283,14 +283,14 @@ static void cleanup(void);
     const int path_len = snprintf(temp_path, sizeof(temp_path), "%s.tmp.%d", path,
                                   getpid());
     if (path_len < 0 || static_cast<size_t>(path_len) >= sizeof(temp_path)) {
-      klog_printf("write_embedded_assets: path too long: %s\n", path);
+      LOG_DEBUG("write_embedded_assets: path too long: %s", path);
       return false;
     }
 
     unlink(temp_path);
     int fd = open(temp_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
     if (fd < 0) {
-      klog_printf("write_embedded_assets: open failed: %s (%s)\n", path,
+      LOG_ERROR("write_embedded_assets: open failed: %s (%s)", path,
                   strerror(errno));
       return false;
     }
@@ -302,14 +302,14 @@ static void cleanup(void);
       if (written < 0 && errno == EINTR)
         continue;
       if (written < 0) {
-        klog_printf("write_embedded_assets: write failed: %s (%s)\n", path,
+        LOG_ERROR("write_embedded_assets: write failed: %s (%s)", path,
                     strerror(errno));
         close(fd);
         unlink(temp_path);
         return false;
       }
       if (written == 0) {
-        klog_printf("write_embedded_assets: zero-byte write: %s\n", path);
+        LOG_DEBUG("write_embedded_assets: zero-byte write: %s", path);
         close(fd);
         unlink(temp_path);
         return false;
@@ -319,7 +319,7 @@ static void cleanup(void);
     }
 
     if (close(fd) != 0 || rename(temp_path, path) != 0) {
-      klog_printf("write_embedded_assets: commit failed: %s (%s)\n", path,
+      LOG_ERROR("write_embedded_assets: commit failed: %s (%s)", path,
                   strerror(errno));
       unlink(temp_path);
       return false;
@@ -369,7 +369,7 @@ static void cleanup(void);
 
 static void notify_starting(bool custom_icon_ready) {
   if (!custom_icon_ready) {
-    klog_puts("Startup icon unavailable; using system notification icon");
+    LOG_WARN("Startup icon unavailable; using system notification icon");
     notify("OnionHEN is starting...");
     return;
   }
@@ -564,14 +564,14 @@ char **find_payload_files() {
                base_dirs[i], entry->d_name);
 
       if (!if_exists(auto_start_path)) {
-        printf("skipping auto start for payload: %s\n", full_path);
+        LOG_WARN("skipping auto start for payload: %s", full_path);
         continue;
       }
 
       for (int j = 0; j < payload_count; j++) {
         if (strcmp(loaded_filenames[j], entry->d_name) == 0) {
           skip = true;
-          printf("skipping duplicate payload: %s | already loaded: %s\n",
+          LOG_WARN("skipping duplicate payload: %s | already loaded: %s",
                  full_path, loaded_filenames[j]);
           break;
         }
@@ -639,24 +639,24 @@ static bool wait_onion_loader(int timeout_ms) {
 
 static bool ensure_embedded_elfldr_9020(void) {
   if (elfldr_remote_onion_available()) {
-    klog_puts("embedded elfldr :9020 already available");
+    LOG_WARN("embedded elfldr :9020 already available");
     return true;
   }
 
-  klog_printf("Starting embedded elfldr on %u via external %u ...\n",
+  LOG_DEBUG("Starting embedded elfldr on %u via external %u ...",
               ONION_ELFLDR_PORT, ELFLDR_REMOTE_PORT);
   if (!elfldr_remote_send_bytes_to(ELFLDR_REMOTE_PORT, onion_elfldr_start,
                                    onion_elfldr_size)) {
-    klog_puts("  embedded elfldr launch send failed");
+    LOG_ERROR("  embedded elfldr launch send failed");
     return false;
   }
 
   if (wait_onion_loader(10000)) {
-    klog_puts("  embedded elfldr :9020 ready");
+    LOG_DEBUG("  embedded elfldr :9020 ready");
     return true;
   }
 
-  klog_puts("  embedded elfldr :9020 did not become ready");
+  LOG_DEBUG("  embedded elfldr :9020 did not become ready");
   return false;
 }
 
@@ -666,27 +666,27 @@ static bool launch_blob(const uint8_t *elf, size_t size, const char *label,
       !loader_available(g_payload_loader_port)) {
     g_payload_loader_port = ELFLDR_REMOTE_PORT;
   }
-  klog_printf("%u memory ELF: %s (%zu bytes)\n", g_payload_loader_port, label,
+  LOG_DEBUG("%u memory ELF: %s (%zu bytes)", g_payload_loader_port, label,
               size);
   if (!elfldr_remote_send_bytes_to(g_payload_loader_port, elf, size)) {
     if (g_payload_loader_port != ELFLDR_REMOTE_PORT &&
         elfldr_remote_send_bytes_to(ELFLDR_REMOTE_PORT, elf, size)) {
-      klog_printf("  send via %u failed; fallback %u accepted %s\n",
+      LOG_ERROR("  send via %u failed; fallback %u accepted %s",
                   g_payload_loader_port, ELFLDR_REMOTE_PORT, label);
       g_payload_loader_port = ELFLDR_REMOTE_PORT;
     } else {
-      klog_printf("  send FAILED %s\n", label);
+      LOG_ERROR("  send FAILED %s", label);
       return false;
     }
   }
   for (int i = 0; i < 30; i++) {
     if (wait_name && onion_find_pid_substr(wait_name) > 0) {
-      klog_printf("  running: %s\n", wait_name);
+      LOG_DEBUG("  running: %s", wait_name);
       return true;
     }
     sleep(1);
   }
-  klog_printf("  sent %s (process name not seen yet, continuing)\n", label);
+  LOG_DEBUG("  sent %s (process name not seen yet, continuing)", label);
   return true;
 }
 
@@ -699,21 +699,21 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
   char buz[100] = {0};
 
   if (!elfldr_remote_available()) {
-    klog_puts("FATAL: no elfldr on 127.0.0.1:9021");
+    LOG_DEBUG("FATAL: no elfldr on 127.0.0.1:9021");
     notify("Start elfldr on 9021 first, then re-run OnionHEN.");
     return -2;
   }
   g_payload_loader_port =
       ensure_embedded_elfldr_9020() ? ONION_ELFLDR_PORT : ELFLDR_REMOTE_PORT;
-  klog_printf("payload loader port: %u\n", g_payload_loader_port);
-  klog_puts("launching embedded ELFs (serialized)");
+  LOG_DEBUG("payload loader port: %u", g_payload_loader_port);
+  LOG_DEBUG("launching embedded ELFs (serialized)");
   sleep(3); /* settle after remount/unmount */
 
   /*
    * Order: util → kstuff → daemon
    * (daemon injects toolbox; kstuff must patch ShellUI first)
    */
-  klog_printf("Starting util via %u ...\n", g_payload_loader_port);
+  LOG_DEBUG("Starting util via %u ...", g_payload_loader_port);
   kill_by_name("onion_util.elf", "util.elf");
   kill_by_name("OnionHEN Utility", nullptr);
   onion_ready_clear(ONION_READY_UTIL);
@@ -733,20 +733,20 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
     return -2;
   }
   if (!onion_ready_wait(ONION_READY_UTIL, /*timeout_ms=*/15000, /*poll_ms=*/200))
-    klog_puts("util ready timeout — continuing (process may still be starting)");
+    LOG_WARN("util ready timeout — continuing (process may still be starting)");
 
   const bool skip_kstuff =
       if_exists("/mnt/usb0/no_kstuff") || if_exists("/data/OnionHEN/no_kstuff");
   if (skip_kstuff) {
-    klog_puts("kstuff disabled via no_kstuff file");
+    LOG_DEBUG("kstuff disabled via no_kstuff file");
     onion_ready_signal(ONION_READY_KSTUFF);
   } else if (sys_ver.version >= 0x3000000) {
     if (kstuff_already_running()) {
       /* Re-HEN after stack shutdown leaves kstuff alive; do not double-load. */
-      klog_puts("kstuff already running / mprotect OK — skip launch");
+      LOG_WARN("kstuff already running / mprotect OK — skip launch");
       onion_ready_signal(ONION_READY_KSTUFF);
     } else {
-      klog_printf("Loading kstuff via %u (before daemon/toolbox) ...\n",
+      LOG_DEBUG("Loading kstuff via %u (before daemon/toolbox) ...",
                   g_payload_loader_port);
       uint8_t *override_elf = nullptr;
       size_t override_size = 0;
@@ -770,7 +770,7 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
           sleep(1);
         }
         if (!not_loaded) {
-          klog_puts("kstuff mprotect OK — signal ready");
+          LOG_DEBUG("kstuff mprotect OK — signal ready");
           onion_ready_signal(ONION_READY_KSTUFF);
           sleep(1); /* brief settle for ShellUI trophy patches */
         }
@@ -782,7 +782,7 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
     onion_ready_signal(ONION_READY_KSTUFF);
   }
 
-  klog_printf("Starting daemon via %u (toolbox inject) ...\n",
+  LOG_DEBUG("Starting daemon via %u (toolbox inject) ...",
               g_payload_loader_port);
   kill_by_name("onion_daemon.elf", "daemon.elf");
   kill_by_name("OnionHEN Critical", nullptr);
@@ -793,7 +793,7 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
   }
   if (!onion_ready_wait(ONION_READY_DAEMON, /*timeout_ms=*/20000,
                         /*poll_ms=*/200))
-    klog_puts("daemon ready timeout — continuing");
+    LOG_WARN("daemon ready timeout — continuing");
 
   return 0;
 }
@@ -801,7 +801,7 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
 /** Autostart payloads (.elf) with .auto_start marker; skip *elfldr*. */
 static void load_autostart_payloads(void) {
   if (!elfldr_remote_onion_available()) {
-    klog_puts("Skipping user payload autostart: private elfldr :9020 unavailable");
+    LOG_WARN("Skipping user payload autostart: private elfldr :9020 unavailable");
     notify("User payload autostart skipped: private elfldr :9020 is unavailable");
     return;
   }
@@ -814,16 +814,16 @@ static void load_autostart_payloads(void) {
   for (int i = 0; i < payload_count; i++) {
     if (strstr(payload_paths[i], "elfldr") != nullptr)
       continue;
-    klog_printf("Loading payload: %s\n", payload_paths[i]);
+    LOG_DEBUG("Loading payload: %s", payload_paths[i]);
     if (!load_payload(payload_paths[i], loaded_filenames[i])) {
       notify("Failed to load payload!\nPath: %s", payload_paths[i]);
-      klog_puts("FAILED!");
+      LOG_ERROR("FAILED!");
       continue;
     }
-    klog_puts("Loaded!");
+    LOG_DEBUG("Loaded!");
     loaded++;
   }
-  klog_printf("Successfully loaded %d payloads\n", loaded);
+  LOG_DEBUG("Successfully loaded %d payloads", loaded);
   free_payload_files(payload_paths);
 }
 
@@ -843,19 +843,19 @@ int main(void) {
 
   signal(SIGCHLD, SIG_IGN);
 
-  klog_puts("Jailbreaking the boostrapper ...");
+  LOG_DEBUG("Jailbreaking the boostrapper ...");
   if (elfldr_raise_privileges(getpid())) {
     notify("Unable to raise privileges");
     return -1;
   }
-  klog_printf("   Success!\n");
+  LOG_DEBUG("   Success!");
 
   if (if_exists("/data/I_want_logging_for_onionhen")) {
-    klog_printf("Redirecting stdout and stderr to logger ...");
+    LOG_DEBUG("Redirecting stdout and stderr to logger ...");
     if (initStdout() >= 0)
-      klog_puts("   Success!");
+      LOG_DEBUG("   Success!");
     else
-      klog_puts("   Failed!");
+      LOG_ERROR("   Failed!");
   }
 
   OrbisKernelSwVersion sys_ver;
@@ -863,11 +863,11 @@ int main(void) {
 
   // Byepervisor (1.xx–2.xx HV path) removed from OnionHEN.
   if (sys_ver.version < 0x3000000 && !sceKernelIsGenuineDevKit()) {
-    klog_printf("FW %s is < 3.00 and Byepervisor is not bundled; continuing without HV path\n",
+    LOG_DEBUG("FW %s is < 3.00 and Byepervisor is not bundled; continuing without HV path",
                 sys_ver.version_str);
   }
 
-  klog_puts("============== Spawner (Bootstrapper) Started =================");
+  LOG_DEBUG("============== Spawner (Bootstrapper) Started =================");
 
   // Directory layout
   mkdir("/data/OnionHEN", 0777);
@@ -875,11 +875,11 @@ int main(void) {
   mkdir("/data/OnionHEN/assets", 0777);
   mkdir("/data/OnionHEN/games", 0777);
 
-  klog_printf("Registering signal handler ...");
+  LOG_DEBUG("Registering signal handler ...");
   fault_handler_init(cleanup);
-  klog_printf("   Success!\n");
+  LOG_DEBUG("   Success!");
 
-  klog_printf("Remounting system partitions ...");
+  LOG_DEBUG("Remounting system partitions ...");
   if (!remount("/dev/ssd0.system_ex", "/system_ex")) {
     perror("failed to mount /system_ex\nif you see this reboot");
     notify("failed to mount /system_ex\nif you see this reboot");
@@ -890,19 +890,19 @@ int main(void) {
     notify("failed to mount /system\nif you see this reboot");
     return -1;
   }
-  klog_printf("   Success!\n");
+  LOG_DEBUG("   Success!");
 
-  klog_printf("Writing embedded assets ...");
+  LOG_DEBUG("Writing embedded assets ...");
   const bool startup_icon_ready = write_embedded_assets();
-  klog_printf("   Written!\n");
+  LOG_DEBUG("   Written!");
   notify_starting(startup_icon_ready);
 
-  klog_printf("Unmounting /update forcefully ...");
+  LOG_DEBUG("Unmounting /update forcefully ...");
   unlink("/update/PS5UPDATE.PUP");
   unlink("/update/PS5UPDATE.PUP.net.temp");
   if ((int)unmount("/update", 0x80000LL) < 0)
     unmount("/update", 0);
-  klog_puts("   Success!");
+  LOG_DEBUG("   Success!");
 
   int rc = launch_chain(sys_ver);
   if (rc != 0)
@@ -910,6 +910,6 @@ int main(void) {
 
   load_autostart_payloads();
 
-  klog_puts("============== Spawner (Bootstrapper) Finished =================");
+  LOG_DEBUG("============== Spawner (Bootstrapper) Finished =================");
   return 0;
 }

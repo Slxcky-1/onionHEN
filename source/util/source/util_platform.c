@@ -1,3 +1,4 @@
+#include <onion/log.h>
 #include "util_platform.h"
 
 #include <ctype.h>
@@ -14,7 +15,6 @@
 
 #include <ps5/kernel.h>
 
-void OnionHEN_log(const char *fmt, ...);
 
 /* Same as NineS SYS_dl_get_list / SYS_dl_get_info_2 */
 #ifndef SYS_dl_get_list

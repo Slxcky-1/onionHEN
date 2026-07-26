@@ -73,21 +73,21 @@ static void cleanup(void) {
 }
 
 void __stack_chk_fail(void) {
-    puts("Stack smashing detected.");
+    LOG_DEBUG("Stack smashing detected.");
 }
 
 bool LoadSettings() {
     onion::Settings s{};
     if (!onion::settings_load(&s)) {
-        OnionHEN_log("config.ini missing; using defaults (path primary=%s)",
+        LOG_ERROR("config.ini missing; using defaults (path primary=%s)",
                      onion::kConfigPathPrimary);
     } else {
-        OnionHEN_log("Loaded settings from %s", onion::settings_last_loaded_path());
+        LOG_INFO("Loaded settings from %s", onion::settings_last_loaded_path());
     }
 
     const onion_log_level effective = onion::apply_log_settings(s);
     if (effective != static_cast<onion_log_level>(s.log_level)) {
-        OnionHEN_log("log level '%s' unavailable in this build; using '%s'",
+        LOG_WARN("log level '%s' unavailable in this build; using '%s'",
                      onion_log_level_name(static_cast<onion_log_level>(s.log_level)),
                      onion_log_level_name(effective));
     }
@@ -114,16 +114,16 @@ int main(void) {
     /* Real linked kernel export (not a dlsym function-pointer variable). */
     onion_notify_set_send(reinterpret_cast<onion_notify_send_fn>(
         sceKernelSendNotificationRequest));
-    OnionHEN_log("util daemon entered");
+    LOG_INFO("util daemon entered");
 
     if (setjmp(g_catch_buf) == 0)
-        OnionHEN_log("jump has been set");
+        LOG_INFO("jump has been set");
     else
         onion_notify(true, "The Fatal error has been successfully resolved\n\nyou have nothing to worry about");
 
-    OnionHEN_log("Registering signal handler...");
+    LOG_INFO("Registering signal handler...");
     fault_handler_init(cleanup);
-    OnionHEN_log("   Success!");
+    LOG_INFO("   Success!");
 
     payload_args_t* args = payload_get_args();
     kernel_base = args->kdata_base_addr;
@@ -133,7 +133,7 @@ int main(void) {
     unlink("/data/OnionHEN/OnionHEN_util_daemon.log");
     unlink("/data/OnionHEN/OnionHEN_util_crash.log");
 
-    OnionHEN_log("=========== starting OnionHEN Utilities... ===========");
+    LOG_INFO("=========== starting OnionHEN Utilities... ===========");
 
     LoadSettings();
 
@@ -144,13 +144,13 @@ int main(void) {
 
     if (onion_ready_is_set(ONION_FLAG_UTIL_BOOTED)) {
         /* onion_util.elf restarted mid-session (crash recover / re-launch) — not rest. */
-        OnionHEN_log("util already booted once — toolbox reinject (not rest)");
+        LOG_WARN("util already booted once — toolbox reinject (not rest)");
         patch_checker(/*rest_resume=*/false);
     }
     /* Mark that util completed cold start (typed flag; replaces util_first_boot file). */
     onion_ready_signal(ONION_FLAG_UTIL_BOOTED);
 
-    OnionHEN_log("Initializing cheat engine...");
+    LOG_INFO("Initializing cheat engine...");
     onion::cheats::CheatService::instance().ensureDir();
 
     for (;;) {

@@ -29,7 +29,7 @@ static OnPressResult id_save_rp_info(OnPressContext &ctx) {
   }
   std::string usb_rp_path =
       "/usb" + std::to_string(usbpath()) + "/remote_play_info.txt";
-  shellui_log("Saving Remote Play info to %s", usb_rp_path.c_str());
+  LOG_DEBUG("Saving Remote Play info to %s", usb_rp_path.c_str());
   std::ofstream rp_file(usb_rp_path);
   if (!rp_file.is_open()) {
     notify("Failed to open Remote Play info file");
@@ -43,7 +43,7 @@ static OnPressResult id_save_rp_info(OnPressContext &ctx) {
 
 static OnPressResult id_lm_test(OnPressContext &ctx) {
   (void)ctx;
-  shellui_log("LM's Test Button Pressed");
+  LOG_DEBUG("LM's Test Button Pressed");
   return OnPressResult::Handled;
 }
 

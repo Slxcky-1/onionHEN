@@ -37,7 +37,7 @@ bool rmtree(const char *path) {
 
   DIR *dir = opendir(path);
   if (dir == NULL) {
-    OnionHEN_log("Error opening directory %s", path);
+    LOG_ERROR("Error opening directory %s", path);
     return false;
   }
 
@@ -53,14 +53,14 @@ bool rmtree(const char *path) {
     if (entry->d_type == DT_DIR) {
       rmtree(child);
     } else if (unlink(child) != 0) {
-      OnionHEN_log("Error deleting file %s", child);
+      LOG_ERROR("Error deleting file %s", child);
     }
   }
 
   closedir(dir);
 
   if (rmdir(path) != 0) {
-    OnionHEN_log("Error deleting folder %s", path);
+    LOG_ERROR("Error deleting folder %s", path);
   }
   return true;
 }

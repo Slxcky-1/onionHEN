@@ -16,5 +16,5 @@ void notify(const char *text, ...) {
   // Send goes through onion_notify_set_send trampoline (dlsym pointer safe).
   onion_notify_v(/*show_watermark=*/0, text, args);
   va_end(args);
-  shellui_log("Notify send returned (onion_notify path)");
+  LOG_DEBUG("Notify send returned (onion_notify path)");
 }

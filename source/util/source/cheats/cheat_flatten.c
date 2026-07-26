@@ -1,3 +1,4 @@
+#include <onion/log.h>
 #include "cheats/runtime.h"
 
 #include <ctype.h>
@@ -8,7 +9,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-void OnionHEN_log(const char *fmt, ...);
 
 int onion_cheat_match_ext(const char *name, char *ext_out, size_t ext_out_size) {
   static const char *exts[] = {".json", ".shn", ".mc4", ".ShnExt", ".shnext"};
@@ -178,7 +178,7 @@ static void walk_and_flatten(const char *dir, int *copied, int *skipped) {
     }
     if (copy_file(path, dest) == 0) {
       (*copied)++;
-      OnionHEN_log("[flatten] %s -> %s", path, dest);
+      LOG_INFO("[flatten] %s -> %s", path, dest);
     } else {
       (*skipped)++;
     }
@@ -221,7 +221,7 @@ int onion_cheat_flatten_install_tree(const char *root) {
     root = ONION_CHEATS_DIR;
   }
   walk_and_flatten(root, &copied, &skipped);
-  OnionHEN_log("[flatten] installed %d cheat file(s), skipped %d", copied,
+  LOG_WARN("[flatten] installed %d cheat file(s), skipped %d", copied,
                    skipped);
   return copied > 0 ? 0 : -1;
 }

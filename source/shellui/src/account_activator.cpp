@@ -28,7 +28,7 @@ Activator::Activator(bool skip_userservice_init) : currentUser{}
 
         if (ret)
         {
-            std::puts("Error sceUserServiceInitialize");
+            LOG_ERROR("Error sceUserServiceInitialize");
             return;
         }
     }
@@ -40,20 +40,20 @@ Activator::Activator(bool skip_userservice_init) : currentUser{}
     char username[100] = {0};
     if (sceUserServiceGetForegroundUser(&user_id) != 0)
     {
-        std::puts("Error sceUserServiceGetForegroundUser");
+        LOG_ERROR("Error sceUserServiceGetForegroundUser");
         return;
     }
     currentUser.account_number = GetRegistryFromUserId(user_id);
 
     if (currentUser.account_number == -1)
     {
-        std::printf("Invalid foreground user id %d, aborting...\n", user_id);
+        LOG_ERROR("Invalid foreground user id %d, aborting...", user_id);
         return;    
     }
 
     if (!GetAccountID(currentUser.account_number, currentUser.accountID))
     {
-        std::puts("Error sceRegMgrGetBin(account id)");
+        LOG_ERROR("Error sceRegMgrGetBin(account id)");
         currentUser.account_number = -1;
         return;
     }
@@ -65,18 +65,18 @@ Activator::Activator(bool skip_userservice_init) : currentUser{}
         currentUser.Username = std::string(username);
     else if (currentUser.accountID == 0)
     {
-        std::puts("Error sceUserServiceGetUserName");
+        LOG_ERROR("Error sceUserServiceGetUserName");
         currentUser.account_number = -1;
         return;
     }
 
     GetAccountType(currentUser.account_number, currentUser.AccountType);
 
-    std::printf("Current user => %s\n", currentUser.Username.c_str());
-    std::printf("Account register number => %d\n", currentUser.account_number);
-    std::printf("User Account ID => %lx\n", currentUser.accountID);
-    std::printf("AccountType => %s\n", currentUser.AccountType);
-    std::printf("Account Flags => %d\n", GetAccountFlags(currentUser.account_number));
+    LOG_DEBUG("Current user => %s", currentUser.Username.c_str());
+    LOG_DEBUG("Account register number => %d", currentUser.account_number);
+    LOG_DEBUG("User Account ID => %lx", currentUser.accountID);
+    LOG_DEBUG("AccountType => %s", currentUser.AccountType);
+    LOG_DEBUG("Account Flags => %d", GetAccountFlags(currentUser.account_number));
     
     if (!skip_userservice_init)
     {

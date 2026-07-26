@@ -286,14 +286,3 @@ void onion_log_emergency(const char *fmt, ...) {
   }
 }
 
-void OnionHEN_log(const char *fmt, ...) {
-  va_list args;
-
-  if ((int)ONION_LOG_INFO > onion_log_runtime_level) {
-    return;
-  }
-
-  va_start(args, fmt);
-  log_emit(ONION_LOG_INFO, fmt, args);
-  va_end(args);
-}

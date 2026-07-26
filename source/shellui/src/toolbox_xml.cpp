@@ -53,19 +53,19 @@ void append_payload_entry(G& page, const std::string& directory, const char* fil
   const std::string path = directory + "/" + filename;
   char elf_key[64] = {};
   if (!toolbox::elf_key_from_name(filename, elf_key, sizeof(elf_key))) {
-    shellui_log("Skipping invalid payload name: %s", filename);
+    LOG_ERROR("Skipping invalid payload name: %s", filename);
     return;
   }
 
   /* Confirm file is readable (ELF magic checked at launch). */
   const int fd = open(path.c_str(), O_RDONLY, 0);
   if (fd < 0) {
-    shellui_log("Failed to open payload: %s", path.c_str());
+    LOG_ERROR("Failed to open payload: %s", path.c_str());
     return;
   }
   close(fd);
 
-  shellui_log("Found payload: %s key=%s", path.c_str(), elf_key);
+  LOG_DEBUG("Found payload: %s key=%s", path.c_str(), elf_key);
 
   const std::string shown_path = toolbox::display_path_for_ui(path);
   const std::string id_prefix = list_page ? "id_payload_" : "id_auto_payload_";
@@ -105,7 +105,7 @@ void append_homebrew_game(G& page, const std::string& game_dir, const char* dir_
     return;
 
 #if SHELL_DEBUG == 1
-  shellui_log("Found Game: %s", game_dir.c_str());
+  LOG_DEBUG("Found Game: %s", game_dir.c_str());
 #endif
 
   std::string title_id, title, ver;
@@ -130,13 +130,13 @@ void append_homebrew_game(G& page, const std::string& game_dir, const char* dir_
 std::string read_file_to_string(const char* path) {
   struct stat st {};
   if (stat(path, &st) == -1 || st.st_size <= 0) {
-    shellui_log("Unable to stat file %s", path);
+    LOG_ERROR("Unable to stat file %s", path);
     return {};
   }
 
   const int fd = open(path, O_RDONLY);
   if (fd < 0) {
-    shellui_log("Error reading %s file!", path);
+    LOG_ERROR("Error reading %s file!", path);
     return {};
   }
 
@@ -145,7 +145,7 @@ std::string read_file_to_string(const char* path) {
   close(fd);
 
   if (n < 0 || static_cast<size_t>(n) != buf.size()) {
-    shellui_log("read failed for %s", path);
+    LOG_ERROR("read failed for %s", path);
     return {};
   }
   return buf;
@@ -211,7 +211,7 @@ void generate_remote_play_xml(std::string& xml_buffer) {
   bool activated_now = false;
   bzero(AccountID, ACCOUNT_ID_BASE64_SIZE);
 
-  shellui_log("Starting remote play");
+  LOG_DEBUG("Starting remote play");
   static bool remote_play_initialized = false;
   if (!remote_play_initialized) {
     remote_play_initialized = InitRemotePlay();
@@ -241,7 +241,7 @@ void generate_remote_play_xml(std::string& xml_buffer) {
     return;
   }
 
-  shellui_log("Get encoded account id ==> %s", AccountID);
+  LOG_DEBUG("Get encoded account id ==> %s", AccountID);
 
   std::stringstream account_id_stream;
   account_id_stream << std::hex << std::uppercase << dec_account_id;
@@ -257,12 +257,12 @@ void generate_remote_play_xml(std::string& xml_buffer) {
   const bool pin_ready = GeneratePINCode(pinCode);
   std::string pin_display;
   if (pin_ready) {
-    shellui_log("Pin code => %u", pinCode);
+    LOG_DEBUG("Pin code => %u", pinCode);
     snprintf(pin_code, sizeof(pin_code), "%s%04u %04u    ",
              toolbox_i18n::tr("rp.pin"), pinCode / 10000u,
              pinCode % 10000u);
     pin_display = pin_code;
-    shellui_log("Pin code str => %s", pin_code);
+    LOG_DEBUG("Pin code str => %s", pin_code);
   } else {
     pin_display = toolbox_i18n::tr("rp.pin_error");
   }
@@ -305,7 +305,7 @@ void generate_payload_xml(std::string& xml_buffer, bool list_page) {
   for (const auto& directory : kPayloadDirs) {
     DIR* dir = opendir(directory.c_str());
     if (!dir) {
-      shellui_log("Failed to open directory: %s", directory.c_str());
+      LOG_ERROR("Failed to open directory: %s", directory.c_str());
       continue;
     }
     while (struct dirent* entry = readdir(dir))
@@ -369,7 +369,7 @@ void generate_cheats_xml(std::string& new_xml, std::string& not_open_tid,
 
   onion_cjson::Root res_json(json_string);
   if (!res_json) {
-    shellui_log("Failed to parse json from cheat response!");
+    LOG_ERROR("Failed to parse json from cheat response!");
     new_xml = page.build();
     return;
   }
@@ -410,7 +410,7 @@ void generate_plapps_xml(std::string& new_xml) {
     DIR* dir = opendir(directory.c_str());
     if (!dir) {
 #if SHELL_DEBUG == 1
-      shellui_log("Failed to open directory: %s", directory.c_str());
+      LOG_ERROR("Failed to open directory: %s", directory.c_str());
 #endif
       continue;
     }
@@ -423,7 +423,7 @@ void generate_plapps_xml(std::string& new_xml) {
       struct stat st {};
       if (stat(game_dir.c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) {
 #if SHELL_DEBUG == 1
-        shellui_log("Skipping non-directory: %s", game_dir.c_str());
+        LOG_WARN("Skipping non-directory: %s", game_dir.c_str());
 #endif
         continue;
       }

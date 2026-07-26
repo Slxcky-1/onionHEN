@@ -1,3 +1,4 @@
+#include <onion/log.h>
 #include "cheats/i_cheat_parser.hpp"
 
 #include <cstdio>
@@ -7,7 +8,6 @@
 
 #include "cheats/cheat_engine_internal.h"
 
-extern "C" void OnionHEN_log(const char *fmt, ...);
 
 namespace onion::cheats {
 namespace {
@@ -90,7 +90,7 @@ int parseXmlMutating(char *xml, onion_cheat_file_t &out) {
   char process[128];
   char game_name[128];
 
-  OnionHEN_log("[engine] parse_xml begin");
+  LOG_INFO("[engine] parse_xml begin");
   onion_cheat_file_clear(&out);
   onion_cheat_replace_all(xml, 65536, "&lt;", "<");
   onion_cheat_replace_all(xml, 65536, "&gt;", ">");
@@ -101,7 +101,7 @@ int parseXmlMutating(char *xml, onion_cheat_file_t &out) {
 
   if (findXmlAttr(xml, "Trainer", "Process", process, sizeof(process)) < 0 ||
       findXmlAttr(xml, "Trainer", "Game", game_name, sizeof(game_name)) < 0) {
-    OnionHEN_log("[engine] parse_xml trainer attrs missing");
+    LOG_ERROR("[engine] parse_xml trainer attrs missing");
     return -1;
   }
   std::snprintf(out.process, sizeof(out.process), "%s", process);
@@ -112,7 +112,7 @@ int parseXmlMutating(char *xml, onion_cheat_file_t &out) {
       moder[0] != '\0') {
     onion_cheat_file_add_author(&out, moder);
   }
-  OnionHEN_log("[engine] parse_xml trainer process=%s game=%s", out.process,
+  LOG_INFO("[engine] parse_xml trainer process=%s game=%s", out.process,
                out.name);
 
   while ((cursor = std::strstr(cursor, "<Cheat ")) != nullptr) {
@@ -127,12 +127,12 @@ int parseXmlMutating(char *xml, onion_cheat_file_t &out) {
     onion_cheat_entry_t *entry = &out.cheats[out.cheat_count];
 
     if (cheat_end == nullptr) {
-      OnionHEN_log("[engine] parse_xml cheat_end missing");
+      LOG_ERROR("[engine] parse_xml cheat_end missing");
       break;
     }
     std::memset(entry, 0, sizeof(*entry));
     if (findXmlAttr(cursor, "Cheat", "Text", name, sizeof(name)) < 0) {
-      OnionHEN_log("[engine] parse_xml cheat name missing");
+      LOG_ERROR("[engine] parse_xml cheat name missing");
       cursor = cheat_end + 8;
       continue;
     }
@@ -156,7 +156,7 @@ int parseXmlMutating(char *xml, onion_cheat_file_t &out) {
       onion_patch_t *patch = nullptr;
 
       if (line_end == nullptr || line_end > cheat_end) {
-        OnionHEN_log("[engine] parse_xml line_end missing cheat=%s",
+        LOG_ERROR("[engine] parse_xml line_end missing cheat=%s",
                      entry->name);
         break;
       }
@@ -173,14 +173,14 @@ int parseXmlMutating(char *xml, onion_cheat_file_t &out) {
       findXmlTagValue(line_cursor, "Absolute", absolute, sizeof(absolute));
 
       if (offset[0] == '\0' || on[0] == '\0' || off[0] == '\0') {
-        OnionHEN_log("[engine] parse_xml incomplete patch cheat=%s",
+        LOG_INFO("[engine] parse_xml incomplete patch cheat=%s",
                      entry->name);
         line_cursor = line_end + 12;
         continue;
       }
 
       if (onion_cheat_entry_ensure_patch(entry) != 0) {
-        OnionHEN_log("[engine] parse_xml ensure_patch failed");
+        LOG_ERROR("[engine] parse_xml ensure_patch failed");
         line_cursor = line_end + 12;
         continue;
       }
@@ -208,14 +208,14 @@ int parseXmlMutating(char *xml, onion_cheat_file_t &out) {
     }
 
     if (entry->patch_count > 0) {
-      OnionHEN_log("[engine] parse_xml cheat=%s patches=%zu", entry->name,
+      LOG_INFO("[engine] parse_xml cheat=%s patches=%zu", entry->name,
                    entry->patch_count);
       out.cheat_count++;
     }
     cursor = cheat_end + 8;
   }
 
-  OnionHEN_log("[engine] parse_xml done cheats=%zu", out.cheat_count);
+  LOG_INFO("[engine] parse_xml done cheats=%zu", out.cheat_count);
   return out.cheat_count > 0 ? 0 : -1;
 }
 

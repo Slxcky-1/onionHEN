@@ -14,6 +14,7 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
+#include <onion/log.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -344,7 +345,7 @@ pt_call2(pid_t pid, intptr_t addr, ...)
    * another stop/termination is observed, fail closed and never restore the
    * old register set while bootstrap code may still be executing. */
   if (!WIFSTOPPED(status) || WSTOPSIG(status) != SIGTRAP) {
-    klog_printf("[DEBUG-PT] unexpected stager wait status=0x%x stopped=%d sig=%d\n",
+    LOG_ERROR("[DEBUG-PT] unexpected stager wait status=0x%x stopped=%d sig=%d",
                 status, WIFSTOPPED(status),
                 WIFSTOPPED(status) ? WSTOPSIG(status) : -1);
     errno = EPROTO;

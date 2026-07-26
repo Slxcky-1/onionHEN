@@ -17,6 +17,7 @@ along with this program; see the file COPYING. If not, see
 #include "faulthandler.h"
 
 #include <onion/fault_frame.h>
+#include <onion/log.h>
 
 #include <signal.h>
 #include <stdarg.h>
@@ -28,16 +29,6 @@ void notify(const char *text);
 
 static void (*g_cleanup_handler)(void) = NULL;
 
-/* Backtrace sink: the bootstrapper has no crash-log file, stdout is the sink.
- * One call per line, matching the puts() the handler used before. */
-static void boot_log(const char *fmt, ...) {
-	char msg[0x400];
-	va_list args;
-	va_start(args, fmt);
-	__builtin_vsnprintf(msg, sizeof(msg), fmt, args);
-	va_end(args);
-	puts(msg);
-}
 
 // NOLINTBEGIN(bugprone-signal-handler)
 
@@ -62,9 +53,9 @@ static uintptr_t __attribute__((naked, noinline)) get_cleanup_function(void) {
 }
 
 static void fault_handler(int sig) {
-	printf("signal %d received\n", sig);
+	onion_log_emergency("signal %d received", sig);
 	if (sig == SIGSEGV || sig == SIGILL) {
-		onion_print_backtrace(boot_log);
+		onion_print_backtrace(onion_log_emergency);
 		/* Must read this frame directly — see onion/fault_frame.h. */
 		onion_frame_t *frame = onion_current_frame();
 		frame->addr = get_cleanup_function();

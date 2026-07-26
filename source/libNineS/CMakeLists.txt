@@ -36,6 +36,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-builtin -nostdlib -Wall") #  -nostartfi
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -gfull -O3 -march=znver2 -Wall -Werror")
 target_include_directories(${PROJECT_NAME} PRIVATE
+	"${PROJECT_ROOT}/libonion_platform/include"
   "${D_CWD}/include"
   "${CMAKE_SOURCE_DIR}/libonion_proc/include"
   "${CMAKE_SOURCE_DIR}/libonion_elfldr/include"
@@ -45,6 +46,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 # Prefer PROJECT_ROOT if parent set it.
 if(DEFINED PROJECT_ROOT)
   target_include_directories(${PROJECT_NAME} PRIVATE
+	"${PROJECT_ROOT}/libonion_platform/include"
     "${PROJECT_ROOT}/libonion_proc/include"
     "${PROJECT_ROOT}/libonion_elfldr/include"
     "${PROJECT_ROOT}/include"

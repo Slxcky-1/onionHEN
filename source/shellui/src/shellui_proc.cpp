@@ -40,19 +40,19 @@ bool write_asset(const char *path, const void *start, uint32_t size)
   int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0777);
   if (fd < 0)
   {
-    shellui_log("failed to create trainer for %s | error: %s", path, strerror(errno));
+    LOG_ERROR("failed to create trainer for %s | error: %s", path, strerror(errno));
     return false;
   }
   ssize_t written = write(fd, start, size);
   close(fd);
   if (written < 0)
   {
-    shellui_log("Failed to write trainer for %s | size %u, error: %s", path, size, strerror(errno));
+    LOG_ERROR("Failed to write trainer for %s | size %u, error: %s", path, size, strerror(errno));
     return false;
   }
   else if ((unsigned int)written != size)
   {
-    shellui_log("incomplete write: expected %u bytes, wrote %zd bytes", size, written);
+    LOG_DEBUG("incomplete write: expected %u bytes, wrote %zd bytes", size, written);
     return false;
   }
   return true;
@@ -68,7 +68,7 @@ std::string remove_ps5_suffix(const std::string& filename) {
 }
 
 int sceSystemServiceGetAppId(const char * tid){
-   // shellui_log("looking for tid %s", tid);
+   // LOG_DEBUG("looking for tid %s", tid);
     pid_t success = onion_find_pid_ex(tid, false, false, false);
     if(success < 0){
        success = onion_find_pid_ex(remove_ps5_suffix(tid).c_str(), false, false, false);
@@ -90,14 +90,14 @@ bool Get_Running_App_TID(std::string &title_id, int &BigAppid)
   BigAppid = sceSystemServiceGetAppIdOfRunningBigApp();
   if (BigAppid < 0)
   {
-   // shellui_log("Failed to get bigapp id 0x%x", BigAppid);
+   // LOG_ERROR("Failed to get bigapp id 0x%x", BigAppid);
     return false;
   }
   (void)memset(tid, 0, sizeof tid);
 
   if (sceSystemServiceGetAppTitleId(BigAppid, &tid[0]) != 0)
   {
-    //shellui_log("Failed to get title id for bigapp id 0x%x", BigAppid);
+    //LOG_ERROR("Failed to get title id for bigapp id 0x%x", BigAppid);
     return false;
   }
 

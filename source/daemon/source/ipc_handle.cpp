@@ -40,11 +40,11 @@ void handleIPC(clientArgs *client, std::string &inputStr,
 
   std::string out_var = "Nothing"; // default send var
 
-  OnionHEN_log("Received IPC command 0x%X", command);
+  LOG_INFO("Received IPC command 0x%X", command);
 
   onion_cjson::Root my_json(inputStr);
   if (!my_json) {
-    OnionHEN_log("Error parsing JSON");
+    LOG_ERROR("Error parsing JSON");
     onion_notify(true, "Error parsing JSON");
     reply(sender_app, true);
     return;
@@ -70,24 +70,24 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     break;
   }
   case BREW_UNUSED_ACTIVATE_DUMPER:
-    OnionHEN_log("BREW_ACTIVATE_DUMPER: unsupported (legacy dumper removed)");
+    LOG_WARN("BREW_ACTIVATE_DUMPER: unsupported (legacy dumper removed)");
     reply(sender_app, true);
     break;
   case BREW_UNUSED_DECRYPT_DIR:
     /* SELF directory decrypt removed from OnionHEN. */
-    OnionHEN_log("BREW_DECRYPT_DIR: unsupported (removed)");
+    LOG_WARN("BREW_DECRYPT_DIR: unsupported (removed)");
     reply(sender_app, true);
     break;
   case BREW_UNUSED_TESTKIT_CHECK:
     /* Prefer local probe in clients; keep ordinal for IPC compatibility. */
-    OnionHEN_log("BREW_TESTKIT_CHECK: unsupported (removed)");
+    LOG_WARN("BREW_TESTKIT_CHECK: unsupported (removed)");
     reply(sender_app, true);
     break;
   case BREW_REMOUNT_FOLDER:
     path_buf = std::string(onion_cjson::string_item(my_json.get(), "mount_dest", ""));
     path_buf2 = std::string(onion_cjson::string_item(my_json.get(), "mount_src", ""));
     json_path = path_buf + "/sce_sys/param.json";
-    OnionHEN_log("change dir selected, %s", path_buf2.c_str());
+    LOG_INFO("change dir selected, %s", path_buf2.c_str());
 
     if(path_buf.rfind("/user") == std::string::npos && path_buf.length() <= strlen("/system_ex/app/")) {
       onion_notify(true, "Invalid path of size %d", path_buf.length());
@@ -98,13 +98,13 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     mkdir(path_buf.c_str(), 0777);
 
     if (if_exists(json_path.c_str())) {
-      OnionHEN_log("param.json exists, trying to unmount");
+      LOG_INFO("param.json exists, trying to unmount");
       int retries = 0;
       do {
         if (retries == 0)
-          OnionHEN_log("unmounting .....");
+          LOG_INFO("unmounting .....");
         else
-          OnionHEN_log("retrying attempt unmounting %d | prev. error %s", retries, strerror(errno));
+          LOG_ERROR("retrying attempt unmounting %d | prev. error %s", retries, strerror(errno));
 
         if (retries >= 20) {
           onion_notify(true, "Failed to unmount | error %s",
@@ -121,13 +121,13 @@ void handleIPC(clientArgs *client, std::string &inputStr,
       if (errno == EBADF || errno == EPERM ||
           errno == EIO) { // if anyone repots a game not mounting til the 2nd
                           // time look at this
-        OnionHEN_log("trying to unmount");
+        LOG_INFO("trying to unmount");
         unmount(path_buf.c_str(), MNT_FORCE);
       }
       if (!remount(path_buf2.c_str(), path_buf.c_str(), MNT_UPDATE)) {
         onion_notify(true, "remount error: %s\nPath: %s", strerror(errno),
                path_buf2.c_str());
-        OnionHEN_log("remount error: %s Path: %s", strerror(errno),
+        LOG_ERROR("remount error: %s Path: %s", strerror(errno),
                    path_buf2.c_str());
         reply(sender_app, true);
         break;
@@ -139,16 +139,16 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   case BREW_STAT_CMD: {
     path = onion_cjson::string_item(my_json.get(), "path");
     if (!path || !*path) {
-      OnionHEN_log("BREW_STAT_CMD: missing path");
+      LOG_ERROR("BREW_STAT_CMD: missing path");
       reply(sender_app, true);
       break;
     }
     if (stat(path, &buffer) == 0) {
       snprintf(size_buf, sizeof(size_buf), "%ld", buffer.st_size);
-      OnionHEN_log("%s exists | size %s", path, size_buf);
+      LOG_INFO("%s exists | size %s", path, size_buf);
       reply(sender_app, false, size_buf);
     } else {
-      OnionHEN_log("error for %s | %s", path, strerror(errno));
+      LOG_ERROR("error for %s | %s", path, strerror(errno));
       reply(sender_app, true);
     }
     break;
@@ -156,14 +156,14 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   case BREW_CALC_DIR_SIZE: {
     path = onion_cjson::string_item(my_json.get(), "path");
     if (!path || !*path) {
-      OnionHEN_log("BREW_CALC_DIR_SIZE: missing path");
+      LOG_ERROR("BREW_CALC_DIR_SIZE: missing path");
       reply(sender_app, true);
       break;
     }
     uint64_t size = calculateTotalSize(path);
     snprintf(size_buf, sizeof(size_buf), "%lu",
              static_cast<unsigned long>(size));
-    OnionHEN_log("size %s", size_buf);
+    LOG_INFO("size %s", size_buf);
     reply(sender_app, false, size_buf);
     break;
   }
@@ -171,14 +171,14 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     path = onion_cjson::string_item(my_json.get(), "path");
     dest = onion_cjson::string_item(my_json.get(), "dest");
     if (!path || !*path || !dest || !*dest) {
-      OnionHEN_log("BREW_COPY_FILE: missing path/dest");
+      LOG_ERROR("BREW_COPY_FILE: missing path/dest");
       reply(sender_app, true);
       break;
     }
     if (copyFile(path, dest)) {
       reply(sender_app, false);
     } else {
-      OnionHEN_log("error for %s | %s", path, strerror(errno));
+      LOG_ERROR("error for %s | %s", path, strerror(errno));
       reply(sender_app, true);
     }
     break;
@@ -187,7 +187,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     path = onion_cjson::string_item(my_json.get(), "path");
     dest = onion_cjson::string_item(my_json.get(), "dest");
     if (!path || !*path || !dest || !*dest) {
-      OnionHEN_log("BREW_COPY_DIR: missing path/dest");
+      LOG_ERROR("BREW_COPY_DIR: missing path/dest");
       reply(sender_app, true);
       break;
     }
@@ -196,7 +196,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     if (copyRecursive(path, dest)) {
       reply(sender_app, false, size_buf);
     } else {
-      OnionHEN_log("error for %s | %s", path, strerror(errno));
+      LOG_ERROR("error for %s | %s", path, strerror(errno));
       reply(sender_app, true);
     }
     break;
@@ -204,7 +204,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   case BREW_DELETE_DIR: {
     path = onion_cjson::string_item(my_json.get(), "path");
     if (!path || !*path) {
-      OnionHEN_log("BREW_DELETE_DIR: missing path");
+      LOG_ERROR("BREW_DELETE_DIR: missing path");
       reply(sender_app, true);
       break;
     }
@@ -218,7 +218,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   case BREW_TEST_SB_FILE: {
     path = onion_cjson::string_item(my_json.get(), "path");
     if (!path || !*path) {
-      OnionHEN_log("BREW_TEST_SB_FILE: missing path");
+      LOG_ERROR("BREW_TEST_SB_FILE: missing path");
       reply(sender_app, true);
       break;
     }
@@ -239,7 +239,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   case BREW_ADJUST_FAN_SPEED: {
     int speed = onion_cjson::int_item(my_json.get(), "speed");
     int enabled = onion_cjson::int_item(my_json.get(), "enabled");
-    OnionHEN_log("Adjusting Fan Speed to: %d", speed);
+    LOG_INFO("Adjusting Fan Speed to: %d", speed);
     if (speed < 0 || speed > 100) {
       onion_notify(true, "Invalid fan speed: %d. Must be between 0 and 100.", speed);
       reply(sender_app, true);
@@ -255,7 +255,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
       if (onion::settings_save(saved)) {
         SettingsNoteDiskWritten();
       } else {
-        OnionHEN_log("Fan disable: failed to persist settings");
+        LOG_ERROR("Fan disable: failed to persist settings");
       }
       reply(sender_app, false);
       break;
@@ -270,7 +270,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
       if (onion::settings_save(saved)) {
         SettingsNoteDiskWritten();
       } else {
-        OnionHEN_log("Fan enable: memory updated but disk twin save failed");
+        LOG_ERROR("Fan enable: memory updated but disk twin save failed");
       }
       reply(sender_app, false);
     } else {
@@ -289,7 +289,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   }
   case BREW_SHUTDOWN_STACK: {
     /* Reply first so Unix/TCP clients get a frame before we tear down. */
-    OnionHEN_log("BREW_SHUTDOWN_STACK from client");
+    LOG_INFO("BREW_SHUTDOWN_STACK from client");
     reply(sender_app, false, "shutting down");
     usleep(100 * 1000);
     cmd_shutdown_onion_stack();
@@ -299,7 +299,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     int pid = onion_cjson::int_item(my_json.get(), "pid");
     /* <=1: invalid / system; never TerminateProcess(1) (hangs ShellUI IPC). */
     if (pid <= 1) {
-      OnionHEN_log("Invalid/system PID for FORCE_KILL: %d", pid);
+      LOG_ERROR("Invalid/system PID for FORCE_KILL: %d", pid);
       reply(sender_app, true);
       break;
     }
@@ -315,10 +315,10 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     break;
   }
   case BREW_CHMOD_DIR: {
-	OnionHEN_log("BREW_CHMOD_DIR called");
+	LOG_INFO("BREW_CHMOD_DIR called");
     path = onion_cjson::string_item(my_json.get(), "path");
     if(!path) {
-      OnionHEN_log("Invalid path for chmod");
+      LOG_ERROR("Invalid path for chmod");
       reply(sender_app, true);
       break;
 	}

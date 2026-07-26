@@ -21,10 +21,6 @@ static void handleIPC_adapt(onion::IpcClientArgs *client, std::string &msg,
   handleIPC(client, msg, cmd);
 }
 
-static void ipc_server_log_line(const char *line) {
-  OnionHEN_log("%s", line);
-}
-
 static onion::IpcServerOptions g_crit_ipc_opts = {
     CRIT_IPC_SOC,
     handleIPC_adapt,
@@ -35,7 +31,6 @@ static onion::IpcServerOptions g_crit_ipc_opts = {
 
 void *IPC_loop(void *args) {
   (void)args;
-  onion::ipc_server_set_log(ipc_server_log_line);
   return onion::ipc_server_loop(&g_crit_ipc_opts);
 }
 
@@ -50,7 +45,7 @@ void *control_tcp_loop(void *args) {
   (void)args;
   int s = socket(AF_INET, SOCK_STREAM, 0);
   if (s < 0) {
-    OnionHEN_log("control_tcp: socket failed: %s", strerror(errno));
+    LOG_ERROR("control_tcp: socket failed: %s", strerror(errno));
     return nullptr;
   }
   int yes = 1;
@@ -61,17 +56,17 @@ void *control_tcp_loop(void *args) {
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
   addr.sin_port = htons(ONION_CTRL_TCP_PORT);
   if (bind(s, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
-    OnionHEN_log("control_tcp: bind :%d failed: %s", ONION_CTRL_TCP_PORT,
+    LOG_ERROR("control_tcp: bind :%d failed: %s", ONION_CTRL_TCP_PORT,
                  strerror(errno));
     close(s);
     return nullptr;
   }
   if (listen(s, 2) < 0) {
-    OnionHEN_log("control_tcp: listen failed: %s", strerror(errno));
+    LOG_ERROR("control_tcp: listen failed: %s", strerror(errno));
     close(s);
     return nullptr;
   }
-  OnionHEN_log("control_tcp: listening on 0.0.0.0:%d (PC shutdown)",
+  LOG_INFO("control_tcp: listening on 0.0.0.0:%d (PC shutdown)",
                ONION_CTRL_TCP_PORT);
 
   while (is_handler_enabled) {
@@ -91,7 +86,7 @@ void *control_tcp_loop(void *args) {
       (void)send(client, &ok, 1, MSG_NOSIGNAL);
       close(client);
       close(s);
-      OnionHEN_log("control_tcp: SHUTDOWN from LAN client");
+      LOG_INFO("control_tcp: SHUTDOWN from LAN client");
       usleep(100 * 1000);
       cmd_shutdown_onion_stack();
       /* noreturn */

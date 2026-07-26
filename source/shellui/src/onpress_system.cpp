@@ -6,7 +6,7 @@
 
 static OnPressResult id_debug_jb(OnPressContext &ctx) {
   if (atoi(ctx.value.c_str()) == g_settings.debug_app_jb_msg) {
-    shellui_log("Debug JB already %s",
+    LOG_WARN("Debug JB already %s",
                 g_settings.debug_app_jb_msg ? "Enabled" : "Disabled");
     return OnPressResult::EarlyReturn;
   }
@@ -17,12 +17,12 @@ static OnPressResult id_debug_jb(OnPressContext &ctx) {
 
 static OnPressResult id_custom_game_opts(OnPressContext &ctx) {
   if (atoi(ctx.value.c_str()) == g_settings.onionhen_game_opts) {
-    shellui_log("OnionHEN Game Options already %s",
+    LOG_WARN("OnionHEN Game Options already %s",
                 g_settings.onionhen_game_opts ? "Enabled" : "Disabled");
     return OnPressResult::EarlyReturn;
   }
   g_settings.onionhen_game_opts = !g_settings.onionhen_game_opts;
-  shellui_log("OnionHEN Game Options: %s",
+  LOG_DEBUG("OnionHEN Game Options: %s",
               g_settings.onionhen_game_opts ? "Enabled" : "Disabled");
   return OnPressResult::Handled;
 }
@@ -35,7 +35,7 @@ static OnPressResult id_ui_lang(OnPressContext &ctx) {
     return OnPressResult::EarlyReturn;
   g_settings.ui_lang = v;
   const char *name = v == 2 ? "en" : (v == 1 ? "zh-Hans" : "system");
-  shellui_log("UI language: %s", name);
+  LOG_DEBUG("UI language: %s", name);
   toolbox_i18n::apply_system_or_ui_lang(v);
   /* XML is built when the page opens; current tree stays in the old language. */
   notify("Language saved. Leave and re-open the toolbox for it to take effect.");
@@ -50,7 +50,7 @@ static OnPressResult id_rest_1(OnPressContext &ctx) {
 static OnPressResult id_rest_2(OnPressContext &ctx) {
   bool &util_rest_kill = g_settings.util_rest_kill;
   if (atoi(ctx.value.c_str()) == util_rest_kill) {
-    shellui_log("util_rest_kill already %s",
+    LOG_WARN("util_rest_kill already %s",
                 util_rest_kill ? "Enabled" : "Disabled");
     return OnPressResult::EarlyReturn;
   }
@@ -61,7 +61,7 @@ static OnPressResult id_rest_2(OnPressContext &ctx) {
 static OnPressResult id_rest_3(OnPressContext &ctx) {
   bool &game_rest_kill = g_settings.game_rest_kill;
   if (atoi(ctx.value.c_str()) == game_rest_kill) {
-    shellui_log("game_rest_kill already %s",
+    LOG_WARN("game_rest_kill already %s",
                 game_rest_kill ? "Enabled" : "Disabled");
     return OnPressResult::EarlyReturn;
   }
@@ -71,7 +71,7 @@ static OnPressResult id_rest_3(OnPressContext &ctx) {
 
 static OnPressResult id_enable_fan_speed(OnPressContext &ctx) {
   if (atol(ctx.value.c_str()) == g_settings.enable_fan_speed) {
-    shellui_log("Fan speed control already %s",
+    LOG_WARN("Fan speed control already %s",
                 g_settings.enable_fan_speed ? "Enabled" : "Disabled");
     return OnPressResult::EarlyReturn;
   }
@@ -88,7 +88,7 @@ static OnPressResult id_fan_speed(OnPressContext &ctx) {
     notify("Manual Fan speed threshold is not enabled");
     return OnPressResult::EarlyReturn;
   }
-  shellui_log("Setting fan speed to %d%%", fan_speed);
+  LOG_DEBUG("Setting fan speed to %d%%", fan_speed);
   IPC_Client::getInstance(false).Set_Fan_Threshold(fan_speed,
                                                    g_settings.enable_fan_speed);
   return OnPressResult::Handled;
@@ -96,7 +96,7 @@ static OnPressResult id_fan_speed(OnPressContext &ctx) {
 
 static OnPressResult id_cheats_shortcut(OnPressContext &ctx) {
   if (atoi(ctx.value.c_str()) == g_settings.cheats_shortcut_opt) {
-    shellui_log("Cheats_shortcut already %i", g_settings.cheats_shortcut_opt);
+    LOG_WARN("Cheats_shortcut already %i", g_settings.cheats_shortcut_opt);
     return OnPressResult::EarlyReturn;
   }
   Cheats_Shortcut opt = (Cheats_Shortcut)atoi(ctx.value.c_str());
@@ -119,7 +119,7 @@ static OnPressResult id_cheats_shortcut(OnPressContext &ctx) {
 
 static OnPressResult id_toolbox_shortcut(OnPressContext &ctx) {
   if (atoi(ctx.value.c_str()) == g_settings.toolbox_shortcut_opt) {
-    shellui_log("toolbox_shortcut_opt already %i",
+    LOG_WARN("toolbox_shortcut_opt already %i",
                 g_settings.toolbox_shortcut_opt);
     return OnPressResult::EarlyReturn;
   }

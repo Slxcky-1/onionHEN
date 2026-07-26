@@ -43,9 +43,6 @@ struct IpcClientArgs {
 using IpcCommandHandler = void (*)(IpcClientArgs *client, std::string &msg,
                                    DaemonCommands cmd);
 
-// Log sink receives a single line (already formatted, no required trailing \n).
-using IpcServerLogFn = void (*)(const char *line);
-void ipc_server_set_log(IpcServerLogFn fn);
 
 // --- transport primitives ---
 int ipc_network_listen(const char *soc_path);

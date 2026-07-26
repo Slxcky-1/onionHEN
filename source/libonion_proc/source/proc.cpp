@@ -1,4 +1,5 @@
 extern "C"{
+#include <onion/log.h>
 #include <onion/proc.h>
 }
 struct proc* find_proc_by_name(const char* proc_name)
@@ -54,7 +55,7 @@ void list_all_proc_and_pid()
 
         kernel_copyout((intptr_t) proc->p_vmspace, (void*) &vmspace, sizeof(vmspace));
 
-        printf("%s - %d\n", proc->p_comm, proc->pid);
+        LOG_DEBUG("%s - %d", proc->p_comm, proc->pid);
 
         kernel_copyout(next, &next, sizeof(uint64_t));
 
@@ -105,8 +106,8 @@ void list_proc_modules(struct proc* proc)
 
             syscall(SYS_dl_get_info_2, proc->pid, 1, handles[i], &mod_info);
 
-            printf("%s - ", mod_info.filename);
-            printf("%#02lx\n", mod_info.init);
+            LOG_DEBUG("%s - ", mod_info.filename);
+            LOG_DEBUG("%#02lx", mod_info.init);
         }
         
         free(handles);

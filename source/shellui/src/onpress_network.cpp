@@ -5,7 +5,7 @@
 static OnPressResult id_disp_titleids(OnPressContext &ctx) {
   bool &dis_tids = g_settings.display_tids;
   if (atol(ctx.value.c_str()) == dis_tids) {
-    shellui_log("Display TIDs already %s", dis_tids ? "Enabled" : "Disabled");
+    LOG_WARN("Display TIDs already %s", dis_tids ? "Enabled" : "Disabled");
     return OnPressResult::EarlyReturn;
   }
   dis_tids = !dis_tids;

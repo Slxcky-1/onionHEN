@@ -15,6 +15,7 @@ along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
 #include <onion/detour.h>
+#include <onion/log.h>
 #include <onion/hotpatch.h>
 
 #include <cstdint>
@@ -152,10 +153,10 @@ bool PrepareDetour(uint64_t address, void *destination, DetourHandle *handle) {
   }
 
   *handle = DetourHandle{};
-  shellui_log("Hooking %#02lx => %p", address, destination);
+  LOG_DEBUG("Hooking %#02lx => %p", address, destination);
 
   if ((address % ONION_X64_ATOMIC_PATCH_SIZE) != 0) {
-    shellui_log("PrepareDetour: target is not 16-byte aligned: %#02lx", address);
+    LOG_DEBUG("PrepareDetour: target is not 16-byte aligned: %#02lx", address);
     return false;
   }
 
@@ -163,17 +164,17 @@ bool PrepareDetour(uint64_t address, void *destination, DetourHandle *handle) {
   void *executableAddress =
       g_trampoline_arena.allocate_near(stubLength, address);
   if (!executableAddress) {
-    shellui_log("DetourFunction: no unique near trampoline for %#02lx", address);
+    LOG_DEBUG("DetourFunction: no unique near trampoline for %#02lx", address);
     return false;
   }
   if (!g_trampoline_arena.owns(executableAddress)) {
-    shellui_log("DetourFunction: allocator returned an unowned trampoline");
+    LOG_DEBUG("DetourFunction: allocator returned an unowned trampoline");
     return false;
   }
 
   /* PS5 xotext is execute-only. Never decode/copy it before this succeeds. */
   if (mprotect_range_rwx(address, kRelocationReadLength) < 0) {
-    shellui_log("DetourFunction: failed to mprotect target decoder window");
+    LOG_ERROR("DetourFunction: failed to mprotect target decoder window");
     return false;
   }
 
@@ -183,7 +184,7 @@ bool PrepareDetour(uint64_t address, void *destination, DetourHandle *handle) {
           reinterpret_cast<uint8_t *>(executableAddress),
           reinterpret_cast<uintptr_t>(executableAddress), HOOK_LENGTH,
           stubLength, &relocation)) {
-    shellui_log("DetourFunction: relocation failed at +%zu: %s",
+    LOG_ERROR("DetourFunction: relocation failed at +%zu: %s",
                 relocation.error_offset,
                 onion_x64_relocate_error_string(relocation.error));
     return false;
@@ -193,7 +194,7 @@ bool PrepareDetour(uint64_t address, void *destination, DetourHandle *handle) {
   if (!onion_x64_build_atomic_patch(
           address, reinterpret_cast<const uint8_t *>(address),
           reinterpret_cast<uintptr_t>(destination), &patch)) {
-    shellui_log("PrepareDetour: failed to build atomic patch");
+    LOG_ERROR("PrepareDetour: failed to build atomic patch");
     return false;
   }
 
@@ -214,14 +215,14 @@ bool CommitDetour(DetourHandle *handle) {
   }
 
   if (!compare_exchange_patch(handle->target, handle->patch)) {
-    shellui_log("CommitDetour: target changed or atomic patch failed: %#02lx",
+    LOG_ERROR("CommitDetour: target changed or atomic patch failed: %#02lx",
                 handle->target);
     return false;
   }
 
   handle->committed = true;
 
-  shellui_log(
+  LOG_DEBUG(
       "DetourFunction: target=%#02lx hook=%p trampoline=%p stolen=%zu emitted=%zu",
       handle->target, handle->destination, handle->trampoline,
       handle->stolen_size, handle->emitted_size);

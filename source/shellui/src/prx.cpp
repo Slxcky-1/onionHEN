@@ -141,14 +141,14 @@ template <typename Fn>
 bool install_detour(const char* name, uint64_t target, void* hook, Fn& out_orig,
                     bool required) {
   if (!target) {
-    shellui_log("Hook target missing: %s", name);
+    LOG_ERROR("Hook target missing: %s", name);
     if (required)
       notify("Failed to find hook target");
     return !required;
   }
 
   if (!InstallDetour(target, hook, reinterpret_cast<void**>(&out_orig))) {
-    shellui_log("Detour failed: %s", name);
+    LOG_ERROR("Detour failed: %s", name);
     if (required)
       notify("Failed to install hook");
     return !required;
@@ -185,7 +185,7 @@ struct ShellImages {
 MonoImage* require_dll(const char* name) {
   MonoImage* img = getDLLimage(name);
   if (!img) {
-    shellui_log("Failed to load Mono assembly: %s", name);
+    LOG_ERROR("Failed to load Mono assembly: %s", name);
     notify("Failed to load assembly");
   }
   return img;
@@ -252,7 +252,7 @@ bool resolve_native_symbols(pid_t pid, void*& out_sceAppInstUtilInstallByPackage
     void* sceSystemServiceLaunchApp = nullptr;
     KERNEL_DLSYM(system_service, sceSystemServiceLaunchApp);
     if (!sceSystemServiceLaunchApp)
-      shellui_log("Failed to resolve sceSystemServiceLaunchApp");
+      LOG_ERROR("Failed to resolve sceSystemServiceLaunchApp");
   }
 
   int remote_play = get_module_handle(pid, "libSceRemoteplay.sprx");
@@ -337,7 +337,7 @@ bool resolve_mono_symbols(pid_t pid) {
       mono_string_to_utf8;
 
   if (!ok)
-    shellui_log("Failed to resolve mono symbols");
+    LOG_ERROR("Failed to resolve mono symbols");
   return ok;
 }
 
@@ -370,11 +370,11 @@ void init_resource_names() {
   uilib_dll = base64_decode(
       "L3N5c3RlbV9leC9jb21tb25fZXgvbGliL1NjZS5Wc2guVUlMaWIuZGxs");
 
-  shellui_log("[GMRS-INIT] expected resource names:");
-  shellui_log("[GMRS-INIT]   debug_settings_xml=\"%s\"", debug_settings_xml.c_str());
-  shellui_log("[GMRS-INIT]   payloads_xml=\"%s\"", payloads_xml.c_str());
-  shellui_log("[GMRS-INIT]   cheats_xml=\"%s\"", cheats_xml.c_str());
-  shellui_log("[GMRS-INIT]   remote_play_xml=\"%s\"", remote_play_xml.c_str());
+  LOG_DEBUG("[GMRS-INIT] expected resource names:");
+  LOG_DEBUG("[GMRS-INIT]   debug_settings_xml=\"%s\"", debug_settings_xml.c_str());
+  LOG_DEBUG("[GMRS-INIT]   payloads_xml=\"%s\"", payloads_xml.c_str());
+  LOG_DEBUG("[GMRS-INIT]   cheats_xml=\"%s\"", cheats_xml.c_str());
+  LOG_DEBUG("[GMRS-INIT]   remote_play_xml=\"%s\"", remote_play_xml.c_str());
 }
 
 // ---------------------------------------------------------------------------
@@ -400,9 +400,9 @@ bool init_version_string(const OrbisKernelSwVersion& sw) {
   final_ver = dec_ver + " (" + sw.version_str + " )";
 #endif
 
-  shellui_log("Decrypted Version: %s", final_ver.c_str());
+  LOG_DEBUG("Decrypted Version: %s", final_ver.c_str());
   if (!SetVersionString(final_ver.c_str())) {
-    shellui_log("Failed to set version string");
+    LOG_ERROR("Failed to set version string");
     return false;
   }
   return true;
@@ -473,7 +473,7 @@ bool resolve_game_container(MonoImage* app_system) {
     return false;
   }
 
-  shellui_log("Game ContainerScene: %p", Game);
+  LOG_DEBUG("Game ContainerScene: %p", static_cast<void *>(Game));
   return true;
 }
 
@@ -498,15 +498,15 @@ bool install_mono_hook(const MonoHookSpec& h) {
   const uint64_t addr =
       Get_Address_of_Method(h.image, h.name_space, h.klass, h.method, h.argc);
   if (!addr) {
-    shellui_log("Hook target missing: %s", h.name);
+    LOG_ERROR("Hook target missing: %s", h.name);
     if (h.required)
       notify("Failed to find hook target");
     return !h.required;
   }
-  shellui_log("Installing mono hook: %s target=%#02lx hook=%p", h.name, addr,
+  LOG_DEBUG("Installing mono hook: %s target=%#02lx hook=%p", h.name, addr,
               h.hook);
   if (!InstallDetour(addr, h.hook, h.orig)) {
-    shellui_log("Detour failed: %s", h.name);
+    LOG_ERROR("Detour failed: %s", h.name);
     if (h.required)
       notify("Failed to install hook");
     return !h.required;
@@ -519,18 +519,18 @@ bool install_optional_diag(const char* tag, MonoImage* image, const char* ns,
                            void* hook, void** orig) {
   const uint64_t addr = Get_Address_of_Method(image, ns, klass, method, argc);
   if (!addr) {
-    shellui_log("%s not found", tag);
+    LOG_ERROR("%s not found", tag);
     return false;
   }
   const bool installed = InstallDetour(addr, hook, orig);
-  shellui_log(installed ? "%s hooked" : "%s failed to detour", tag);
+  LOG_DEBUG(installed ? "%s hooked" : "%s failed to detour", tag);
   return installed;
 }
 
 bool install_hooks(const ShellImages& img) {
   char probe[kMprotectProbeSize];
   has_hv_bypass = (sceKernelMprotect(probe, sizeof(probe), kProtRwx) == 0);
-  shellui_log("has_hv_bypass=%d (mprotect for detours)", has_hv_bypass ? 1 : 0);
+  LOG_DEBUG("has_hv_bypass=%d (mprotect for detours)", has_hv_bypass ? 1 : 0);
 
   Patch_Main_thread_Check(img.core);
 
@@ -623,13 +623,13 @@ bool install_hooks(const ShellImages& img) {
     notify("Failed to find RNPS decrypt ioctl");
     return false;
   }
-  shellui_log("Found ioctl at %p", ioctl);
+  LOG_DEBUG("Found ioctl at %p", reinterpret_cast<void *>(ioctl));
   if (!DetourFunction(reinterpret_cast<uintptr_t>(ioctl),
                       reinterpret_cast<void*>(&ioctl_hook))) {
     notify("Failed to detour RNPS decrypt ioctl");
     return false;
   }
-  shellui_log("Detoured ioctl to ioctl_hook");
+  LOG_DEBUG("Detoured ioctl to ioctl_hook");
 
   // --- BootHelper.Boot: 3-arg then 2-arg ---
   if (!install_mono_hook({"BootHelper.Boot(3)", img.app_system, "Sce.Vsh.ShellUI.AppSystem",
@@ -718,7 +718,7 @@ void run_keep_alive() {
   onion_ready_signal_pid(ONION_READY_TOOLBOX, getpid());
 
   while (true) {
-    shellui_log("sleeping ....");
+    LOG_DEBUG("sleeping ....");
     sleep(kKeepAliveSleepSec);
   }
 }
@@ -745,7 +745,7 @@ int main(int argc, char const* argv[]) {
   if (!resolve_native_symbols(pid, appinst_fn))
     return -1;
 
-  shellui_log("Starting ShellUI Module ....");
+  LOG_DEBUG("Starting ShellUI Module ....");
 
   if (!resolve_mono_symbols(pid))
     return -1;
@@ -757,26 +757,26 @@ int main(int argc, char const* argv[]) {
   is_3xx = (sw.version < kFw3xxMaxExclusive);
   is_6xx = (sw.version >= kFw6xxMin);
   shellui_configure_debug_settings_route(sw.version);
-  shellui_log("System Software Version: %s is_3xx: %s debug_settings_old: %s",
+  LOG_DEBUG("System Software Version: %s is_3xx: %s debug_settings_old: %s",
               sw.version_str, is_3xx ? "Yes" : "No",
               shellui_debug_settings_uses_old_route() ? "Yes" : "No");
 
   if (!mono_get_root_domain)
     return -1;
 
-  shellui_log("loading settings");
+  LOG_DEBUG("loading settings");
   if (!LoadSettings()) {
-    shellui_log("Failed to load settings");
+    LOG_ERROR("Failed to load settings");
     return -1;
   }
-  shellui_log("Settings loaded successfully");
+  LOG_DEBUG("Settings loaded successfully");
 
   Root_Domain = mono_get_root_domain();
   if (!Root_Domain) {
-    shellui_log("failed to get shellui root domain");
+    LOG_ERROR("failed to get shellui root domain");
     return -1;
   }
-  shellui_log("Shellui Root Domain: %p", Root_Domain);
+  LOG_DEBUG("Shellui Root Domain: %p", static_cast<void *>(Root_Domain));
   mono_thread_attach(Root_Domain);
 
   if (!init_version_string(sw))
@@ -788,20 +788,20 @@ int main(int argc, char const* argv[]) {
   if (!resolve_game_container(images.app_system))
     return -1;
 
-  shellui_log("Starting hooking...");
+  LOG_DEBUG("Starting hooking...");
   shellui_hooks_begin_install();
   if (!install_hooks(images)) {
     shellui_hooks_publish_failed();
     return -1;
   }
 
-  shellui_log("Performing Magic ....");
+  LOG_DEBUG("Performing Magic ....");
 
   // Drop elevated auth before long-running work
   set_proc_authid(pid, auth.old_authid);
   auth.release();
 
-  shellui_log("Performed Magic");
+  LOG_DEBUG("Performed Magic");
   setup_proc_hooks();
 
   shellui_hooks_publish_ready();

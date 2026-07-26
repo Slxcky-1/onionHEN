@@ -42,7 +42,6 @@ along with this program; see the file COPYING. If not, see
 #include <ps5/klog.h>
 
 // Project includes
-#include <backtrace.hpp>
 #include "globalconf.hpp"
 #include "launcher.hpp"
 #include "ipc.hpp"
@@ -174,32 +173,32 @@ int launchApp(const char *titleId) {
 
     uint32_t res = sceUserServiceGetForegroundUser(&id);
     if (res != 0) {
-        printf("sceUserServiceGetForegroundUser failed: 0x%x", res);
+        LOG_ERROR("sceUserServiceGetForegroundUser failed: 0x%x", res);
         return res;
     }
-    OnionHEN_log("[LA] user id %u", id);
+    LOG_INFO("[LA] user id %u", id);
 
     // the thread will clean this up
     Flag flag = Flag_None;
     LncAppParam param{sizeof(LncAppParam), id, 0, 0, flag};
 
-    puts("calling sceLncUtilLaunchApp");
+    LOG_DEBUG("calling sceLncUtilLaunchApp");
     int err = sceLncUtilLaunchApp(titleId, nullptr, &param);
-    OnionHEN_log("sceLncUtilLaunchApp returned 0x%x", (uint32_t)err);
+    LOG_INFO("sceLncUtilLaunchApp returned 0x%x", (uint32_t)err);
     if (err >= 0) {
         return err;
     }
     
     switch ((uint32_t)err) {
     case SCE_LNC_UTIL_ERROR_ALREADY_RUNNING:
-        OnionHEN_log("app %s is already running", titleId);
+        LOG_WARN("app %s is already running", titleId);
         break;
     case SCE_LNC_ERROR_APP_NOT_FOUND:
-        OnionHEN_log("app %s not found", titleId);
+        LOG_ERROR("app %s not found", titleId);
         onion_notify(true, "app %s not found", titleId);
         break;
     default:
-        OnionHEN_log("[LA] unknown error 0x%x", (uint32_t)err);
+        LOG_ERROR("[LA] unknown error 0x%x", (uint32_t)err);
         // onion_notify(true, "unknown error 0x%llx", (uint32_t)err);
         break;
     }
@@ -208,14 +207,13 @@ int launchApp(const char *titleId) {
 
 void sig_handler(int signo) {
     if(!is_handler_enabled){
-        OnionHEN_log("Signal handler is disabled, ignoring signal %d", signo);
+        LOG_WARN("Signal handler is disabled, ignoring signal %d", signo);
         return;
     }
     onion_notify(true,
           "OnionHEN has crashed ...\n\nPlease send /data/OnionHEN/OnionHEN_crash.log "
           "to the PKG-Zone discord: https://discord.gg/BduZHudWGj");
-    OnionHEN_log("main OnionHEN has crashed ...");
-    //printBacktraceForCrash();
+    LOG_ERROR("main OnionHEN has crashed ...");
     exit(1);
 }
 
@@ -236,7 +234,7 @@ int main() {
 
   sceNetCtlInit();
   sceUserServiceInitialize(&DEFAULT_PRIORITY);
-  puts("daemon entered");
+  LOG_DEBUG("daemon entered");
 
   OrbisKernelSwVersion sys_ver;
   sceKernelGetProsperoSystemSwVersion(&sys_ver);
@@ -253,7 +251,7 @@ int main() {
   payload_args_t* args = payload_get_args();
   kernel_base = args->kdata_base_addr;
 
-  OnionHEN_log("=========== starting OnionHEN (0x%X) ... ===========", fw_ver);
+  LOG_INFO("=========== starting OnionHEN (0x%X) ... ===========", fw_ver);
   (void)sceKernelMprotect(&buz[0], 100, 0x7); // probe mprotect / kstuff state
   const bool toolbox_only = (fw_ver >= 0x10000);
   is_800 = (fw_ver >= 0x800);
@@ -277,7 +275,7 @@ int main() {
   start_worker_threads(&fifo_thr, &msg_thr);
   onion_ready_signal(ONION_READY_DAEMON);
 
-  OnionHEN_log("is toolbox only: %s | ver: %x", toolbox_only ? "Yes" : "No",
+  LOG_INFO("is toolbox only: %s | ver: %x", toolbox_only ? "Yes" : "No",
                sys_ver.version);
 
   /* Always inject toolbox into ShellUI; do not auto-open any settings page. */
@@ -287,7 +285,7 @@ int main() {
       debug_settings_route.toolbox_uri(
           onion::debug_settings_route::UriKind::Simple));
   sceNotificationSend(0xFE, true, welcome_toast_json.c_str());
-  OnionHEN_log("StartUp thread created!! - welcome to OnionHEN");
+  LOG_INFO("StartUp thread created!! - welcome to OnionHEN");
 
   ipc_supervisor_loop(&msg_thr);
   // unreachable

@@ -23,7 +23,7 @@ static OnPressResult prefix_id_payload(OnPressContext &ctx) {
     int pid = (int)shellui_payload_resolve_recorded_pid(entry.tid.c_str(), pbuf,
                                                         sizeof(pbuf));
     if (pid > 1 && atol(ctx.value.c_str()) == 0) {
-      shellui_log("killing recorded payload pid: %d (%s)", pid,
+      LOG_DEBUG("killing recorded payload pid: %d (%s)", pid,
                   entry.tid.c_str());
       IPC_Client::getInstance(false).ForceKillPID(pid);
       unlink(pbuf);
@@ -31,7 +31,7 @@ static OnPressResult prefix_id_payload(OnPressContext &ctx) {
       break;
     } else if (pid <= 1 && atol(ctx.value.c_str()) == 1) {
       pthread_t thr;
-      shellui_log("Payload %s not running", entry.tid.c_str());
+      LOG_DEBUG("Payload %s not running", entry.tid.c_str());
       auto info = new PayloadEntry(entry);
       pthread_create(&thr, nullptr, load_payload_thread, (void *)info);
     }
@@ -52,7 +52,7 @@ static OnPressResult prefix_id_auto_payload(OnPressContext &ctx) {
       continue;
     }
     std::string auto_path = entry.shellui_path + ".auto_start";
-    shellui_log("Auto start path: %s", auto_path.c_str());
+    LOG_DEBUG("Auto start path: %s", auto_path.c_str());
     if (if_exists(auto_path.c_str()) && !atol(ctx.value.c_str())) {
       unlink(auto_path.c_str());
     } else if (atol(ctx.value.c_str())) {

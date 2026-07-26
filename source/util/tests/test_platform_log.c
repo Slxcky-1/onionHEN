@@ -56,7 +56,7 @@ static long file_size(const char *path) {
 static int test_log_file_sink(void) {
   char buf[512];
   begin("HostTest");
-  OnionHEN_log("hello %d", 42);
+  LOG_INFO("hello %d", 42);
 
   read_file(g_path, buf, sizeof(buf));
   TEST_ASSERT_TRUE(strstr(buf, "hello 42") != NULL);
@@ -69,7 +69,7 @@ static int test_log_file_sink(void) {
 
 static int test_log_configure_tag_only(void) {
   onion_log_configure("TagOnly", NULL);
-  OnionHEN_log("no file sink configured"); /* must not crash */
+  LOG_INFO("no file sink configured"); /* must not crash */
   onion_log_configure("OnionHEN", NULL);
   return 0;
 }
@@ -84,7 +84,7 @@ static int test_runtime_level_filters(void) {
   onion_log_write(ONION_LOG_WARN, "keep-warn");
   onion_log_write(ONION_LOG_INFO, "drop-info");
   onion_log_write(ONION_LOG_DEBUG, "drop-debug");
-  OnionHEN_log("drop-legacy-info");
+  LOG_INFO("drop-legacy-info");
 
   read_file(g_path, buf, sizeof(buf));
   TEST_ASSERT_TRUE(strstr(buf, "keep-error") != NULL);
@@ -101,7 +101,7 @@ static int test_level_off_silences_everything(void) {
   begin("Off");
   onion_log_set_level(ONION_LOG_OFF);
   onion_log_write(ONION_LOG_ERROR, "must-not-appear");
-  OnionHEN_log("must-not-appear-either");
+  LOG_INFO("must-not-appear-either");
 
   read_file(g_path, buf, sizeof(buf));
   TEST_ASSERT_TRUE(strstr(buf, "must-not-appear") == NULL);

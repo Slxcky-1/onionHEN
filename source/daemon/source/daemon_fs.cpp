@@ -60,29 +60,29 @@ int change_permissions_recursive(const char* path) {
     int result = 0;
 
     if (!path || strlen(path) == 0) {
-        OnionHEN_log( "Invalid path provided");
+        LOG_ERROR( "Invalid path provided");
         return -1;
     }
 
     if (lstat(path, &statbuf) != 0) {
-        OnionHEN_log( "Failed to stat '%s': %s", path, strerror(errno));
+        LOG_ERROR( "Failed to stat '%s': %s", path, strerror(errno));
         return -1;
     }
 
     if (S_ISLNK(statbuf.st_mode)) {
-        OnionHEN_log("Skipping symbolic link: %s", path);
+        LOG_WARN("Skipping symbolic link: %s", path);
         return 0;
     }
 
     // Skip special files (devices, pipes, sockets, etc.)
     if (!S_ISREG(statbuf.st_mode) && !S_ISDIR(statbuf.st_mode)) {
-        OnionHEN_log("Skipping special file: %s", path);
+        LOG_WARN("Skipping special file: %s", path);
         return 0;
     }
 
     if (!S_ISDIR(statbuf.st_mode)) {
         if (chmod(path, 0777) != 0) {
-            OnionHEN_log( "Failed to chmod '%s': %s", path, strerror(errno));
+            LOG_ERROR( "Failed to chmod '%s': %s", path, strerror(errno));
             return -1;
         }
         return 0;
@@ -90,7 +90,7 @@ int change_permissions_recursive(const char* path) {
 
     dir = opendir(path);
     if (!dir) {
-        OnionHEN_log( "Failed to open directory '%s': %s", path, strerror(errno));
+        LOG_ERROR( "Failed to open directory '%s': %s", path, strerror(errno));
         return -1;
     }
 
@@ -103,7 +103,7 @@ int change_permissions_recursive(const char* path) {
         size_t name_len = strlen(entry->d_name);
 
         if (path_len + name_len + 2 > PATH_MAX) {
-            OnionHEN_log( "Path too long: %s/%s", path, entry->d_name);
+            LOG_INFO( "Path too long: %s/%s", path, entry->d_name);
             result = -1;
             continue;
         }
@@ -111,7 +111,7 @@ int change_permissions_recursive(const char* path) {
         char newpath[PATH_MAX];
         int ret = snprintf(newpath, sizeof(newpath), "%s/%s", path, entry->d_name);
         if (ret >= sizeof(newpath)) {
-            OnionHEN_log( "Path truncated: %s/%s", path, entry->d_name);
+            LOG_INFO( "Path truncated: %s/%s", path, entry->d_name);
             result = -1;
             continue;
         }
@@ -122,14 +122,14 @@ int change_permissions_recursive(const char* path) {
     }
 
     if (errno != 0) {
-        OnionHEN_log( "Error reading directory '%s': %s", path, strerror(errno));
+        LOG_ERROR( "Error reading directory '%s': %s", path, strerror(errno));
         result = -1;
     }
 
     closedir(dir);
 
     if (chmod(path, 0777) != 0) {
-        OnionHEN_log( "Failed to chmod directory '%s': %s", path, strerror(errno));
+        LOG_ERROR( "Failed to chmod directory '%s': %s", path, strerror(errno));
         return -1;
     }
 
@@ -140,20 +140,20 @@ int change_permissions_recursive(const char* path) {
 
 bool test_sb_file(const char *filename) {
   if (!filename) {
-    OnionHEN_log("test_sb_file: filename is null");
+    LOG_INFO("test_sb_file: filename is null");
     return false;
   }
 
   int fd = open(filename, O_RDONLY);
   if (fd < 0) {
-    OnionHEN_log("test_sb_file: Failed to open %s", filename);
+    LOG_ERROR("test_sb_file: Failed to open %s", filename);
     return false;
   }
 
   // Determine the size of the file
   struct stat fileInfo;
   if (fstat(fd, &fileInfo) < 0) {
-    OnionHEN_log("test_sb_file: Failed to get file size for %s", filename);
+    LOG_ERROR("test_sb_file: Failed to get file size for %s", filename);
     close(fd);
     return false;
   }
@@ -163,7 +163,7 @@ bool test_sb_file(const char *filename) {
 
   // Read start
   if (read(fd, buffer, READ_SIZE) < 0) {
-    OnionHEN_log("test_sb_file: Failed to read start of %s", filename);
+    LOG_ERROR("test_sb_file: Failed to read start of %s", filename);
     close(fd);
     return false;
   }
@@ -173,7 +173,7 @@ bool test_sb_file(const char *filename) {
       fileSize / 2 > READ_SIZE ? fileSize / 2 - READ_SIZE / 2 : 0;
   if (lseek(fd, middlePosition, SEEK_SET) < 0 ||
       read(fd, buffer, READ_SIZE) < 0) {
-    OnionHEN_log("test_sb_file: Failed to read middle of %s", filename);
+    LOG_ERROR("test_sb_file: Failed to read middle of %s", filename);
     close(fd);
     return false;
   }
@@ -181,13 +181,13 @@ bool test_sb_file(const char *filename) {
   // Read end
   off_t endPosition = fileSize > READ_SIZE ? fileSize - READ_SIZE : 0;
   if (lseek(fd, endPosition, SEEK_SET) < 0 || read(fd, buffer, READ_SIZE) < 0) {
-    OnionHEN_log("test_sb_file: Failed to read end of %s", filename);
+    LOG_ERROR("test_sb_file: Failed to read end of %s", filename);
     close(fd);
     return false;
   }
 
   close(fd);
-  OnionHEN_log("test_sb_file: Successfully sampled %s", filename);
+  LOG_INFO("test_sb_file: Successfully sampled %s", filename);
   return true;
 }
 
@@ -239,7 +239,7 @@ int get_game_pid() {
       continue;
     app_pid = j;
     if (sceKernelGetProcessName(app_pid, proc_name) < 0) {
-      OnionHEN_log("sceKernelGetProcessName failed for (%d)", app_pid);
+      LOG_ERROR("sceKernelGetProcessName failed for (%d)", app_pid);
     }
     break;
   }
@@ -250,29 +250,29 @@ void ForceKillProc(int pid) {
   /* PID 0/1 are kernel/init-class; never target them (payload path once
    * stored pid=1 as "unknown" and ShellUI hung on TerminateProcess(1)). */
   if (pid <= 1) {
-    OnionHEN_log("ForceKillProc: refusing invalid/system pid=%d", pid);
+    LOG_ERROR("ForceKillProc: refusing invalid/system pid=%d", pid);
     return;
   }
   if (pid == getpid()) {
-    OnionHEN_log("ForceKillProc: refusing self pid=%d", pid);
+    LOG_INFO("ForceKillProc: refusing self pid=%d", pid);
     return;
   }
 
   #define DECID_AUTH_ID 0x4800000000000022 // required for killing with sceKernelTerminateProcess / sys_proc_term  syscall
   uintptr_t authid = set_proc_authid(getpid(), DECID_AUTH_ID);
 
-  OnionHEN_log("Terminating pid=%d", pid);
+  LOG_INFO("Terminating pid=%d", pid);
   int ret = 0;
   if (sceKernelTerminateProcess(pid, &ret) != 0) {
-    OnionHEN_log("sceKernelTerminateProcess(%d) failed ret=%d — SIGKILL fallback",
+    LOG_ERROR("sceKernelTerminateProcess(%d) failed ret=%d — SIGKILL fallback",
                  pid, ret);
     if (kill(pid, SIGKILL) != 0) {
-      OnionHEN_log("kill(%d, SIGKILL) failed: %s", pid, strerror(errno));
+      LOG_ERROR("kill(%d, SIGKILL) failed: %s", pid, strerror(errno));
     } else {
-      OnionHEN_log("SIGKILL sent to pid=%d", pid);
+      LOG_INFO("SIGKILL sent to pid=%d", pid);
     }
   } else {
-    OnionHEN_log("Successfully terminated process with PID: %d", pid);
+    LOG_INFO("Successfully terminated process with PID: %d", pid);
   }
 
   set_proc_authid(getpid(), authid); // Restore original authid
@@ -294,10 +294,10 @@ static void kill_all_by_comm_substr(const char *const *names, size_t nnames) {
       if (p <= 0 || p == getpid())
         continue;
       any = true;
-      OnionHEN_log("shutdown: killing pid=%d (match \"%s\")", (int)p, names[i]);
+      LOG_INFO("shutdown: killing pid=%d (match \"%s\")", (int)p, names[i]);
       /* ELF daemons often ignore TerminateProcess — SIGKILL first. */
       if (kill(p, SIGKILL) != 0) {
-        OnionHEN_log("shutdown: SIGKILL pid=%d failed: %s", (int)p,
+        LOG_ERROR("shutdown: SIGKILL pid=%d failed: %s", (int)p,
                      strerror(errno));
         ForceKillProc(static_cast<int>(p));
       }
@@ -311,10 +311,10 @@ static void kill_all_by_comm_substr(const char *const *names, size_t nnames) {
 static void shutdown_restart_shellui(void) {
   int shellui_pid = get_shellui_pid();
   if (shellui_pid <= 0 || shellui_pid == getpid()) {
-    OnionHEN_log("shutdown: SceShellUI not found (cannot restart)");
+    LOG_ERROR("shutdown: SceShellUI not found (cannot restart)");
     return;
   }
-  OnionHEN_log("shutdown: restarting SceShellUI pid=%d", shellui_pid);
+  LOG_INFO("shutdown: restarting SceShellUI pid=%d", shellui_pid);
   ForceKillProc(shellui_pid);
   /* Home menu is respawned by the system after process death. */
   if (onion_proc_is_alive(shellui_pid)) {
@@ -333,7 +333,7 @@ static void shutdown_restart_shellui(void) {
  * Order: util → SceShellUI (allowed) → this daemon exits.
  */
 [[noreturn]] void cmd_shutdown_onion_stack(void) {
-  OnionHEN_log(
+  LOG_INFO(
       "cmd_shutdown_onion_stack: util → restart ShellUI → self (leave kstuff)");
 
   /*
@@ -352,22 +352,22 @@ static void shutdown_restart_shellui(void) {
       "util",
   };
 
-  OnionHEN_log("shutdown[1/3]: stop util");
+  LOG_INFO("shutdown[1/3]: stop util");
   kill_all_by_comm_substr(kUtilNames,
                           sizeof(kUtilNames) / sizeof(kUtilNames[0]));
   if (onion_find_pid("onion_util.elf") > 0 ||
       onion_find_pid_substr("onion_util.elf") > 0 ||
       onion_find_pid("util.elf") > 0 || onion_find_pid_substr("util.elf") > 0 ||
       onion_find_pid("OnionHEN Utility") > 0) {
-    OnionHEN_log("shutdown: util still alive — retry");
+    LOG_WARN("shutdown: util still alive — retry");
     kill_all_by_comm_substr(kUtilNames,
                             sizeof(kUtilNames) / sizeof(kUtilNames[0]));
   }
 
-  OnionHEN_log("shutdown[2/3]: restart SceShellUI");
+  LOG_INFO("shutdown[2/3]: restart SceShellUI");
   shutdown_restart_shellui();
 
-  OnionHEN_log("shutdown[3/3]: exit daemon (kstuff intentionally left running)");
+  LOG_INFO("shutdown[3/3]: exit daemon (kstuff intentionally left running)");
   onion_notify(true, "OnionHEN stack shutdown (util + ShellUI + daemon; kstuff remains)");
   usleep(200 * 1000);
   exit(0);
@@ -392,6 +392,6 @@ bool set_fan_threshold(int THRESHOLDTEMP) {
         return false;
     }
     close(fd);
-    //OnionHEN_log("Fan speed set to %d%% THRESHOLDTEMP", THRESHOLDTEMP);
+    //LOG_INFO("Fan speed set to %d%% THRESHOLDTEMP", THRESHOLDTEMP);
     return true;
 }

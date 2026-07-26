@@ -104,7 +104,7 @@ MonoString *GetString_Hook(MonoObject *Instance, MonoString *str) {
 
     if (!str || !Instance) {
 #if SHELL_DEBUG == 1
-      shellui_log("GetString_Hook: Invalid Parameters");
+      LOG_ERROR("GetString_Hook: Invalid Parameters");
 #endif
       /* Prefer original; never invent a string on a broken call. */
       if (oGetString)
@@ -113,7 +113,7 @@ MonoString *GetString_Hook(MonoObject *Instance, MonoString *str) {
     }
     std::string resourceName = Mono_to_String(str);
 #if SHELL_DEBUG == 1
-    shellui_log("Resource Name: %s", resourceName.c_str());
+    LOG_DEBUG("Resource Name: %s", resourceName.c_str());
 #endif
     if (resourceName == "msg_options") {
       return mono_str_ui("PKG 安装器选项");
@@ -152,14 +152,14 @@ MonoString *GetString_Hook(MonoObject *Instance, MonoString *str) {
     // thread has crashed ShellUI (wrong domain / GC). Pass the original through.
     if (resourceName.rfind("msg_", 0) != 0) {
 #if SHELL_DEBUG == 1
-      shellui_log("GetString_Hook: literal XML string, passthrough");
+      LOG_DEBUG("GetString_Hook: literal XML string, passthrough");
 #endif
       return str;
     }
 
     if (!oGetString) {
 #if SHELL_DEBUG == 1
-      shellui_log("GetString_Hook: oGetString is null");
+      LOG_DEBUG("GetString_Hook: oGetString is null");
 #endif
       return str;
     }
@@ -287,7 +287,7 @@ void patch_bundle_strings(unsigned char* buffer, int* size_ptr, int buffer_capac
         replace_all(buffer, size_ptr, buffer_capacity, "icon_setting",
                     "onionh_sicon");
 #if SHELL_DEBUG == 1
-    shellui_log("patch_bundle_strings: NPXS40008 settings patch label=%d icon=%d",
+    LOG_DEBUG("patch_bundle_strings: NPXS40008 settings patch label=%d icon=%d",
                 label_count, icon_count);
 #else
     (void)label_count;
@@ -306,11 +306,11 @@ int ioctl_hook(int fd, unsigned long request, void *argp) {
   if (shellui_hooks_are_ready() && ret == 0 && request == DECRYPT_RNPS_BUNDLE) {
       ioctl_C0105203_args *args = (ioctl_C0105203_args *)argp;
 #if SHELL_DEBUG == 1
-      shellui_log("ioctl_hook called with fd: %d, request: 0x%X, argp: %p", fd, request, argp);
+      LOG_DEBUG("ioctl_hook called with fd: %d, request: 0x%lX, argp: %p", fd, request, argp);
 #endif
       if (!args || !args->buffer || args->size <= 0) {
 #if SHELL_DEBUG == 1
-          shellui_log("homeui_top_nav_patch: ioctl RNPS args invalid");
+          LOG_ERROR("homeui_top_nav_patch: ioctl RNPS args invalid");
 #endif
           return ret;
       }
@@ -320,7 +320,7 @@ int ioctl_hook(int fd, unsigned long request, void *argp) {
       const unsigned char b1 = args->size > 1 ? p[1] : 0;
       const unsigned char b2 = args->size > 2 ? p[2] : 0;
       const unsigned char b3 = args->size > 3 ? p[3] : 0;
-      shellui_log("homeui_top_nav_patch: ioctl RNPS buffer=%p size=%d "
+      LOG_DEBUG("homeui_top_nav_patch: ioctl RNPS buffer=%p size=%d "
                   "head=%02x %02x %02x %02x",
                   args->buffer, args->size, b0, b1, b2, b3);
 #endif
@@ -340,13 +340,13 @@ void ParseCheatID(const char* id, char* tid, int* cheat_id)
 //
 void UpdateImposeStatusFlag_hook(MonoObject* scene, MonoObject* frontActiveScene)
 {
-    shellui_log("[DBG-UIS] enter scene=%p front=%p orig=%p remote=%d confirm=%d",
-                scene, frontActiveScene,
+    LOG_DEBUG("[DBG-UIS] enter scene=%p front=%p orig=%p remote=%d confirm=%d",
+                static_cast<void *>(scene), static_cast<void *>(frontActiveScene),
                 reinterpret_cast<void*>(UpdateImposeStatusFlag_Orig),
                 g_ui.is_active_page(toolbox::Page::RemotePlay) ? 1 : 0,
                 IsRunningConfirmRegistLoop ? 1 : 0);
     if(!frontActiveScene || !scene) {
-        shellui_log("[DBG-UIS] scene or frontActiveScene null — skip RP cleanup");
+        LOG_WARN("[DBG-UIS] scene or frontActiveScene null — skip RP cleanup");
         if (UpdateImposeStatusFlag_Orig)
             UpdateImposeStatusFlag_Orig(scene, frontActiveScene);
         return;
@@ -359,7 +359,7 @@ void UpdateImposeStatusFlag_hook(MonoObject* scene, MonoObject* frontActiveScene
      */
     if (g_ui.is_active_page(toolbox::Page::RemotePlay) ||
         IsRunningConfirmRegistLoop) {
-        shellui_log("[DBG-UIS] scene change — end remote play registration "
+        LOG_DEBUG("[DBG-UIS] scene change — end remote play registration "
                     "(remote=%d confirm=%d)",
                     g_ui.is_active_page(toolbox::Page::RemotePlay) ? 1 : 0,
                     IsRunningConfirmRegistLoop ? 1 : 0);
@@ -369,7 +369,7 @@ void UpdateImposeStatusFlag_hook(MonoObject* scene, MonoObject* frontActiveScene
 
     if (UpdateImposeStatusFlag_Orig)
         UpdateImposeStatusFlag_Orig(scene, frontActiveScene);
-    shellui_log("[DBG-UIS] original returned");
+    LOG_DEBUG("[DBG-UIS] original returned");
 }
 
 
@@ -381,17 +381,17 @@ MonoString * CxmlUri_Hook(MonoObject * Instance, MonoString * uri) {
 
   if (!Instance || !uri) {
     #if SHELL_DEBUG==1 
-    shellui_log("CxmlUri_Hook: args are null");
+    LOG_DEBUG("CxmlUri_Hook: args are null");
     #endif
     return CxmlUri(Instance, uri);
   }
   std::string uri_string = Mono_to_String(uri);
   #if SHELL_DEBUG==1 
-  shellui_log("uri_string: %s", uri_string.c_str());
+  LOG_DEBUG("uri_string: %s", uri_string.c_str());
   #endif
-  ///shellui_log("CxmlUri_Hook: %s", uri_string.c_str());
+  ///LOG_DEBUG("CxmlUri_Hook: %s", uri_string.c_str());
   if (uri_string.rfind("tex_game_icon") != std::string::npos) {
-    //shellui_log("CxmlUri_Hook: Returning store icon");
+    //LOG_DEBUG("CxmlUri_Hook: Returning store icon");
     std::string icon = "/user/appmeta/" + g_ui.running_tid + "/icon0.png";
     if(!if_exists(icon.c_str())){
         icon = "/user/appmeta/external/" + g_ui.running_tid + "/icon0.png";
@@ -404,7 +404,7 @@ MonoString * CxmlUri_Hook(MonoObject * Instance, MonoString * uri) {
            IPC_Client::getInstance(false).CopyFile(game_src, icon);
         }
     }
-   // shellui_log("CxmlUri_Hook: %s", icon.c_str());
+   // LOG_DEBUG("CxmlUri_Hook: %s", icon.c_str());
     return mono_str_ui(icon.c_str());
   }
   else if (uri_string.rfind("//usb") != std::string::npos || uri_string.rfind("//data") != std::string::npos || uri_string.rfind("//user//data") != std::string::npos){
@@ -415,7 +415,7 @@ MonoString * CxmlUri_Hook(MonoObject * Instance, MonoString * uri) {
         new_uri.replace(pos, 2, "/");
     }
     #if SHELL_DEBUG==1 
-    shellui_log("CxmlUri_Hook: %s", new_uri.c_str());
+    LOG_DEBUG("CxmlUri_Hook: %s", new_uri.c_str());
     #endif
     return mono_str_ui(new_uri.c_str());
   }
@@ -437,20 +437,20 @@ void Patch_Main_thread_Check(MonoImage * image_core) {
     uint64_t real_addr = Get_Address_of_Method(image_core, "Sce.PlayStation.Core.Runtime", "Diagnostics", "CheckRunningOnMainThread", 0);
     if (!real_addr) {
 #if SHELL_DEBUG==1
-        shellui_log("Failed to get method address");
+        LOG_ERROR("Failed to get method address");
 #endif
         return;
     }
 #if SHELL_DEBUG==1
-    shellui_log("changing permissions on (%p).", real_addr);
+    LOG_DEBUG("changing permissions on (0x%llx).", (unsigned long long)real_addr);
 #endif
     
     if (!DetourFunction(real_addr, (void*)&CheckRunningOnMainThread)) {
-        shellui_log("Main thread check detour failed");
+        LOG_ERROR("Main thread check detour failed");
         return;
     }
 #if SHELL_DEBUG==1
-    shellui_log("Main thread check patched\n");
+    LOG_DEBUG("Main thread check patched");
 #endif
 
 }

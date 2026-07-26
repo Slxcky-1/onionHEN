@@ -80,7 +80,7 @@ std::vector<uint8_t> readFile(std::string filename) {
   // open the file:
   std::ifstream file(filename, std::ios::binary);
   if (!file.is_open()) {
-    OnionHEN_log("Failed to open %s", filename.c_str());
+    LOG_ERROR("Failed to open %s", filename.c_str());
     return std::vector<uint8_t>();
   }
 
@@ -110,7 +110,7 @@ std::string GetPS5Version(const std::string &jsonpath) {
   try {
     std::ifstream input_file(jsonpath);
     if (!input_file.is_open()) {
-      OnionHEN_log("Failed to open file for reading: %s", jsonpath.c_str());
+      LOG_ERROR("Failed to open file for reading: %s", jsonpath.c_str());
       return "Error Opening Json";
     }
 
@@ -127,7 +127,7 @@ std::string GetPS5Version(const std::string &jsonpath) {
   } catch (const std::exception &e) {
     // Handle exceptions here, you can log the error or perform other error
     // handling tasks
-    OnionHEN_log("An exception occurred: %s", e.what());
+    LOG_INFO("An exception occurred: %s", e.what());
     return "Error getting version";
   }
 
@@ -149,10 +149,6 @@ static void handleIPC_adapt(onion::IpcClientArgs *client, std::string &msg,
   handleIPC(client, msg, cmd);
 }
 
-static void ipc_server_log_line(const char *line) {
-  OnionHEN_log("%s", line);
-}
-
 static onion::IpcServerOptions g_util_ipc_opts = {
     UTIL_IPC_SOC,
     handleIPC_adapt,
@@ -163,6 +159,5 @@ static onion::IpcServerOptions g_util_ipc_opts = {
 
 void *IPC_loop(void *args) {
   (void)args;
-  onion::ipc_server_set_log(ipc_server_log_line);
   return onion::ipc_server_loop(&g_util_ipc_opts);
 }

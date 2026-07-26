@@ -52,12 +52,12 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   char temp[0x255];
   std::string out_var = "Nothing"; // default send var
 
-  OnionHEN_log("Received IPC command 0x%X", command);
-  // OnionHEN_log("Received IPC data: %s", inputStr.c_str());
+  LOG_INFO("Received IPC command 0x%X", command);
+  // LOG_INFO("Received IPC data: %s", inputStr.c_str());
 
   onion_cjson::Root my_json(inputStr);
   if (!my_json) {
-    OnionHEN_log("Error parsing JSON");
+    LOG_ERROR("Error parsing JSON");
     onion_notify(true, "Error parsing JSON");
     reply(sender_app, true);
     return;
@@ -69,7 +69,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     break;
   }
   case BREW_UTIL_SHELLUI_ON_STANDBY: {
-    OnionHEN_log("ShellUI on standby");
+    LOG_INFO("ShellUI on standby");
     real_rest_mode_detected = no_network_rest_mode_action = true;
     reply(sender_app, false);
     break;
@@ -78,7 +78,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   case BREW_UTIL_UNUSED_KLOG:
   case BREW_UTIL_UNUSED_DPI:
     /* FTP (1337), Klog (9081), and DirectPKGInstaller removed; ordinals kept for IPC compat. */
-    OnionHEN_log("Removed-service toggle: unsupported (cmd=%u)", static_cast<unsigned>(command));
+    LOG_WARN("Removed-service toggle: unsupported (cmd=%u)", static_cast<unsigned>(command));
     reply(sender_app, true);
     break;
   case BREW_UTIL_DAEMON_PID: {
@@ -100,14 +100,14 @@ void handleIPC(clientArgs *client, std::string &inputStr,
       // Attempt to load JSON files for PS5 games
       tmp = "/system_data/priv/appmeta/" + tid + "/param.json";
       if (!if_exists(tmp.c_str())) {
-        OnionHEN_log("%s: json %s does not exist", tid.c_str(), tmp.c_str());
+        LOG_INFO("%s: json %s does not exist", tid.c_str(), tmp.c_str());
         tmp = "/system_data/priv/appmeta/external/" + tid + "/param.json";
 
         if (!if_exists(tmp.c_str())) {
-          OnionHEN_log("%s: json %s does not exist", tid.c_str(), tmp.c_str());
+          LOG_INFO("%s: json %s does not exist", tid.c_str(), tmp.c_str());
           tmp = "/system_ex/app/" + tid + "/sce_sys/param.json";
           if (!if_exists(tmp.c_str())) {
-            OnionHEN_log("%s: json %s does not exist", tid.c_str(), tmp.c_str());
+            LOG_INFO("%s: json %s does not exist", tid.c_str(), tmp.c_str());
             onion_notify(true, "Failed to get game version");
             reply(sender_app, true);
             break;
@@ -118,7 +118,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
       game_version = GetPS5Version(tmp);
       if (game_version.empty()) {
         onion_notify(true, "Failed to get game version");
-        OnionHEN_log("Failed to get game version for PS5 Game");
+        LOG_ERROR("Failed to get game version for PS5 Game");
         reply(sender_app, true);
         break;
       }
@@ -126,10 +126,10 @@ void handleIPC(clientArgs *client, std::string &inputStr,
       // Attempt to load SFO files for PS4 games
       tmp = "/system_data/priv/appmeta/" + tid + "/param.sfo";
       if (!if_exists(tmp.c_str())) {
-        OnionHEN_log("%s: sfo %s does not exist", tid.c_str(), tmp.c_str());
+        LOG_INFO("%s: sfo %s does not exist", tid.c_str(), tmp.c_str());
         tmp = "/system_data/priv/appmeta/external/" + tid + "/param.sfo";
         if (!if_exists(tmp.c_str())) {
-          OnionHEN_log("%s: sfo %s does not exist", tid.c_str(), tmp.c_str());
+          LOG_INFO("%s: sfo %s does not exist", tid.c_str(), tmp.c_str());
           onion_notify(true, "Failed to get game version");
           reply(sender_app, true);
           break;
@@ -160,7 +160,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
       }
     }
 
-    OnionHEN_log("Version: %s", game_version.c_str());
+    LOG_INFO("Version: %s", game_version.c_str());
     reply(sender_app, false, game_version);
 
     break;
@@ -170,7 +170,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
         std::string(onion_cjson::string_item(my_json.get(), "payload_path", ""));
     std::string title_id =
         std::string(onion_cjson::string_item(my_json.get(), "title_id", ""));
-    OnionHEN_log("Launching payload %s (key: %s)", payload_path.c_str(),
+    LOG_INFO("Launching payload %s (key: %s)", payload_path.c_str(),
                  title_id.c_str());
     if (!load_payload(payload_path.c_str())) {
       onion_notify(true, "Failed to load payload\nPath: %s\nKey: %s",
@@ -215,39 +215,39 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     int cheat_id = onion_cjson::int_item(my_json.get(), "cheat_id");
     std::string status;
 
-    OnionHEN_log("Received toggle command for cheat %d on %s PID %d",
+    LOG_INFO("Received toggle command for cheat %d on %s PID %d",
                  cheat_id, title_id.c_str(), pid);
 
     auto &cheats = onion::cheats::CheatService::instance();
     if (cheats.toggle(pid, appid, title_id, version, cheat_id, status) == 0) {
-      OnionHEN_log("Cheat toggle ok: %s", status.c_str());
+      LOG_INFO("Cheat toggle ok: %s", status.c_str());
       reply(sender_app, false, status);
     } else {
-      OnionHEN_log("Cheat toggle failed: %s", status.c_str());
+      LOG_ERROR("Cheat toggle failed: %s", status.c_str());
       reply(sender_app, true, status);
     }
     break;
   }
   case BREW_UTIL_LAUNCH_ELFLDR:
     /* Manual elfldr launch removed; embedded 9020 is bootstrapper-managed. */
-    OnionHEN_log("BREW_UTIL_LAUNCH_ELFLDR: unsupported (bootstrapper-managed)");
+    LOG_WARN("BREW_UTIL_LAUNCH_ELFLDR: unsupported (bootstrapper-managed)");
     reply(sender_app, true);
     break;
   case BREW_UTIL_UNUSED_DOWNLOAD_CHEATS:
-    OnionHEN_log("DOWNLOAD_CHEATS: unsupported (online download removed)");
+    LOG_WARN("DOWNLOAD_CHEATS: unsupported (online download removed)");
     reply(sender_app, true);
     break;
   case BREW_UTIL_UNUSED_DOWNLOAD_KSTUFF:
-    OnionHEN_log("DOWNLOAD_KSTUFF: unsupported (online download removed)");
+    LOG_WARN("DOWNLOAD_KSTUFF: unsupported (online download removed)");
     reply(sender_app, true);
     break;
   case BREW_UTIL_UNUSED_RELOAD_CHEATS:
     /* Old full-tree index rebuild removed; load uses file signature hot-reload. */
-    OnionHEN_log("RELOAD_CHEATS: unsupported (hot-reload only)");
+    LOG_WARN("RELOAD_CHEATS: unsupported (hot-reload only)");
     reply(sender_app, true);
     break;
   case BREW_UTIL_UNUSED_LEGACY_CMD_SERVER:
-    OnionHEN_log("LEGACY_CMD_SERVER: unsupported (TCP 9028 removed)");
+    LOG_WARN("LEGACY_CMD_SERVER: unsupported (TCP 9028 removed)");
     reply(sender_app, true);
     break;
   case BREW_KILL_DAEMON:{

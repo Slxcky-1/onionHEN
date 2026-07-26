@@ -16,7 +16,7 @@ extern bool app_launched;
 
 void ReloadApp(MonoString *str){
      std::string tid = mono_string_to_utf8(str);
-     shellui_log("Reloading %s scenes", tid.c_str());
+     LOG_DEBUG("Reloading %s scenes", tid.c_str());
      notify("Reloading %s scenes", tid.c_str());
      Orig_ReloadApp(str);
 }
@@ -34,11 +34,11 @@ int AppInstUtilInstallByPackage_Hook(MonoString* uri, MonoString* ex_uri, MonoSt
     std::string s_content_id = mono_string_to_utf8(content_id);
     std::string s_content_name = mono_string_to_utf8(content_name);
     std::string s_icon_url = mono_string_to_utf8(icon_url);
-    shellui_log("AppInstUtilInstallByPackage_Hook called with:\n uri: %s\n ex_uri: %s\n playgo_scenario_id: %s\n content_id: %s\n content_name: %s\n icon_url: %s\n slot: %u\n is_playgo_enabled: %d", 
+    LOG_DEBUG("AppInstUtilInstallByPackage_Hook called with:\n uri: %s\n ex_uri: %s\n playgo_scenario_id: %s\n content_id: %s\n content_name: %s\n icon_url: %s\n slot: %u\n is_playgo_enabled: %d", 
         s_uri.c_str(), s_ex_uri.c_str(), s_playgo_scenario_id.c_str(), s_content_id.c_str(), s_content_name.c_str(), s_icon_url.c_str(), slot, is_playgo_enabled);
     notify("Installing package from:\n%s", s_uri.c_str());
     int ret = Orig_AppInstUtilInstallByPackage(uri, ex_uri, playgo_scenario_id, content_id, content_name, icon_url, slot, is_playgo_enabled, pkg_info, languages, playgo_scenario_ids, content_ids);
-    shellui_log("AppInstUtilInstallByPackage_Hook returned: %d", ret);
+    LOG_DEBUG("AppInstUtilInstallByPackage_Hook returned: %d", ret);
     notify("Installation finished with code: %d", ret);
 	return ret;
 }
@@ -46,7 +46,7 @@ int AppInstUtilInstallByPackage_Hook(MonoString* uri, MonoString* ex_uri, MonoSt
 int (*sceAppInstUtilInstallByPackage_orig)(MetaInfo* arg1, SceAppInstallPkgInfo* pkg_info, PlayGoInfo* arg2) = nullptr;
 void hex_dump(const char* label, const void* data, size_t size) {
     const unsigned char* bytes = (const unsigned char*)data;
-    shellui_log("=== %s (size: %zu bytes) ===", label, size);
+    LOG_DEBUG("=== %s (size: %zu bytes) ===", label, size);
 
     for (size_t i = 0; i < size; i += 16) {
         char line[128];
@@ -77,7 +77,7 @@ void hex_dump(const char* label, const void* data, size_t size) {
         }
         offset += snprintf(line + offset, sizeof(line) - offset, "|");
 
-        shellui_log("%s", line);
+        LOG_DEBUG("%s", line);
     }
 }
 extern "C" int sceAppInstUtilInitialize();
@@ -86,66 +86,66 @@ int sceAppInstUtilInstallByPackage_hook(MetaInfo* arg1,
     SceAppInstallPkgInfo* pkg_info,
     PlayGoInfo* arg2) {
 
-    shellui_log("========== sceAppInstUtilInstallByPackage_hook ==========");
+    LOG_DEBUG("========== sceAppInstUtilInstallByPackage_hook ==========");
 
     sceAppInstUtilInitialize();
 
     // Print MetaInfo
     if (arg1) {
-        shellui_log("--- MetaInfo ---");
-        shellui_log("uri: %s", arg1->uri ? arg1->uri : "(null)");
-        shellui_log("ex_uri: %s", arg1->ex_uri ? arg1->ex_uri : "(null)");
-        shellui_log("playgo_scenario_id: %s",
+        LOG_DEBUG("--- MetaInfo ---");
+        LOG_DEBUG("uri: %s", arg1->uri ? arg1->uri : "(null)");
+        LOG_DEBUG("ex_uri: %s", arg1->ex_uri ? arg1->ex_uri : "(null)");
+        LOG_DEBUG("playgo_scenario_id: %s",
             arg1->playgo_scenario_id ? arg1->playgo_scenario_id : "(null)");
-        shellui_log("content_id: %s",
+        LOG_DEBUG("content_id: %s",
             arg1->content_id ? arg1->content_id : "(null)");
-        shellui_log("content_name: %s",
+        LOG_DEBUG("content_name: %s",
             arg1->content_name ? arg1->content_name : "(null)");
-        shellui_log("icon_url: %s",
+        LOG_DEBUG("icon_url: %s",
             arg1->icon_url ? arg1->icon_url : "(null)");
     }
     else {
-        shellui_log("MetaInfo: (null)");
+        LOG_DEBUG("MetaInfo: (null)");
     }
 
     // Print SceAppInstallPkgInfo
     if (pkg_info) {
-        shellui_log("--- SceAppInstallPkgInfo ---");
-        shellui_log("content_id: %.*s", CONTENTID_SIZE, pkg_info->content_id);
-        shellui_log("content_type: %d", pkg_info->content_type);
-        shellui_log("content_platform: %d", pkg_info->content_platform);
+        LOG_DEBUG("--- SceAppInstallPkgInfo ---");
+        LOG_DEBUG("content_id: %.*s", CONTENTID_SIZE, pkg_info->content_id);
+        LOG_DEBUG("content_type: %d", pkg_info->content_type);
+        LOG_DEBUG("content_platform: %d", pkg_info->content_platform);
     }
     else {
-        shellui_log("SceAppInstallPkgInfo: (null)");
+        LOG_DEBUG("SceAppInstallPkgInfo: (null)");
     }
 
     // Print PlayGoInfo
     if (arg2) {
-        shellui_log("--- PlayGoInfo ---");
+        LOG_DEBUG("--- PlayGoInfo ---");
 
         // Print languages
-        shellui_log("Languages:");
+        LOG_DEBUG("Languages:");
         for (int i = 0; i < NUM_LANGUAGES; i++) {
             if (arg2->languages[i][0] != '\0') {
-                shellui_log("  [%d]: %.*s", i, LANGUAGE_SIZE,
+                LOG_DEBUG("  [%d]: %.*s", i, LANGUAGE_SIZE,
                     arg2->languages[i]);
             }
         }
 
         // Print playgo_scenario_ids
-        shellui_log("PlayGo Scenario IDs:");
+        LOG_DEBUG("PlayGo Scenario IDs:");
         for (int i = 0; i < NUM_IDS; i++) {
             if (arg2->playgo_scenario_ids[i][0] != '\0') {
-                shellui_log("  [%d]: %.*s", i, PLAYGOSCENARIOID_SIZE,
+                LOG_DEBUG("  [%d]: %.*s", i, PLAYGOSCENARIOID_SIZE,
                     arg2->playgo_scenario_ids[i]);
             }
         }
 
         // Print content_ids
-        shellui_log("Content IDs:");
+        LOG_DEBUG("Content IDs:");
         for (int i = 0; i < NUM_IDS; i++) {
             if (arg2->content_ids[i][0] != '\0') {
-                shellui_log("  [%d]: %.*s", i, CONTENTID_SIZE,
+                LOG_DEBUG("  [%d]: %.*s", i, CONTENTID_SIZE,
                     arg2->content_ids[i]);
             }
         }
@@ -155,16 +155,16 @@ int sceAppInstUtilInstallByPackage_hook(MetaInfo* arg1,
             sizeof(arg2->unknown));
     }
     else {
-        shellui_log("PlayGoInfo: (null)");
+        LOG_DEBUG("PlayGoInfo: (null)");
     }
 
-    shellui_log("========== Calling Original Function ==========");
+    LOG_DEBUG("========== Calling Original Function ==========");
     notify("Installing package from:\n%s",
         arg1 ? (arg1->uri ? arg1->uri : "(null)") : "(null)");
 
     int ret = sceAppInstUtilInstallByPackage_orig(arg1, pkg_info, arg2);
 
-    shellui_log("sceAppInstUtilInstallByPackage_hook returned: %d", ret);
+    LOG_DEBUG("sceAppInstUtilInstallByPackage_hook returned: %d", ret);
     notify("Installation finished with code: %d", ret);
 
     return ret;

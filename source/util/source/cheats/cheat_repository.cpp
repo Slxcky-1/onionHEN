@@ -1,3 +1,4 @@
+#include <onion/log.h>
 #include "cheats/cheat_repository.hpp"
 
 #include <cstdio>
@@ -10,7 +11,6 @@
 #include "cheats/runtime.h"
 
 extern "C" {
-void OnionHEN_log(const char *fmt, ...);
 }
 
 namespace onion::cheats {

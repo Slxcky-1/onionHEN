@@ -1,3 +1,4 @@
+#include <onion/log.h>
 #include "cheats/cheat_applier.hpp"
 
 #include <cstdio>
@@ -8,7 +9,6 @@
 #include "util_platform.h"
 
 extern "C" {
-void OnionHEN_log(const char *fmt, ...);
 }
 
 namespace onion::cheats {
@@ -77,7 +77,7 @@ int CheatApplier::toggle(const game_context_t &game, onion_cheat_file_t &file,
   pid_t pid = game.pid;
 
   if (file.last_applied_pid != 0 && file.last_applied_pid != pid) {
-    OnionHEN_log("[Cheat] PID changed %d -> %d, reset states",
+    LOG_INFO("[Cheat] PID changed %d -> %d, reset states",
                  (int)file.last_applied_pid, (int)pid);
     for (size_t i = 0; i < file.cheat_count; ++i) {
       file.cheats[i].enabled = false;
@@ -114,7 +114,7 @@ int CheatApplier::toggle(const game_context_t &game, onion_cheat_file_t &file,
     fixMasterCode(target, file, entry, base, *backend);
   }
 
-  OnionHEN_log("[Cheat] Toggle '%s' patches=%zu base=0x%llx %s", entry.name,
+  LOG_INFO("[Cheat] Toggle '%s' patches=%zu base=0x%llx %s", entry.name,
                entry.patch_count, (unsigned long long)base,
                entry.enabled ? "ON->OFF" : "OFF->ON");
 
@@ -161,7 +161,7 @@ int CheatApplier::toggle(const game_context_t &game, onion_cheat_file_t &file,
   entry.enabled = !entry.enabled;
   file.last_applied_pid = pid;
   status = std::string(entry.name) + (entry.enabled ? " -> enabled" : " -> disabled");
-  OnionHEN_log("[Cheat] %s", status.c_str());
+  LOG_INFO("[Cheat] %s", status.c_str());
   return 0;
 }
 

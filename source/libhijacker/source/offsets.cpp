@@ -1,5 +1,6 @@
 extern "C"
 {
+#include <onion/log.h>
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/sysctl.h>
@@ -138,7 +139,7 @@ namespace offsets {
                 allprocOffset = 0x2885E00; /* kstuff 12_00..12_70 */
                 break;
             default:
-                printf("Unsupported firmware version: 0x%x\n", getSystemSwVersion() & VERSION_MASK);
+                LOG_WARN("Unsupported firmware version: 0x%x", getSystemSwVersion() & VERSION_MASK);
                 allprocOffset = -1;
                 break;
         }
@@ -175,7 +176,7 @@ namespace offsets {
             case V1000: case V1001: case V1020: case V1040: case V1060:
                 return 0x0D79064;
             default:
-                printf("Unsupported firmware version: 0x%x\n", getSystemSwVersion() & VERSION_MASK);
+                LOG_WARN("Unsupported firmware version: 0x%x", getSystemSwVersion() & VERSION_MASK);
                 return -1;
         }
     }
@@ -205,7 +206,7 @@ namespace offsets {
             case V1000: case V1001: case V1020: case V1040: case V1060:
                 return 0x0D79064 + 0x24;
             default:
-                printf("Unsupported firmware version: 0x%x\n", getSystemSwVersion() & VERSION_MASK);
+                LOG_WARN("Unsupported firmware version: 0x%x", getSystemSwVersion() & VERSION_MASK);
                 return -1;
         }
     }
@@ -235,7 +236,7 @@ namespace offsets {
             case V1000: case V1001: case V1020: case V1040: case V1060:
                 return 0x0D79064 + 0x8C;
             default:
-                printf("Unsupported firmware version: 0x%x\n", getSystemSwVersion() & VERSION_MASK);
+                LOG_WARN("Unsupported firmware version: 0x%x", getSystemSwVersion() & VERSION_MASK);
                 return -1;
         }
     }
@@ -269,7 +270,7 @@ namespace offsets {
             case V1000: case V1001: case V1020: case V1040: case V1060:
                 return 0x2FA3510;
             default:
-                printf("Unsupported firmware version: 0x%x\n", getSystemSwVersion() & VERSION_MASK);
+                LOG_WARN("Unsupported firmware version: 0x%x", getSystemSwVersion() & VERSION_MASK);
                 return -1;
         }
     }

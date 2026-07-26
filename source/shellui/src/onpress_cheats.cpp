@@ -17,22 +17,22 @@ static OnPressResult prefix_id_cheat(OnPressContext &ctx) {
 
   if (!g_ui.is_current_game_open) {
     notify("The Game is not running, to activate cheats launch the game first");
-    shellui_log("Failed to activate %s, game is not running", ctx.id.c_str());
+    LOG_ERROR("Failed to activate %s, game is not running", ctx.id.c_str());
     return OnPressResult::Consumed;
   }
   char tid[32];
   int cheat_id;
   std::string cheat_name;
   ParseCheatID(ctx.id.c_str(), tid, &cheat_id);
-  shellui_log("Getting PID for %s", ctx.id.c_str());
+  LOG_DEBUG("Getting PID for %s", ctx.id.c_str());
   int pid = onion_find_pid_ex(tid, false, true, true);
   if (pid < 0) {
     notify("[ERROR] Failed to activate %s\nfailed to find game pid",
            cheat_name.c_str());
-    shellui_log("Failed to get pid for %s", tid);
+    LOG_ERROR("Failed to get pid for %s", tid);
     return OnPressResult::Consumed;
   }
-  shellui_log("Got proc for %s, tid %s, pid %i", ctx.id.c_str(), tid, pid);
+  LOG_DEBUG("Got proc for %s, tid %s, pid %i", ctx.id.c_str(), tid, pid);
   if (IPC_Client::getInstance(true).ToggleGameCheat(pid, tid, cheat_id,
                                                     cheat_name)) {
     (void)g_ui.reset_cheats_if_tid_changed(tid);

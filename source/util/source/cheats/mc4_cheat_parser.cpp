@@ -1,3 +1,4 @@
+#include <onion/log.h>
 #include "cheats/i_cheat_parser.hpp"
 
 #include <cstdlib>
@@ -10,7 +11,6 @@ extern "C" {
 #include "mc4/base64.h"
 }
 
-extern "C" void OnionHEN_log(const char *fmt, ...);
 
 namespace onion::cheats {
 
@@ -69,13 +69,13 @@ public:
     }
     char *xml = mc4Decrypt(reinterpret_cast<const char *>(data), size);
     if (xml == nullptr) {
-      OnionHEN_log("[engine] mc4 decrypt failed");
+      LOG_ERROR("[engine] mc4 decrypt failed");
       return -1;
     }
     const int rc = parseXmlBuffer(xml, out);
     onion_cheat_secure_zero(xml, std::strlen(xml));
     free(xml);
-    OnionHEN_log("[engine] mc4 cheats=%zu rc=%d", out.cheat_count, rc);
+    LOG_INFO("[engine] mc4 cheats=%zu rc=%d", out.cheat_count, rc);
     return rc;
   }
 };

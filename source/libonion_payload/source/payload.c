@@ -141,19 +141,19 @@ void onion_payload_stop_by_title(const char *title_id) {
   /* PID 0/1 are never valid payload targets. */
   if (pid <= 1) {
     if (pid == 1) {
-      OnionHEN_log("Ignoring bogus payload PID 1 for %s", title_id);
+      LOG_WARN("Ignoring bogus payload PID 1 for %s", title_id);
       unlink(pid_path);
     }
     pid = -1;
   } else if (!onion_proc_is_alive(pid)) {
-    OnionHEN_log("Stale payload PID file for %s (pid=%d dead), removing",
+    LOG_WARN("Stale payload PID file for %s (pid=%d dead), removing",
                  title_id, (int)pid);
     unlink(pid_path);
     pid = -1;
   } else {
     char name[32];
     if (sceKernelGetProcessName(pid, name) < 0) {
-      OnionHEN_log("Stale payload PID file detected for %s, removing", title_id);
+      LOG_WARN("Stale payload PID file detected for %s, removing", title_id);
       unlink(pid_path);
       pid = -1;
     }
@@ -164,25 +164,25 @@ void onion_payload_stop_by_title(const char *title_id) {
     pid = onion_payload_resolve_pid_by_title(title_id);
 
   if (pid > 1) {
-    OnionHEN_log("killing pid %d (payload: %s)", (int)pid, title_id);
+    LOG_INFO("killing pid %d (payload: %s)", (int)pid, title_id);
     if (kill(pid, SIGKILL) != 0)
-      OnionHEN_log("kill(%d) failed: %s", (int)pid, strerror(errno));
+      LOG_ERROR("kill(%d) failed: %s", (int)pid, strerror(errno));
     unlink(pid_path);
   } else {
-    OnionHEN_log("stop_by_title: no live pid for %s", title_id);
+    LOG_INFO("stop_by_title: no live pid for %s", title_id);
   }
 }
 
 pid_t onion_payload_launch_elfldr(const char *title_id, const uint8_t *elf,
                                   size_t elf_sz) {
   if (!title_id || !title_id[0] || !elf || elf_sz < 4) {
-    OnionHEN_log("launch_elfldr: invalid args title=%s elf_sz=%zu",
+    LOG_ERROR("launch_elfldr: invalid args title=%s elf_sz=%zu",
                  title_id ? title_id : "(null)", elf_sz);
     return -1;
   }
   if (strcmp(title_id, ".") == 0 || strcmp(title_id, "..") == 0 ||
       strchr(title_id, '/') != NULL) {
-    OnionHEN_log("launch_elfldr: rejected title_id=%s", title_id);
+    LOG_INFO("launch_elfldr: rejected title_id=%s", title_id);
     return -1;
   }
 
@@ -191,10 +191,10 @@ pid_t onion_payload_launch_elfldr(const char *title_id, const uint8_t *elf,
 
   char epath[256];
   snprintf(epath, sizeof(epath), "/data/OnionHEN/payloads/%s.elf", title_id);
-  OnionHEN_log("loading payload via elfldr key=%s path=%s", title_id, epath);
+  LOG_INFO("loading payload via elfldr key=%s path=%s", title_id, epath);
 
   if (!elfldr_remote_onion_available()) {
-    OnionHEN_log("  Private elfldr :%u unavailable; strict payload launch failed",
+    LOG_ERROR("  Private elfldr :%u unavailable; strict payload launch failed",
                  ONION_ELFLDR_PORT);
     return -1;
   }
@@ -202,17 +202,17 @@ pid_t onion_payload_launch_elfldr(const char *title_id, const uint8_t *elf,
   const pid_t pid =
       elfldr_remote_onion_write_and_launch_get_pid(epath, elf, elf_sz);
   if (pid <= 1) {
-    OnionHEN_log("  Private elfldr :%u returned no valid PID for %s (pid=%d)",
+    LOG_ERROR("  Private elfldr :%u returned no valid PID for %s (pid=%d)",
                  ONION_ELFLDR_PORT, title_id, (int)pid);
     return -1;
   }
 
   char pname[32] = {0};
   if (sceKernelGetProcessName(pid, pname) == 0)
-    OnionHEN_log("  Launched via %u (pid=%d name=%s)", ONION_ELFLDR_PORT,
+    LOG_INFO("  Launched via %u (pid=%d name=%s)", ONION_ELFLDR_PORT,
                  (int)pid, pname);
   else
-    OnionHEN_log("  Launched via %u (pid=%d)", ONION_ELFLDR_PORT, (int)pid);
+    LOG_INFO("  Launched via %u (pid=%d)", ONION_ELFLDR_PORT, (int)pid);
   return pid;
 }
 
@@ -222,32 +222,32 @@ uint8_t *onion_payload_read_file(const char *path, size_t *out_size) {
 
   const int fd = open(path, O_RDONLY);
   if (fd < 0) {
-    OnionHEN_log("Failed to open file %s (%s)", path, strerror(errno));
+    LOG_ERROR("Failed to open file %s (%s)", path, strerror(errno));
     return NULL;
   }
 
   struct stat st;
   if (fstat(fd, &st) != 0) {
-    OnionHEN_log("Failed to stat file %s", path);
+    LOG_ERROR("Failed to stat file %s", path);
     close(fd);
     return NULL;
   }
   if (st.st_size <= 0) {
-    OnionHEN_log("Empty payload file %s", path);
+    LOG_INFO("Empty payload file %s", path);
     close(fd);
     return NULL;
   }
 
   uint8_t *buf = (uint8_t *)malloc((size_t)st.st_size);
   if (!buf) {
-    OnionHEN_log("Failed to allocate %lld bytes for payload",
+    LOG_ERROR("Failed to allocate %lld bytes for payload",
                  (long long)st.st_size);
     close(fd);
     return NULL;
   }
 
   if (read(fd, buf, (size_t)st.st_size) != st.st_size) {
-    OnionHEN_log("Failed to read payload file %s", path);
+    LOG_ERROR("Failed to read payload file %s", path);
     free(buf);
     close(fd);
     return NULL;
@@ -272,14 +272,14 @@ bool onion_payload_load(const char *path, const char *filename) {
 
   const size_t base_len = strlen(base);
   if (!(base_len > 4 && strcmp(base + base_len - 4, ".elf") == 0)) {
-    OnionHEN_log("Not a .elf payload: %s", base);
+    LOG_INFO("Not a .elf payload: %s", base);
     onion_notify(1, "Only .elf payloads are supported:\n%s", base);
     free(buf);
     return false;
   }
 
   if (!onion_payload_is_elf(buf, size)) {
-    OnionHEN_log("Invalid ELF file: %s", base);
+    LOG_ERROR("Invalid ELF file: %s", base);
     onion_notify(1, "Invalid ELF file: %s", base);
     free(buf);
     return false;
@@ -287,13 +287,13 @@ bool onion_payload_load(const char *path, const char *filename) {
 
   char key[64];
   if (!onion_payload_elf_key_from_name(base, key, sizeof(key))) {
-    OnionHEN_log("Invalid ELF basename (empty stem): %s", base);
+    LOG_ERROR("Invalid ELF basename (empty stem): %s", base);
     onion_notify(1, "Invalid ELF name: %s", base);
     free(buf);
     return false;
   }
 
-  OnionHEN_log("payload launch key=%s (from %s)", key, base);
+  LOG_INFO("payload launch key=%s (from %s)", key, base);
   char pid_path[256];
   onion_payload_pid_path(pid_path, sizeof(pid_path), key);
 
@@ -301,7 +301,7 @@ bool onion_payload_load(const char *path, const char *filename) {
    * submitted. The launch function repeats this check to keep its public API
    * strict when called directly. */
   if (!elfldr_remote_onion_available()) {
-    OnionHEN_log("Private elfldr :%u unavailable; payload %s not replaced",
+    LOG_WARN("Private elfldr :%u unavailable; payload %s not replaced",
                  ONION_ELFLDR_PORT, key);
     free(buf);
     return false;

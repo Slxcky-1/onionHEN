@@ -53,7 +53,7 @@ bool isUserLoggedIn() {
         int userid = userIdList.user_id[i];
         if (userid != -1) {
             int ret = sceUserServiceGetUserName(userid, &username[0], sizeof(username));
-            OnionHEN_log("sceUserServiceGetUserName returned %d", ret);
+            LOG_INFO("sceUserServiceGetUserName returned %d", ret);
             if (ret == 0) {
                 isLoggedIn = true;
                 break;
@@ -71,7 +71,7 @@ bool isUserLoggedIn() {
  */
 void patch_checker(bool rest_resume) {
     if (!isUserLoggedIn()) {
-        OnionHEN_log("User is not logged in yet, skipping toolbox reinject...");
+        LOG_WARN("User is not logged in yet, skipping toolbox reinject...");
         return;
     }
 
@@ -80,13 +80,13 @@ void patch_checker(bool rest_resume) {
 
     if (rest_resume &&
         onion_toolbox_should_apply_rest_delay(true, cfg.rest_mode_delay_seconds)) {
-        OnionHEN_log("rest resume delay %llu secs",
+        LOG_INFO("rest resume delay %llu secs",
                      static_cast<unsigned long long>(cfg.rest_mode_delay_seconds));
         sleep(static_cast<unsigned int>(cfg.rest_mode_delay_seconds));
         onion_notify(true,
                      "Coming out of Rest Mode — re-activating the OnionHEN toolbox...");
     } else {
-        OnionHEN_log("toolbox reinject (not rest resume)");
+        LOG_INFO("toolbox reinject (not rest resume)");
     }
 
     if (!enable_toolbox()) {

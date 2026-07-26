@@ -18,6 +18,7 @@ along with this program; see the file COPYING. If not, see
 #include "common_utils.h"
 
 #include <onion/fault_frame.h>
+#include <onion/log.h>
 
 #include <fcntl.h>
 #include <setjmp.h>
@@ -32,31 +33,6 @@ along with this program; see the file COPYING. If not, see
 
 static void (*g_cleanup_handler)(void) = NULL;
 
-void crash_log(const char *fmt, ...) {
-	char msg[0x1000];
-	va_list args;
-	va_start(args, fmt);
-	__builtin_vsnprintf(msg, sizeof(msg), fmt, args);
-	va_end(args);
-
-	// Append newline at the end
-	size_t msg_len = strlen(msg);
-	if (msg_len < sizeof(msg) - 1) {
-		msg[msg_len] = '\n';
-		msg[msg_len + 1] = '\0';
-	} else {
-		msg[sizeof(msg) - 2] = '\n';
-		msg[sizeof(msg) - 1] = '\0';
-	}
-
-	int fd = open("/data/OnionHEN/OnionHEN_util_crash.log", O_WRONLY | O_CREAT | O_APPEND, 0777);
-	if (fd < 0) {
-		return;
-	}
-	write(fd, msg, strlen(msg));
-	close(fd);
-	printf("[Crash Log]: %s", msg);  // msg already includes a newline
-}
 
 // NOLINTBEGIN(bugprone-signal-handler)
 
@@ -83,11 +59,11 @@ static uintptr_t __attribute__((naked, noinline)) get_cleanup_function(void) {
 bool is_handler_enabled = true;
 static void fault_handler(int sig) {
 	if(!is_handler_enabled) {
-		crash_log("Signal handler is disabled, ignoring signal %d", sig);
+		onion_log_emergency("signal handler disabled, ignoring signal %d", sig);
 		return;
 	}
-	crash_log("signal %d received\n", sig);
-	onion_print_backtrace(crash_log);
+	onion_log_emergency("signal %d received", sig);
+	onion_print_backtrace(onion_log_emergency);
 	/* Must read this frame directly — see onion/fault_frame.h. */
 	onion_frame_t *frame = onion_current_frame();
 	frame->addr = get_cleanup_function();

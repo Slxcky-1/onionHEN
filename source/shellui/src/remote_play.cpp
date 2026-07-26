@@ -33,11 +33,11 @@ bool g_confirm_thread_started = false;
  */
 void invalidate_pin_registration(const char *why) {
   if (!sceRemoteplayNotifyPinCodeError) {
-    shellui_log("[remote_play] NotifyPinCodeError unresolved (%s)", why);
+    LOG_ERROR("[remote_play] NotifyPinCodeError unresolved (%s)", why);
     return;
   }
   const int err = sceRemoteplayNotifyPinCodeError(1);
-  shellui_log("[remote_play] NotifyPinCodeError(1) => 0x%x (%s)", err, why);
+  LOG_ERROR("[remote_play] NotifyPinCodeError(1) => 0x%x (%s)", err, why);
 }
 
 } // namespace
@@ -64,18 +64,18 @@ bool InitRemotePlay() {
       notify("SCE_REGMGR: unable to verify REMOTEPLAY_rp_enable (0x%x)", err);
       return false;
     }
-    shellui_log("[remote_play] enabled REMOTEPLAY_rp_enable registry");
+    LOG_DEBUG("[remote_play] enabled REMOTEPLAY_rp_enable registry");
   }
 
   if (!sceRemoteplayInitialize) {
-    shellui_log("[remote_play] Initialize unresolved");
+    LOG_DEBUG("[remote_play] Initialize unresolved");
     return false;
   }
 
   // ShellUI may already have initialized this library. Keep the existing
   // session usable while recording the result for device diagnostics.
   err = sceRemoteplayInitialize(nullptr, 0);
-  shellui_log("[remote_play] Initialize => 0x%x", err);
+  LOG_DEBUG("[remote_play] Initialize => 0x%x", err);
   return true;
 }
 
@@ -86,13 +86,13 @@ bool GeneratePINCode(uint32_t& pin) {
   StopConfirmRegistLoop();
 
   if (!sceRemoteplayGeneratePinCode) {
-    shellui_log("[remote_play] GeneratePinCode unresolved");
+    LOG_DEBUG("[remote_play] GeneratePinCode unresolved");
     return false;
   }
 
   const int err = sceRemoteplayGeneratePinCode(&pin);
   if (err != 0) {
-    shellui_log("[remote_play] GeneratePinCode failed => 0x%x", err);
+    LOG_ERROR("[remote_play] GeneratePinCode failed => 0x%x", err);
     return false;
   }
 
@@ -100,7 +100,7 @@ bool GeneratePINCode(uint32_t& pin) {
       pthread_create(&ConfirmRegistLoop_Thread, nullptr, ConfirmRegistLoop,
                      nullptr);
   if (thread_err != 0) {
-    shellui_log("[remote_play] confirm thread create failed => 0x%x",
+    LOG_ERROR("[remote_play] confirm thread create failed => 0x%x",
                 thread_err);
     invalidate_pin_registration("thread_create_failed");
     return false;
@@ -121,7 +121,7 @@ void StopConfirmRegistLoop() {
       pthread_join(ConfirmRegistLoop_Thread, &retval);
       g_confirm_thread_started = false;
     }
-    shellui_log("[remote_play] confirm loop stopped (was_running=%d)",
+    LOG_DEBUG("[remote_play] confirm loop stopped (was_running=%d)",
                 was_running ? 1 : 0);
   }
 
@@ -145,13 +145,13 @@ bool GetEncodedAccountID(char *buff, uint64_t &accountid,
 
   Activator activator(true);
   if (!activator.Valid()) {
-    shellui_log("[remote_play] foreground account registry slot not found");
+    LOG_ERROR("[remote_play] foreground account registry slot not found");
     return false;
   }
 
   if (activator.IsNotActivated()) {
     if (!activator.Activate()) {
-      shellui_log("[remote_play] account activation failed");
+      LOG_ERROR("[remote_play] account activation failed");
       return false;
     }
     activated_now = true;
@@ -169,16 +169,16 @@ void *ConfirmRegistLoop(void *) {
   IsRunningConfirmRegistLoop = true;
   int pair_stat = -1, pair_err = -1, err = -1;
 
-  shellui_log("[remote_play] ConfirmRegistLoop started");
+  LOG_DEBUG("[remote_play] ConfirmRegistLoop started");
 
   while (IsRunningConfirmRegistLoop) {
     if (!sceRemoteplayConfirmDeviceRegist) {
-      shellui_log("[remote_play] ConfirmDeviceRegist unresolved");
+      LOG_DEBUG("[remote_play] ConfirmDeviceRegist unresolved");
       break;
     }
     err = sceRemoteplayConfirmDeviceRegist(&pair_stat, &pair_err);
     if (err != 0) {
-      shellui_log("[remote_play] ConfirmDeviceRegist 0x%x pair_stat=%d "
+      LOG_DEBUG("[remote_play] ConfirmDeviceRegist 0x%x pair_stat=%d "
                   "pair_err=%d",
                   err, pair_stat, pair_err);
       notify("sceRemoteplayConfirmDeviceRegist 0x%X pair_stat: %d pair_err: %d",
@@ -190,7 +190,7 @@ void *ConfirmRegistLoop(void *) {
        * Registration finished. Drop out of PIN/regist mode so the client can
        * open a Remote Play session immediately without waiting for page exit.
        */
-      shellui_log("[remote_play] pair_stat=2 paired — ending PIN session");
+      LOG_DEBUG("[remote_play] pair_stat=2 paired — ending PIN session");
       notify("Remote Play paired! For better stability a reboot is recommended");
       invalidate_pin_registration("pair_success");
       break;
@@ -200,6 +200,6 @@ void *ConfirmRegistLoop(void *) {
   }
 
   IsRunningConfirmRegistLoop = false;
-  shellui_log("[remote_play] ConfirmRegistLoop exit");
+  LOG_DEBUG("[remote_play] ConfirmRegistLoop exit");
   return nullptr;
 }

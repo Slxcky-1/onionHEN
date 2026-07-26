@@ -34,7 +34,7 @@ bool cmd_enable_toolbox(){
      */
     const pid_t observed_pid = static_cast<pid_t>(get_shellui_pid());
     if (observed_pid > 0 && g_toolbox_injection.is_ready_for(observed_pid)) {
-      OnionHEN_log("Toolbox already active in SceShellUI pid=%d",
+      LOG_WARN("Toolbox already active in SceShellUI pid=%d",
                    static_cast<int>(observed_pid));
       return true;
     }
@@ -48,7 +48,7 @@ bool cmd_enable_toolbox(){
      * mprotect readiness.
      */
     if (find_pid("kstuff.elf") > 0 || find_pid("kstuff") > 0) {
-      OnionHEN_log("kstuff present — waiting for mprotect before toolbox inject");
+      LOG_INFO("kstuff present — waiting for mprotect before toolbox inject");
       for (int i = 0; i < 20; i++) {
         if (sceKernelMprotect(&buz[0], 100, 0x7) == 0)
           break;
@@ -57,7 +57,7 @@ bool cmd_enable_toolbox(){
       sleep(2);
     }
 
-    OnionHEN_log("Activating toolbox...");
+    LOG_INFO("Activating toolbox...");
     /*
      * rest_mode.resume_reinject_delay_seconds only on rest resume — never on
      * cold start.
@@ -70,7 +70,7 @@ bool cmd_enable_toolbox(){
       const uint64_t delay = g_settings.snapshot().rest_mode_delay_seconds;
       constexpr bool kRestResume = false; /* daemon cold/direct inject path */
       if (onion_toolbox_should_apply_rest_delay(kRestResume, delay)) {
-        OnionHEN_log("rest delay %llu (rest resume path)",
+        LOG_INFO("rest delay %llu (rest resume path)",
                      static_cast<unsigned long long>(delay));
         sleep(static_cast<unsigned int>(delay));
       }
@@ -84,7 +84,7 @@ bool cmd_enable_toolbox(){
     const onion::ToolboxInjectionOutcome outcome = g_toolbox_injection.ensure(
         []() -> pid_t { return static_cast<pid_t>(get_shellui_pid()); },
         [](pid_t pid) -> bool {
-          OnionHEN_log("Injecting toolbox into SceShellUI pid=%d",
+          LOG_INFO("Injecting toolbox into SceShellUI pid=%d",
                        static_cast<int>(pid));
           return Inject_Toolbox(static_cast<int>(pid), shellui_elf_start);
         },
@@ -92,11 +92,11 @@ bool cmd_enable_toolbox(){
 
     switch (outcome.result) {
     case onion::ToolboxInjectionResult::AlreadyReady:
-      OnionHEN_log("Toolbox already active in SceShellUI pid=%d",
+      LOG_WARN("Toolbox already active in SceShellUI pid=%d",
                    static_cast<int>(outcome.pid));
       return true;
     case onion::ToolboxInjectionResult::Injected:
-      OnionHEN_log("Toolbox online for SceShellUI pid=%d (ready protocol)",
+      LOG_INFO("Toolbox online for SceShellUI pid=%d (ready protocol)",
                    static_cast<int>(outcome.pid));
       return true;
     case onion::ToolboxInjectionResult::TargetNotFound:

@@ -47,7 +47,10 @@ onion_target_debug_define(${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PRIVATE
 	"${D_CWD}/include"
 	"${LZMA_ROOT}"
+	"${PROJECT_ROOT}/libonion_platform/include"
 )
+target_link_libraries(${PROJECT_NAME} PRIVATE onion_platform)
+add_dependencies(${PROJECT_NAME} onion_platform)
 target_compile_definitions(${PROJECT_NAME} PRIVATE
 	ONIONHEN_BOOTSTRAPPER_LZMA="${ONIONHEN_OUT_BIN}/bootstrapper.elf.lzma"
 	ONIONHEN_BOOTSTRAPPER_SIZE="${ONIONHEN_OUT_BIN}/bootstrapper.elf.lzma.size"

@@ -1,3 +1,4 @@
+#include <onion/log.h>
 #include "cheats/cheat_engine_internal.h"
 
 #include <stdio.h>
@@ -10,7 +11,6 @@
 #include "mc4/base64.h"
 #include "sha256.h"
 
-void OnionHEN_log(const char *fmt, ...);
 
 struct AES_ctx {
   uint8_t RoundKey[240];
@@ -216,7 +216,7 @@ static int shnext_parse_nop(const char *value, uint8_t *out_bytes,
       nop_count <= (int)(ONION_MAX_PATCH_BYTES)) {
     memset(out_bytes, 0x90, (size_t)nop_count);
     *out_len = (size_t)nop_count;
-    OnionHEN_log("[engine] shnext nop:%d -> %zu byte(s) of 0x90",
+    LOG_INFO("[engine] shnext nop:%d -> %zu byte(s) of 0x90",
                      nop_count, *out_len);
     return 0;
   }
@@ -239,14 +239,14 @@ static int shnext_assemble(const char *asm_text, uint8_t *out_bytes,
 
   err = ks_open(KS_ARCH_X86, KS_MODE_64, &ks);
   if (err != KS_ERR_OK) {
-    OnionHEN_log("[engine] shnext keystone open failed: %s",
+    LOG_ERROR("[engine] shnext keystone open failed: %s",
                      ks_strerror(err));
     return -1;
   }
 
   rc = ks_asm(ks, asm_text, 0, &enc, &enc_size, &count);
   if (rc != 0) {
-    OnionHEN_log("[engine] shnext keystone asm failed: %s",
+    LOG_ERROR("[engine] shnext keystone asm failed: %s",
                      ks_strerror(ks_errno(ks)));
     ks_close(ks);
     return -1;
@@ -255,7 +255,7 @@ static int shnext_assemble(const char *asm_text, uint8_t *out_bytes,
   ks_close(ks);
 
   if (enc_size == 0 || enc_size > ONION_MAX_PATCH_BYTES) {
-    OnionHEN_log("[engine] shnext keystone asm invalid size %zu",
+    LOG_ERROR("[engine] shnext keystone asm invalid size %zu",
                      enc_size);
     if(enc != NULL) {
       onion_cheat_secure_zero(enc, enc_size);
@@ -267,7 +267,7 @@ static int shnext_assemble(const char *asm_text, uint8_t *out_bytes,
   memcpy(out_bytes, enc, enc_size);
   *out_len = enc_size;
 
-  OnionHEN_log("[engine] shnext keystone asm produced %zu byte(s)",
+  LOG_INFO("[engine] shnext keystone asm produced %zu byte(s)",
                    enc_size);
 
   onion_cheat_secure_zero(enc, enc_size);
@@ -318,7 +318,7 @@ static int shnext_parse_variable(const cJSON *var_obj, onion_patch_t *patch) {
     patch->is_asm = true;
     patch->on_len = 0;
     if (on_str != NULL) {
-      OnionHEN_log("[engine] shnext failed to assemble on value");
+      LOG_ERROR("[engine] shnext failed to assemble on value");
     }
   }
 
@@ -330,11 +330,11 @@ static int shnext_parse_variable(const cJSON *var_obj, onion_patch_t *patch) {
     patch->is_asm = true;
     patch->off_len = 0;
     if (off_str != NULL) {
-      OnionHEN_log("[engine] shnext failed to assemble off value");
+      LOG_ERROR("[engine] shnext failed to assemble off value");
     }
   }
 
-  OnionHEN_log("[engine] shnext var label='%s' offset=0x%llx "
+  LOG_INFO("[engine] shnext var label='%s' offset=0x%llx "
                    "on_len=%zu off_len=%zu is_asm=%d",
                    label ? label : "(none)",
                    (unsigned long long)patch->offset,
@@ -433,7 +433,7 @@ int onion_cheat_parse_shnext_buffer(const char *data, size_t size,
 
   if (shnext_deflate_decompress((const uint8_t *)data, size, &json_buf,
                                 &json_len) < 0) {
-    OnionHEN_log("[engine] shnext deflate decompress failed");
+    LOG_ERROR("[engine] shnext deflate decompress failed");
     return -1;
   }
 
@@ -451,7 +451,7 @@ int onion_cheat_parse_shnext_buffer(const char *data, size_t size,
   free(json_buf);
 
   if (root == NULL) {
-    OnionHEN_log("[engine] shnext JSON parse failed");
+    LOG_ERROR("[engine] shnext JSON parse failed");
     return -1;
   }
 
@@ -554,11 +554,11 @@ int onion_cheat_parse_shnext_buffer(const char *data, size_t size,
   cJSON_Delete(root);
 
   if (out->cheat_count == 0) {
-    OnionHEN_log("[engine] shnext no cheats parsed");
+    LOG_INFO("[engine] shnext no cheats parsed");
     return -1;
   }
 
-  OnionHEN_log("[engine] shnext parsed %zu cheats",
+  LOG_INFO("[engine] shnext parsed %zu cheats",
                    out->cheat_count);
   return 0;
 }

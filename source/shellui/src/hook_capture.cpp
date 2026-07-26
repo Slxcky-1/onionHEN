@@ -21,12 +21,12 @@ bool CaptureScreen();
 
 bool CaptureScreen(){
   if(g_settings.cheats_shortcut_opt == CHEATS_LONG_SHARE){
-    //shellui_log("CaptureScreen: Long Share Shortcut activated");
+    //LOG_DEBUG("CaptureScreen: Long Share Shortcut activated");
     GoToURI("OnionHEN?Cheats");
     return true;
   }
   else if (g_settings.toolbox_shortcut_opt == TOOLBOX_LONG_SHARE){
-    //shellui_log("CaptureScreen: Long Share Shortcut activated");
+    //LOG_DEBUG("CaptureScreen: Long Share Shortcut activated");
     GoToURI(shellui_debug_settings_toolbox_uri());
     return true;
   }
@@ -41,12 +41,12 @@ void CaptureScreen_old(MonoObject *inst, int userId, long deviceId, int capType,
   }
 
 #if SHELL_DEBUG == 1
-  shellui_log("CaptureScreen: userId: %d, deviceId: %ld, capType: %d", userId, deviceId, capType);
+  LOG_DEBUG("CaptureScreen: userId: %d, deviceId: %ld, capType: %d", userId, deviceId, capType);
 #endif
 
   if(CaptureScreen()){
 #if SHELL_DEBUG == 1
-    shellui_log("CaptureScreen: Shortcut activated, redirecting");
+    LOG_DEBUG("CaptureScreen: Shortcut activated, redirecting");
 #endif
     return;
   }
@@ -62,11 +62,11 @@ void CaptureScreen_new(MonoObject * inst, int userId, long deviceId, int capType
   }
 
 #if SHELL_DEBUG == 1
-  shellui_log("CaptureScreen_new: userId: %d, deviceId: %ld, capType: %d", userId, deviceId, capType);
+  LOG_DEBUG("CaptureScreen_new: userId: %d, deviceId: %ld, capType: %d", userId, deviceId, capType);
 #endif
   if(CaptureScreen()){
 #if SHELL_DEBUG == 1
-    shellui_log("CaptureScreen_new: Shortcut activated, redirecting");
+    LOG_DEBUG("CaptureScreen_new: Shortcut activated, redirecting");
 #endif
     return;
   }
@@ -81,16 +81,16 @@ void OnShareButton(MonoObject * data) {
   }
 
 #if SHELL_DEBUG == 1
-  shellui_log("OnShareButton: data: %p", data);
+  LOG_DEBUG("OnShareButton: data: %p", static_cast<void *>(data));
 #endif
 
   if( g_settings.cheats_shortcut_opt == CHEATS_SINGLE_SHARE) {
-    // shellui_log("Share Shortcut: Redirecting to Cheats");
+    // LOG_DEBUG("Share Shortcut: Redirecting to Cheats");
     GoToURI("OnionHEN?Cheats");
     return;
   }
   else if (g_settings.toolbox_shortcut_opt == TOOLBOX_SINGLE_SHARE) {
-    // shellui_log("Share Shortcut: Redirecting to Toolbox");
+    // LOG_DEBUG("Share Shortcut: Redirecting to Toolbox");
     GoToURI(shellui_debug_settings_toolbox_uri());
     return;
   }

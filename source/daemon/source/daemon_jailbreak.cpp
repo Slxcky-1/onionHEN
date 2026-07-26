@@ -83,7 +83,7 @@ bool jb_apply_privileges(pid_t pid, bool escape_sandbox) {
 
   const intptr_t kproc = kernel_get_proc(pid);
   if (kproc == 0) {
-    OnionHEN_log("[JB] kernel_get_proc(%d)=0 (ALLPROC=0x%lx rootvnode=0x%lx)",
+    LOG_INFO("[JB] kernel_get_proc(%d)=0 (ALLPROC=0x%lx rootvnode=0x%lx)",
                  static_cast<int>(pid),
                  static_cast<unsigned long>(KERNEL_ADDRESS_ALLPROC),
                  static_cast<unsigned long>(KERNEL_ADDRESS_ROOTVNODE));
@@ -91,7 +91,7 @@ bool jb_apply_privileges(pid_t pid, bool escape_sandbox) {
   }
 
   if (kernel_set_ucred_uid(pid, 0) != 0) {
-    OnionHEN_log("[JB] kernel_set_ucred_uid failed pid=%d", static_cast<int>(pid));
+    LOG_ERROR("[JB] kernel_set_ucred_uid failed pid=%d", static_cast<int>(pid));
     return false;
   }
   (void)kernel_set_ucred_ruid(pid, 0);
@@ -106,12 +106,12 @@ bool jb_apply_privileges(pid_t pid, bool escape_sandbox) {
   }
 
   if (kernel_set_ucred_authid(pid, kJbAuthId) != 0) {
-    OnionHEN_log("[JB] kernel_set_ucred_authid failed pid=%d",
+    LOG_ERROR("[JB] kernel_set_ucred_authid failed pid=%d",
                  static_cast<int>(pid));
     return false;
   }
   if (kernel_set_ucred_caps(pid, kFullCaps) != 0) {
-    OnionHEN_log("[JB] kernel_set_ucred_caps failed pid=%d",
+    LOG_ERROR("[JB] kernel_set_ucred_caps failed pid=%d",
                  static_cast<int>(pid));
     return false;
   }
@@ -123,17 +123,17 @@ bool jb_apply_privileges(pid_t pid, bool escape_sandbox) {
   if (escape_sandbox) {
     const intptr_t root = kernel_get_root_vnode();
     if (root == 0) {
-      OnionHEN_log("[JB] kernel_get_root_vnode()=0 — cannot escape sandbox");
+      LOG_ERROR("[JB] kernel_get_root_vnode()=0 — cannot escape sandbox");
       return false;
     }
     if (kernel_set_proc_rootdir(pid, root) != 0) {
-      OnionHEN_log("[JB] kernel_set_proc_rootdir failed pid=%d",
+      LOG_ERROR("[JB] kernel_set_proc_rootdir failed pid=%d",
                    static_cast<int>(pid));
       return false;
     }
     /* Hijacker sets fd_jdir = rootvnode (not 0). */
     if (kernel_set_proc_jaildir(pid, root) != 0) {
-      OnionHEN_log("[JB] kernel_set_proc_jaildir failed pid=%d",
+      LOG_ERROR("[JB] kernel_set_proc_jaildir failed pid=%d",
                    static_cast<int>(pid));
       return false;
     }
@@ -159,9 +159,9 @@ void *fifo_and_dumper_thread(void *args) noexcept {
   std::string last_reject_logged;
   int no_app_log_suppress = 0;
 
-  OnionHEN_log("[JB] fifo watcher started (whitelist from "
+  LOG_INFO("[JB] fifo watcher started (whitelist from "
                "app_jailbreak.exact_title_ids/title_id_prefixes)");
-  OnionHEN_log("[JB] kernel symbols: ALLPROC=0x%lx ROOTVNODE=0x%lx "
+  LOG_INFO("[JB] kernel symbols: ALLPROC=0x%lx ROOTVNODE=0x%lx "
                "(0 means SDK did not resolve — jailbreak will fail)",
                static_cast<unsigned long>(KERNEL_ADDRESS_ALLPROC),
                static_cast<unsigned long>(KERNEL_ADDRESS_ROOTVNODE));
@@ -188,7 +188,7 @@ void *fifo_and_dumper_thread(void *args) noexcept {
        * (suspend/exit/home). Not a jailbreak failure by itself.
        */
       if (!last_tid_logged.empty()) {
-        OnionHEN_log("[JB] lost foreground big-app (was tid=%s) — "
+        LOG_INFO("[JB] lost foreground big-app (was tid=%s) — "
                      "Get_Running_App_TID failed (quit/home/suspend/crash/"
                      "sceSystemServiceGetAppIdOfRunningBigApp<0)",
                      last_tid_logged.c_str());
@@ -199,7 +199,7 @@ void *fifo_and_dumper_thread(void *args) noexcept {
       /* Avoid spinning at 100% when home has no big app. */
       if (++no_app_log_suppress >= 50) {
         /* ~10s at 200ms — rare heartbeat so we know watcher is alive. */
-        OnionHEN_log("[JB] idle: still no foreground big-app "
+        LOG_INFO("[JB] idle: still no foreground big-app "
                      "(Get_Running_App_TID fail; heartbeat)");
         no_app_log_suppress = 0;
       }
@@ -209,7 +209,7 @@ void *fifo_and_dumper_thread(void *args) noexcept {
     no_app_log_suppress = 0;
 
     if (tid != last_tid_logged) {
-      OnionHEN_log("[JB] foreground big-app tid=%s appid=%d whitelist=%s",
+      LOG_INFO("[JB] foreground big-app tid=%s appid=%d whitelist=%s",
                    tid.c_str(), bappid,
                    jb_whitelist_reason(tid, cfg.app_jailbreak_allowlist));
       last_tid_logged = tid;
@@ -218,7 +218,7 @@ void *fifo_and_dumper_thread(void *args) noexcept {
 
     if (!is_whitelisted_app(tid, cfg.app_jailbreak_allowlist)) {
       if (tid != last_reject_logged) {
-        OnionHEN_log("[JB] skip tid=%s — not on jailbreak whitelist "
+        LOG_WARN("[JB] skip tid=%s — not on jailbreak whitelist "
                      "(configure app_jailbreak.exact_title_ids or "
                      "title_id_prefixes)",
                      tid.c_str());
@@ -261,22 +261,22 @@ void *fifo_and_dumper_thread(void *args) noexcept {
       continue;
     }
 
-    OnionHEN_log("[JB] request file found: %s (slot=%03d tid=%s name=%s)",
+    LOG_INFO("[JB] request file found: %s (slot=%03d tid=%s name=%s)",
                  sandbox_dir.c_str(), sandbox_slot, tid.c_str(),
                  req_name ? req_name : "?");
 
     if (!GetFileContents(sandbox_dir.c_str(), &json_str)) {
-      OnionHEN_log("[JB] FAIL: cannot read request file %s (errno path empty?)",
+      LOG_ERROR("[JB] FAIL: cannot read request file %s (errno path empty?)",
                    sandbox_dir.c_str());
       pthread_mutex_unlock(&jb_lock);
       usleep(kIdleUsleep);
       continue;
     }
 
-    OnionHEN_log("[JB] request body: %s", json_str ? json_str : "(null)");
+    LOG_INFO("[JB] request body: %s", json_str ? json_str : "(null)");
     onion_cjson::Root my_json(json_str);
     if (!my_json) {
-      OnionHEN_log("[JB] FAIL: JSON parse error for body: %s",
+      LOG_ERROR("[JB] FAIL: JSON parse error for body: %s",
                    json_str ? json_str : "(null)");
       free(json_str);
       json_str = nullptr;
@@ -288,7 +288,7 @@ void *fifo_and_dumper_thread(void *args) noexcept {
 
     const char *PID = onion_cjson::string_item(my_json.get(), "PID");
     if (!PID) {
-      OnionHEN_log("[JB] FAIL: JSON missing string field \"PID\" "
+      LOG_ERROR("[JB] FAIL: JSON missing string field \"PID\" "
                    "(expected {\"PID\":\"1234\"})");
       free(json_str);
       json_str = nullptr;
@@ -300,14 +300,14 @@ void *fifo_and_dumper_thread(void *args) noexcept {
 
     const int reserved_value = atoi(PID);
     const bool alive = isProcessAlive(reserved_value);
-    OnionHEN_log("[JB] target pid=%d (from JSON PID=\"%s\") alive=%d "
+    LOG_INFO("[JB] target pid=%d (from JSON PID=\"%s\") alive=%d "
                  "kproc=0x%lx",
                  reserved_value, PID, alive ? 1 : 0,
                  static_cast<unsigned long>(
                      reserved_value > 1 ? kernel_get_proc(reserved_value) : 0));
 
     if (reserved_value <= 1) {
-      OnionHEN_log("[JB] FAIL: invalid pid=%d (must be > 1); clearing request",
+      LOG_ERROR("[JB] FAIL: invalid pid=%d (must be > 1); clearing request",
                    reserved_value);
       free(json_str);
       json_str = nullptr;
@@ -318,7 +318,7 @@ void *fifo_and_dumper_thread(void *args) noexcept {
     }
 
     if (!alive) {
-      OnionHEN_log("[JB] FAIL: pid=%d is dead — stale request; clearing %s",
+      LOG_ERROR("[JB] FAIL: pid=%d is dead — stale request; clearing %s",
                    reserved_value, sandbox_dir.c_str());
       free(json_str);
       json_str = nullptr;
@@ -337,7 +337,7 @@ void *fifo_and_dumper_thread(void *args) noexcept {
      * loop 30× — if ALLPROC is wrong/unresolved, more tries will never help.
      */
     if (KERNEL_ADDRESS_ALLPROC == 0) {
-      OnionHEN_log("[JB] FAIL: KERNEL_ADDRESS_ALLPROC=0 (SDK symbols not "
+      LOG_ERROR("[JB] FAIL: KERNEL_ADDRESS_ALLPROC=0 (SDK symbols not "
                    "resolved for this FW); clearing request");
       free(json_str);
       json_str = nullptr;
@@ -349,13 +349,13 @@ void *fifo_and_dumper_thread(void *args) noexcept {
 
     const int uid_before = jb_read_uid(reserved_value);
     const uint64_t auth_before = jb_read_authid(reserved_value);
-    OnionHEN_log("[JB] pre-jb uid=%d authid=0x%llx", uid_before,
+    LOG_INFO("[JB] pre-jb uid=%d authid=0x%llx", uid_before,
                  static_cast<unsigned long long>(auth_before));
 
     bool ok = false;
     for (int attempt = 1; attempt <= kProcResolveAttempts && !ok; ++attempt) {
       if (kernel_get_proc(reserved_value) == 0) {
-        OnionHEN_log("[JB] kernel_get_proc(%d)=0 attempt=%d/%d",
+        LOG_INFO("[JB] kernel_get_proc(%d)=0 attempt=%d/%d",
                      reserved_value, attempt, kProcResolveAttempts);
         if (!isProcessAlive(reserved_value)) {
           break;
@@ -365,7 +365,7 @@ void *fifo_and_dumper_thread(void *args) noexcept {
         }
         continue;
       }
-      OnionHEN_log("[JB] applying privileges pid=%d (SDK kernel_*, "
+      LOG_INFO("[JB] applying privileges pid=%d (SDK kernel_*, "
                    "authid=0x%llx, escape_sandbox=1)",
                    reserved_value,
                    static_cast<unsigned long long>(kJbAuthId));
@@ -376,7 +376,7 @@ void *fifo_and_dumper_thread(void *args) noexcept {
 
     const int uid_after = jb_read_uid(reserved_value);
     const uint64_t auth_after = jb_read_authid(reserved_value);
-    OnionHEN_log("[JB] post-jb uid=%d (was %d) authid=0x%llx (was 0x%llx) "
+    LOG_INFO("[JB] post-jb uid=%d (was %d) authid=0x%llx (was 0x%llx) "
                  "ok=%d",
                  uid_after, uid_before,
                  static_cast<unsigned long long>(auth_after),
@@ -387,20 +387,20 @@ void *fifo_and_dumper_thread(void *args) noexcept {
       if (cfg.debug_app_jb_msg)
         onion_notify(true, "App (PID %i) has been granted a jailbreak",
                      reserved_value);
-      OnionHEN_log("[JB] OK: pid=%d tid=%s fully jailbroken", reserved_value,
+      LOG_INFO("[JB] OK: pid=%d tid=%s fully jailbroken", reserved_value,
                    tid.c_str());
     } else {
-      OnionHEN_log("[JB] FAIL: privilege apply did not stick for pid=%d "
+      LOG_ERROR("[JB] FAIL: privilege apply did not stick for pid=%d "
                    "(uid=%d) — see pre/post logs; no notify",
                    reserved_value, uid_after);
     }
 
     /* Always clear request so we do not reprocess the same JSON. */
     if (unlink(sandbox_dir.c_str()) != 0) {
-      OnionHEN_log("[JB] WARN: unlink request file failed path=%s",
+      LOG_ERROR("[JB] WARN: unlink request file failed path=%s",
                    sandbox_dir.c_str());
     } else {
-      OnionHEN_log("[JB] cleared request file %s", sandbox_dir.c_str());
+      LOG_INFO("[JB] cleared request file %s", sandbox_dir.c_str());
     }
 
     free(json_str);

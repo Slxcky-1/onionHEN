@@ -14,6 +14,7 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
+#include <onion/log.h>
 #include <ps5/kernel.h>
 #include <ps5/klog.h>
 #include <stdint.h>
@@ -79,7 +80,7 @@ void notify(const char *text, ...) {
   req.target_id = -1;
   snprintf(req.uri, sizeof(req.uri), "cxml://psnotification/tex_icon_system");
 
-  printf("Notify: %s\n", req.message);
+  LOG_DEBUG("Notify: %s", req.message);
   sceKernelSendNotificationRequest(0, &req, sizeof(req), 0);
 }
 
@@ -123,7 +124,7 @@ bool send_to_elfldr(const void* buffer, size_t buffer_size) {
     // Create socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
-        printf("Failed to create socket: %d\n", sockfd);
+        LOG_ERROR("Failed to create socket: %d", sockfd);
         return false;
     }
 
@@ -139,26 +140,26 @@ bool send_to_elfldr(const void* buffer, size_t buffer_size) {
 
     // Connect to server
     if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-        printf("Failed to connect to localhost:9021\n");
+        LOG_ERROR("Failed to connect to localhost:9021");
         close(sockfd);
         return false;
     }
 
-    printf("Connected to localhost:9021\n");
+    LOG_DEBUG("Connected to localhost:9021");
 
     // Send all data in the buffer
     const char* data_ptr = (const char*)buffer;
     while (total_sent < buffer_size) {
         bytes_sent = send(sockfd, data_ptr + total_sent, buffer_size - total_sent, 0);
         if (bytes_sent <= 0) {
-            printf("Failed to send data: %d\n", bytes_sent);
+            LOG_ERROR("Failed to send data: %d", bytes_sent);
             close(sockfd);
             return false;
         }
         total_sent += bytes_sent;
     }
 
-    printf("Successfully sent %d bytes to localhost:9021\n", total_sent);
+    LOG_DEBUG("Successfully sent %d bytes to localhost:9021", total_sent);
 
     // Close socket
     close(sockfd);
@@ -168,13 +169,13 @@ bool send_to_elfldr(const void* buffer, size_t buffer_size) {
 
 int main() {
   if (onionhen_compressed_size <= 0) {
-    printf("Invalid OnionHEN payload! unable to unpack it!");
+    LOG_ERROR("Invalid OnionHEN payload! unable to unpack it!");
     return 0;
   }
 
   size_t decompress_size = atoi((char *)onionhen_decompressed_size);
-  // printf("Decompressed size: %zu bytes\nCompressed: %d\n", size,
-  // onionhen_compressed_size); printf("Payload has %d bytes, decompressing...\n",
+  // LOG_DEBUG("Decompressed size: %zu bytes\nCompressed: %d", size,
+  // onionhen_compressed_size); LOG_DEBUG("Payload has %d bytes, decompressing...",
   // onionhen_compressed_size);
   uint8_t *decompressed = (uint8_t *)malloc(decompress_size);
   if (!decompressed) {
@@ -198,7 +199,7 @@ int main() {
     return -1;
   }
 
-  puts("Bootstrapping OnionHEN.elf...");
+  LOG_DEBUG("Bootstrapping OnionHEN.elf...");
 
   mkdir("/data/OnionHEN", 0777);
   // cache decompressed payload for re-launch / recovery

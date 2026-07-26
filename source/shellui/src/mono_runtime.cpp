@@ -17,13 +17,13 @@ MonoImage * getDLLimage(const char* dll_file){
   std::string dll_path = "/system_ex/common_ex/lib/" + std::string(dll_file);
   MonoAssembly * Assembly = mono_domain_assembly_open(Root_Domain, dll_path.c_str());
   if (!Assembly) {
-    shellui_log("Failed to open assembly %s.", dll_path.c_str());
+    LOG_ERROR("Failed to open assembly %s.", dll_path.c_str());
     return nullptr;
   }
 
   MonoImage * img = mono_assembly_get_image(Assembly);
   if (!img) {
-    shellui_log("Failed to get image %s.", dll_path.c_str());
+    LOG_ERROR("Failed to get image %s.", dll_path.c_str());
     return nullptr;
   }
   return img;
@@ -112,7 +112,7 @@ uint64_t Get_Address_of_Method(MonoImage *Assembly_Image, const char *Name_Space
   if (!klass)
   {
 #if SHELL_DEBUG == 1
-    shellui_log("Get_Address_of_Method: failed to open class \"%s\" in namespace \"%s\"", Class_Name, Name_Space);
+    LOG_ERROR("Get_Address_of_Method: failed to open class \"%s\" in namespace \"%s\"", Class_Name, Name_Space);
 #endif
     return 0;
   }
@@ -121,7 +121,7 @@ uint64_t Get_Address_of_Method(MonoImage *Assembly_Image, const char *Name_Space
   if (!Method)
   {
 #if SHELL_DEBUG == 1
-    shellui_log("Get_Address_of_Method: failed to find method \"%s\" in class \"%s\"", Method_Name, Class_Name);
+    LOG_ERROR("Get_Address_of_Method: failed to find method \"%s\" in class \"%s\"", Method_Name, Class_Name);
 #endif
     return 0;
   }
@@ -155,7 +155,7 @@ MonoObject *Get_Instance(MonoClass *klass, const char *Instance)
   if (!inst_prop)
   {
 #if SHELL_DEBUG == 1
-    shellui_log("Failed to find Instance property \"%s\" in Class \"%s\".", Instance, klass->name);
+    LOG_ERROR("Failed to find Instance property \"%s\" in Class \"%s\".", Instance, klass->name);
 #endif
     return nullptr;
   }
@@ -164,7 +164,7 @@ MonoObject *Get_Instance(MonoClass *klass, const char *Instance)
   if (!inst_get_method)
   {
 #if SHELL_DEBUG == 1
-    shellui_log("Failed to find get method for \"%s\" in Class \"%s\".", Instance, klass->name);
+    LOG_ERROR("Failed to find get method for \"%s\" in Class \"%s\".", Instance, klass->name);
 #endif
     return nullptr;
   }
@@ -173,7 +173,7 @@ MonoObject *Get_Instance(MonoClass *klass, const char *Instance)
   if (!inst)
   {
 #if SHELL_DEBUG == 1
-    shellui_log("Failed to find get Instance \"%s\" in Class \"%s\".", Instance, klass->name);
+    LOG_ERROR("Failed to find get Instance \"%s\" in Class \"%s\".", Instance, klass->name);
 #endif
     return nullptr;
   }
@@ -208,21 +208,21 @@ std::string GetPropertyValue(MonoObject *element, const char *propertyName)
   MonoProperty *property = mono_class_get_property_from_name(elementClass, propertyName);
   if (!property)
   {
-    //  shellui_log("[LM HOOK] OnPress_Hook: Property %s not found", propertyName);
+    //  LOG_ERROR("[LM HOOK] OnPress_Hook: Property %s not found", propertyName);
     return std::string();
   }
 
   MonoMethod *getter = mono_property_get_get_method(property);
   if (!getter)
   {
-    // shellui_log("[LM HOOK] OnPress_Hook: Getter for property %s not found", propertyName);
+    // LOG_ERROR("[LM HOOK] OnPress_Hook: Getter for property %s not found", propertyName);
     return std::string();
   }
 
   MonoObject *result = mono_runtime_invoke(getter, element, nullptr, nullptr);
   if (!result)
   {
-    // shellui_log("[LM HOOK] OnPress_Hook: Getter for property %s returned nullptr", propertyName);
+    // LOG_DEBUG("[LM HOOK] OnPress_Hook: Getter for property %s returned nullptr", propertyName);
     return std::string();
   }
   return Mono_to_String((MonoString *)result);
@@ -270,33 +270,33 @@ MonoObject *New_Mono_XML_From_String(std::string xml_doc, MonoDomain *domain)
   if (!domain)
     domain = Root_Domain;
 
-  shellui_log("[GMRS] New_Mono_XML_From_String: xml_size=%zu domain=%p Root_Domain=%p MemoryStream_IO=%p",
+  LOG_DEBUG("[GMRS] New_Mono_XML_From_String: xml_size=%zu domain=%p Root_Domain=%p MemoryStream_IO=%p",
               xml_doc.size(), (void *)domain, (void *)Root_Domain,
               (void *)MemoryStream_IO);
 
   if (xml_doc.empty()) {
-    shellui_log("[GMRS] New_Mono_XML_From_String: empty xml_doc");
+    LOG_DEBUG("[GMRS] New_Mono_XML_From_String: empty xml_doc");
     return nullptr;
   }
   if (!domain) {
-    shellui_log("[GMRS] New_Mono_XML_From_String: domain is null");
+    LOG_DEBUG("[GMRS] New_Mono_XML_From_String: domain is null");
     return nullptr;
   }
   if (!MemoryStream_IO) {
-    shellui_log("[GMRS] New_Mono_XML_From_String: MemoryStream_IO is null");
+    LOG_DEBUG("[GMRS] New_Mono_XML_From_String: MemoryStream_IO is null");
     return nullptr;
   }
 
   MonoArray *Array = mono_array_new(domain, mono_get_byte_class(), xml_doc.size());
   if (!Array)
   {
-    shellui_log("[GMRS] New_Mono_XML_From_String: Failed to create byte[] array (size=%zu)", xml_doc.size());
+    LOG_ERROR("[GMRS] New_Mono_XML_From_String: Failed to create byte[] array (size=%zu)", xml_doc.size());
     return nullptr;
   }
 
   char *Array_addr = mono_array_addr_with_size(Array, sizeof(char), 0);
   if (!Array_addr) {
-    shellui_log("[GMRS] New_Mono_XML_From_String: mono_array_addr_with_size returned null");
+    LOG_DEBUG("[GMRS] New_Mono_XML_From_String: mono_array_addr_with_size returned null");
     return nullptr;
   }
   /* Do NOT mprotect mono heap pages. Array_addr is usually mid-page; mprotect
@@ -309,7 +309,7 @@ MonoObject *New_Mono_XML_From_String(std::string xml_doc, MonoDomain *domain)
   if (!stream)
   {
     MemoryStream_IO = nullptr;
-    shellui_log("[GMRS] New_Mono_XML_From_String: Failed to create MemoryStream_Instance");
+    LOG_ERROR("[GMRS] New_Mono_XML_From_String: Failed to create MemoryStream_Instance");
     return nullptr;
   }
   void *args[] = {Array};
@@ -317,7 +317,7 @@ MonoObject *New_Mono_XML_From_String(std::string xml_doc, MonoDomain *domain)
 
   uint32_t gchandle = root_xml_stream(stream);
 
-  shellui_log("[GMRS] New_Mono_XML_From_String: ok instance=%p gchandle=%u",
+  LOG_DEBUG("[GMRS] New_Mono_XML_From_String: ok instance=%p gchandle=%u",
               (void *)stream, gchandle);
   return stream;
 }
@@ -328,7 +328,7 @@ bool SetVersionString(const char *str)
   if (!Assembly)
   {
 #if SHELL_DEBUG == 1
-    shellui_log("SetVersionString: Failed to open assembly.");
+    LOG_ERROR("SetVersionString: Failed to open assembly.");
 #endif
     return false;
   }
@@ -336,7 +336,7 @@ bool SetVersionString(const char *str)
   if (!SystemSoftwareVersionInfo)
   {
 #if SHELL_DEBUG == 1
-    shellui_log("SetVersionString: Failed to open class.");
+    LOG_ERROR("SetVersionString: Failed to open class.");
 #endif
     return false;
   }
@@ -345,7 +345,7 @@ bool SetVersionString(const char *str)
   if (!SystemSoftwareVersionInfo_Instance)
   {
 #if SHELL_DEBUG == 1
-    shellui_log("SetVersionString: Failed to open Instance.");
+    LOG_ERROR("SetVersionString: Failed to open Instance.");
 #endif
     return false;
   }
@@ -354,7 +354,7 @@ bool SetVersionString(const char *str)
   if (Set_Method == nullptr)
   {
 #if SHELL_DEBUG == 1
-    shellui_log("SetVersionString: Could not find set method.");
+    LOG_DEBUG("SetVersionString: Could not find set method.");
 #endif
     return false;
   }
@@ -368,7 +368,7 @@ bool SetVersionString(const char *str)
     MonoString *exc_string = mono_object_to_string(exception, nullptr);
     const char *exc_chars = mono_string_to_utf8(exc_string);
 #if SHELL_DEBUG == 1
-    shellui_log("Exception: %s", exc_chars);
+    LOG_DEBUG("Exception: %s", exc_chars);
 #endif
     mono_free((void *)exc_chars);
     return false;
@@ -379,9 +379,9 @@ bool SetVersionString(const char *str)
 void ReloadRNPSApp(const char* title_id){
     void (*ReloadApp)(MonoString* tid) = (void(*)(MonoString*))Get_Address_of_Method(react_common_img, "ReactNative.Vsh.Common", "ReactApplicationSceneManager", "ReloadApp", 1);
     if (ReloadApp) {
-        shellui_log("Reloading %s scenes", title_id);
+        LOG_DEBUG("Reloading %s scenes", title_id);
         ReloadApp(mono_string_new(Root_Domain, title_id));
     } else {
-        shellui_log("Failed to find reload method, not reloading scene");
+        LOG_ERROR("Failed to find reload method, not reloading scene");
     }
 }

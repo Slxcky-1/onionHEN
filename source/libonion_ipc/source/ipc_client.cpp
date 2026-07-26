@@ -36,18 +36,6 @@ namespace {
 
 OnionIpcNotifyFn g_notify = nullptr;
 
-void vlog(const char *fmt, va_list args) {
-  char buffer[DAEMON_BUFF_MAX];
-  int len = vsnprintf(buffer, DAEMON_BUFF_MAX, fmt, args);
-  if (len >= 0 && len < DAEMON_BUFF_MAX - 2) {
-    buffer[len] = '\n';
-    buffer[len + 1] = '\0';
-  } else {
-    buffer[DAEMON_BUFF_MAX - 2] = '\n';
-    buffer[DAEMON_BUFF_MAX - 1] = '\0';
-  }
-  klog_printf("%s", buffer);
-}
 
 std::string json_object_str(cJSON *j) {
   onion_cjson::Printed printed(j);
@@ -80,27 +68,6 @@ void maybe_notify(const char *text) {
 
 void onion_ipc_set_notify(OnionIpcNotifyFn fn) { g_notify = fn; }
 
-void onion_ipc_log(const char *fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  vlog(fmt, args);
-  va_end(args);
-}
-
-void shellui_log(const char *fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  vlog(fmt, args);
-  va_end(args);
-}
-
-void game_log(const char *fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  vlog(fmt, args);
-  va_end(args);
-}
-
 IPC_Client::IPC_Client(bool util_daemon, int recv_timeout_ms)
     : util_daemon(util_daemon), util_daemon_(util_daemon), socket_fd_(-1),
       recv_timeout_ms_(recv_timeout_ms) {}
@@ -120,7 +87,7 @@ bool IPC_Client::require_util(const char *what) const {
   if (util_daemon_) {
     return true;
   }
-  shellui_log("%s: command is util-only", what);
+  LOG_DEBUG("%s: command is util-only", what);
   return false;
 }
 
@@ -128,7 +95,7 @@ bool IPC_Client::require_crit(const char *what) const {
   if (!util_daemon_) {
     return true;
   }
-  shellui_log("%s: command is crit-only", what);
+  LOG_DEBUG("%s: command is crit-only", what);
   return false;
 }
 
@@ -136,7 +103,7 @@ int IPC_Client::OpenConnection(const char *path) {
   sockaddr_un server{};
   int soc = socket(AF_UNIX, SOCK_STREAM, 0);
   if (soc == -1) {
-    shellui_log("Failed to create socket: %s", strerror(errno));
+    LOG_ERROR("Failed to create socket: %s", strerror(errno));
     return -1;
   }
   server.sun_family = AF_UNIX;
@@ -144,7 +111,7 @@ int IPC_Client::OpenConnection(const char *path) {
   if (connect(soc, reinterpret_cast<struct sockaddr *>(&server),
               SUN_LEN(&server)) == -1) {
     close(soc);
-    shellui_log("Failed to connect to %s: %s", path, strerror(errno));
+    LOG_ERROR("Failed to connect to %s: %s", path, strerror(errno));
     return -1;
   }
   return soc;
@@ -173,9 +140,9 @@ int IPC_Client::send_frame_unlocked(const IPCMessage &msg) {
   const int ret = onion::ipc_network_send_full(
       socket_fd_, &msg, static_cast<int32_t>(sizeof(msg)));
   if (ret < 0) {
-    shellui_log("IPCSendData failed: %s", strerror(errno));
+    LOG_ERROR("IPCSendData failed: %s", strerror(errno));
   } else {
-    shellui_log("IPCSendData sent %i bytes", ret);
+    LOG_DEBUG("IPCSendData sent %i bytes", ret);
   }
   return ret;
 }
@@ -193,16 +160,16 @@ int IPC_Client::recv_frame_unlocked(IPCMessage &msg) {
     return -1;
   }
 
-  shellui_log("Waiting for daemon response (%s)...",
+  LOG_DEBUG("Waiting for daemon response (%s)...",
               util_daemon_ ? "util" : "crit");
   const int ret = onion::ipc_network_recv_full(
       socket_fd_, &msg, static_cast<int32_t>(sizeof(msg)));
   if (ret < 0) {
-    shellui_log("recv failed: %s", strerror(errno));
+    LOG_ERROR("recv failed: %s", strerror(errno));
     return ret;
   }
   if (!onion::ipc_frame_is_complete(ret)) {
-    shellui_log("short IPC frame %d (want %zu)", ret, sizeof(msg));
+    LOG_DEBUG("short IPC frame %d (want %zu)", ret, sizeof(msg));
     return -1;
   }
   onion::ipc_message_force_nul(msg);
@@ -214,33 +181,33 @@ int IPC_Client::IPCReceiveData(IPCMessage &msg, std::string &ipc_msg) {
   if (ret < 0) {
     return ret;
   }
-  shellui_log("Daemon returned: %i", msg.error);
+  LOG_DEBUG("Daemon returned: %i", msg.error);
 
   if (msg.error != 0) {
-    shellui_log("Daemon returned an error: %i", msg.error);
+    LOG_ERROR("Daemon returned an error: %i", msg.error);
     return msg.error;
   }
 
   if (strlen(msg.msg) <= 2) {
-    shellui_log("Daemon message is empty");
+    LOG_DEBUG("Daemon message is empty");
     return -1;
   }
 
   onion_cjson::Root j(msg.msg);
   if (!j) {
-    shellui_log("Failed to parse json: %s",
+    LOG_ERROR("Failed to parse json: %s",
                 cJSON_GetErrorPtr() ? cJSON_GetErrorPtr() : "unknown error");
     return -1;
   }
 
   const char *var = onion_cjson::string_item(j.get(), "var");
   if (!var) {
-    shellui_log("Daemon message does not contain the return obj");
+    LOG_DEBUG("Daemon message does not contain the return obj");
     return -1;
   }
 
   ipc_msg = var;
-  shellui_log("Daemon IPC return obj: %s", ipc_msg.c_str());
+  LOG_DEBUG("Daemon IPC return obj: %s", ipc_msg.c_str());
   return msg.error;
 }
 
@@ -263,7 +230,7 @@ bool IPC_Client::IPCSendCommand(DaemonCommands cmd, std::string &ipc_msg1,
   std::string json;
 
 #if SHELL_DEBUG == 1
-  shellui_log("Sending command to %s daemon: 0x%X",
+  LOG_DEBUG("Sending command to %s daemon: 0x%X",
               util_daemon_ ? "util" : "crit", static_cast<unsigned>(cmd));
 #endif
 
@@ -287,7 +254,7 @@ bool IPC_Client::IPCSendCommand(DaemonCommands cmd, std::string &ipc_msg1,
   }
 
   if (!IPCOpenIfNotConnected()) {
-    shellui_log("Failed to open connection to daemon");
+    LOG_ERROR("Failed to open connection to daemon");
     return false;
   }
 
@@ -295,24 +262,24 @@ bool IPC_Client::IPCSendCommand(DaemonCommands cmd, std::string &ipc_msg1,
   onion::ipc_message_force_nul(msg);
 
   if (send_frame_unlocked(msg) < 0) {
-    shellui_log("Failed to send message to daemon");
+    LOG_ERROR("Failed to send message to daemon");
     maybe_notify("Failed to send message to daemon");
     IPCCloseConnection();
     return false;
   }
 
   if (cmd == BREW_KILL_DAEMON || cmd == BREW_SHUTDOWN_STACK) {
-    shellui_log("Daemon teardown cmd 0x%X sent", static_cast<unsigned>(cmd));
+    LOG_DEBUG("Daemon teardown cmd 0x%X sent", static_cast<unsigned>(cmd));
     /* Peer may exit before a full reply frame arrives. */
     return true;
   }
 
   IPC_Ret error = static_cast<IPC_Ret>(IPCReceiveData(msg, ipc_msg1));
   if (error == IPC_Ret::NO_ERROR) {
-    shellui_log("[Daemon] Daemon returned NO ERROR");
+    LOG_ERROR("[Daemon] Daemon returned NO ERROR");
     return true;
   }
-  shellui_log("[Daemon] Daemon returned an ERROR");
+  LOG_ERROR("[Daemon] Daemon returned an ERROR");
   return false;
 }
 
@@ -320,10 +287,10 @@ int IPC_Client::GetDaemonPid() {
   std::string ipc_msg;
   if (!IPCSendCommand(util_daemon_ ? BREW_UTIL_DAEMON_PID : BREW_DAEMON_PID,
                       ipc_msg)) {
-    shellui_log("Failed to get daemon pid");
+    LOG_ERROR("Failed to get daemon pid");
     return -1;
   }
-  shellui_log("Daemon pid: %s", ipc_msg.c_str());
+  LOG_DEBUG("Daemon pid: %s", ipc_msg.c_str());
   return atoi(ipc_msg.c_str());
 }
 
@@ -331,10 +298,10 @@ IPC_Ret IPC_Client::ToggleSetting(DaemonCommands cmd, bool turn_on) {
   std::string ipc_msg;
   std::string json = turn_on ? "{\"toggle\": 1}" : "{\"toggle\": 0}";
   if (!IPCSendCommand(cmd, ipc_msg, json)) {
-    shellui_log("Failed to toggle setting 0x%X (%d)", cmd, cmd);
+    LOG_ERROR("Failed to toggle setting 0x%X (%d)", cmd, cmd);
     return IPC_Ret::OPERATION_FAILED;
   }
-  shellui_log("Setting 0x%X (%d) toggled", cmd, cmd);
+  LOG_DEBUG("Setting 0x%X (%d) toggled", cmd, cmd);
   return IPC_Ret::NO_ERROR;
 }
 
@@ -357,7 +324,7 @@ void IPC_Client::ForceKillPID(int pid) {
   }
   /* Never ask daemon to kill 0/1 — TerminateProcess(1) stalls ShellUI ~25s. */
   if (pid <= 1) {
-    shellui_log("ForceKillPID: refusing invalid/system pid=%d", pid);
+    LOG_ERROR("ForceKillPID: refusing invalid/system pid=%d", pid);
     return;
   }
   std::string ipc_msg;
@@ -375,7 +342,7 @@ IPC_Ret IPC_Client::CopyFile(std::string src, std::string dest) {
   std::string json =
       json_kv_string2("path", src.c_str(), "dest", dest.c_str());
   if (!IPCSendCommand(BREW_COPY_FILE, ipc_msg, json)) {
-    shellui_log("Failed to copy file");
+    LOG_ERROR("Failed to copy file");
     return IPC_Ret::OPERATION_FAILED;
   }
   return IPC_Ret::NO_ERROR;
@@ -389,7 +356,7 @@ IPC_Ret IPC_Client::LaunchPayload(std::string payload_path, std::string tid) {
   std::string json = json_kv_string2("payload_path", payload_path.c_str(),
                                      "title_id", tid.c_str());
   if (!IPCSendCommand(BREW_UTIL_LAUNCH_PAYLOAD, ipc_msg, json)) {
-    shellui_log("Failed to launch payload");
+    LOG_ERROR("Failed to launch payload");
     return IPC_Ret::OPERATION_FAILED;
   }
   return IPC_Ret::NO_ERROR;
@@ -401,7 +368,7 @@ bool IPC_Client::GameVerFromTid(std::string tid, std::string &out_ver) {
   }
   std::string json = json_kv_string("tid", tid.c_str());
   if (!IPCSendCommand(BREW_UTIL_GET_GAME_VER, out_ver, json)) {
-    shellui_log("Failed to get game name from tid");
+    LOG_ERROR("Failed to get game name from tid");
     return false;
   }
   return true;
@@ -413,7 +380,7 @@ bool IPC_Client::Remount(const char *src, const char *dest) {
   }
   std::string in = src ? src : "";
   if (!IPCSendCommand(BREW_REMOUNT_FOLDER, in, dest ? dest : "")) {
-    shellui_log("Failed to remount %s to %s", src, dest);
+    LOG_ERROR("Failed to remount %s to %s", src, dest);
     return false;
   }
   return true;
@@ -427,7 +394,7 @@ bool IPC_Client::GetGameCheats(const std::string &tid, const std::string &ver,
   std::string json =
       json_kv_string2("tid", tid.c_str(), "version", ver.c_str());
   if (!IPCSendCommand(BREW_UTIL_GET_GAME_CHEAT, cheats, json)) {
-    shellui_log("Failed to get cheats for %s", tid.c_str());
+    LOG_ERROR("Failed to get cheats for %s", tid.c_str());
     return false;
   }
   return true;
@@ -446,7 +413,7 @@ bool IPC_Client::ToggleGameCheat(int pid, const std::string &tid,
   cJSON_AddStringToObject(j, "version", version.c_str());
   std::string json = json_object_str(j);
   if (!IPCSendCommand(BREW_UTIL_TOGGLE_CHEAT, cheat_enabled, json)) {
-    shellui_log("Failed to enable cheats for %s", tid.c_str());
+    LOG_ERROR("Failed to enable cheats for %s", tid.c_str());
     return false;
   }
   return true;
@@ -459,21 +426,21 @@ void IPC_Client::SendRestModeAction() {
   std::string ipc_msg;
   std::string json;
   if (!IPCSendCommand(BREW_UTIL_SHELLUI_ON_STANDBY, ipc_msg, json)) {
-    shellui_log("Failed to send rest-mode action");
+    LOG_ERROR("Failed to send rest-mode action");
   }
 }
 
 void IPC_Client::Reload_Daemon_Settings() {
   std::string ipc_msg;
   if (!IPCSendCommand(BREW_RELOAD_SETTINGS, ipc_msg)) {
-    shellui_log("Failed to reload daemon settings");
+    LOG_ERROR("Failed to reload daemon settings");
   } else {
-    shellui_log("Daemon settings reloaded successfully");
+    LOG_DEBUG("Daemon settings reloaded successfully");
   }
 }
 
 bool IPC_Client::Launch_Elfldr() {
-  shellui_log("Launch_Elfldr: unsupported "
+  LOG_WARN("Launch_Elfldr: unsupported "
               "(embedded 9020 is bootstrapper-managed)");
   return false;
 }
@@ -488,7 +455,7 @@ bool IPC_Client::Set_Fan_Threshold(int temp, bool enabled) {
   std::string json = json_object_str(j);
   std::string ipc_msg;
   if (!IPCSendCommand(BREW_ADJUST_FAN_SPEED, ipc_msg, json)) {
-    shellui_log("Failed to adjust fan speed");
+    LOG_ERROR("Failed to adjust fan speed");
     return false;
   }
   return true;
@@ -503,7 +470,7 @@ bool IPC_Client::EnableToolbox() {
   // Historical payload titleId; daemon ignores body for enable path.
   std::string json = R"({ "titleId": "ETAH00002" })";
   if (!IPCSendCommand(BREW_ENABLE_TOOLBOX, ipc_msg, json)) {
-    shellui_log("EnableToolbox failed");
+    LOG_ERROR("EnableToolbox failed");
     return false;
   }
   return true;

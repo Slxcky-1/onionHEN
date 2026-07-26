@@ -17,13 +17,11 @@ extern "C" {
 // these are not identical to the standard ones and will have unexpected behavior
 
 #ifdef DEBUG
-void printBacktrace();
 #ifdef CAN_EXIT
 #pragma clang diagnostic ignored "-Wformat-security"
 template <typename ...Types>
 [[noreturn]] static void fatalf(const char *msg, Types... values) {
 	__builtin_printf(msg, values...);
-	//printBacktrace();
 	exit(0);
 }
 #else
@@ -31,7 +29,6 @@ template <typename ...Types>
 template <typename ...Types>
 static void fatalf(const char *msg, Types... values) {
 	__builtin_printf(msg, values...);
-	//printBacktrace();
 }
 #endif
 #endif

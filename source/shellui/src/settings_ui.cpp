@@ -113,9 +113,9 @@ bool LoadSettings()
   onion::Settings s{};
   /* false from settings_load means defaults only — not a hard failure. */
   if (!onion::settings_load(&s)) {
-    shellui_log("config.ini missing; using defaults");
+    LOG_ERROR("config.ini missing; using defaults");
   } else {
-    shellui_log("Loaded settings from %s", onion::settings_last_loaded_path());
+    LOG_DEBUG("Loaded settings from %s", onion::settings_last_loaded_path());
   }
 
   // Process-local store (UI thread); twin disk paths via settings_load/save.
@@ -131,10 +131,10 @@ bool LoadSettings()
 bool SaveSettings()
 {
   if (!onion::settings_save(g_settings)) {
-    shellui_log("Failed to save settings to any config path");
+    LOG_ERROR("Failed to save settings to any config path");
     return false;
   }
-  shellui_log("Saved settings (primary + shellui paths when writable)");
+  LOG_DEBUG("Saved settings (primary + shellui paths when writable)");
   return true;
 }
 
@@ -154,7 +154,7 @@ void shellui_request_display_tids_home_reload(void) {
     return;
   }
   g_display_tids_reload_pending.store(true, std::memory_order_release);
-  shellui_log("home_screen.show_title_ids: queued NPXS40002 home reload");
+  LOG_DEBUG("home_screen.show_title_ids: queued NPXS40002 home reload");
 }
 
 void shellui_poll_display_tids_home_reload(void) {
@@ -163,9 +163,9 @@ void shellui_poll_display_tids_home_reload(void) {
     return;
   }
   if (!g_settings.display_tids) {
-    shellui_log("home_screen.show_title_ids: skip home reload (setting off)");
+    LOG_WARN("home_screen.show_title_ids: skip home reload (setting off)");
     return;
   }
-  shellui_log("home_screen.show_title_ids: applying home reload on UI thread");
+  LOG_DEBUG("home_screen.show_title_ids: applying home reload on UI thread");
   ReloadRNPSApp("NPXS40002");
 }

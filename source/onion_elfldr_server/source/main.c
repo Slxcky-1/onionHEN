@@ -6,6 +6,7 @@
  * ps5-payload-dev elfldr port 9021 untouched for user-provided loaders.
  */
 
+#include <onion/log.h>
 #include <arpa/inet.h>
 #include <elf.h>
 #include <errno.h>
@@ -48,16 +49,6 @@
 #define PTRACE_AUTHID 0x4800000000010003
 
 #define ONION_ELFLDR_STATE ONION_SYSTEM_TMP_ELFLDR_STATE
-
-static void log_msg(const char *fmt, ...) {
-  char buf[512];
-  va_list ap;
-  va_start(ap, fmt);
-  vsnprintf(buf, sizeof(buf), fmt, ap);
-  va_end(ap);
-  printf("[onion_elfldr] %s\n", buf);
-  klog_printf("[onion_elfldr] %s\n", buf);
-}
 
 static void write_state_file(void) {
   mkdir(ONION_SYSTEM_TMP_ROOT, 0777);
@@ -411,7 +402,7 @@ static void on_connection(int fd) {
     char *path = NULL;
     if(payload_readuri(fd, uri, sizeof(uri)) || !(path = uri_get_path(uri)) ||
        path_read(path, &buf, &len)) {
-      log_msg("error reading URI payload: %s", strerror(errno));
+      LOG_ERROR("error reading URI payload: %s", strerror(errno));
       send_text(fd, "ERR uri read failed\n");
       free(path);
       return;
@@ -419,7 +410,7 @@ static void on_connection(int fd) {
     free(path);
   } else if(magic == PAYLOAD_MAGIC_ELF) {
     if(elfldr_read(fd, &buf, &len)) {
-      log_msg("error reading raw ELF payload: %s", strerror(errno));
+      LOG_ERROR("error reading raw ELF payload: %s", strerror(errno));
       send_text(fd, "ERR elf read failed\n");
       return;
     }
@@ -437,7 +428,7 @@ static void on_connection(int fd) {
     args = strdup("");
   }
 
-  log_msg("spawning %s (%zu bytes)", filename, len);
+  LOG_DEBUG("spawning %s (%zu bytes)", filename, len);
   /* The runtime supervisor must not mistake a synchronous, long-running spawn
    * for a wedged loader just because ping is queued behind this connection. */
   set_launch_busy(true);
@@ -446,10 +437,10 @@ static void on_connection(int fd) {
     char out[64];
     snprintf(out, sizeof(out), "OK %d\n", (int)pid);
     send_text(fd, out);
-    log_msg("spawned pid=%d name=%s", (int)pid, filename);
+    LOG_DEBUG("spawned pid=%d name=%s", (int)pid, filename);
   } else {
     send_text(fd, "ERR spawn failed\n");
-    log_msg("spawn failed for %s", filename);
+    LOG_ERROR("spawn failed for %s", filename);
   }
   set_launch_busy(false);
 
@@ -464,12 +455,12 @@ static int serve_elfldr(uint16_t port) {
 
   srvfd = socket(AF_INET, SOCK_STREAM, 0);
   if(srvfd < 0) {
-    log_msg("socket failed: %s", strerror(errno));
+    LOG_ERROR("socket failed: %s", strerror(errno));
     return -1;
   }
 
   if(setsockopt(srvfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
-    log_msg("setsockopt failed: %s", strerror(errno));
+    LOG_ERROR("setsockopt failed: %s", strerror(errno));
     close(srvfd);
     return -1;
   }
@@ -481,18 +472,18 @@ static int serve_elfldr(uint16_t port) {
 
   if(bind(srvfd, (struct sockaddr*)&srvaddr, sizeof(srvaddr)) != 0) {
     int err = errno;
-    log_msg("bind 127.0.0.1:%u failed: %s", port, strerror(err));
+    LOG_ERROR("bind 127.0.0.1:%u failed: %s", port, strerror(err));
     close(srvfd);
     return err == EADDRINUSE ? -2 : -1;
   }
 
   if(listen(srvfd, 8) != 0) {
-    log_msg("listen failed: %s", strerror(errno));
+    LOG_ERROR("listen failed: %s", strerror(errno));
     close(srvfd);
     return -1;
   }
 
-  log_msg("serving on 127.0.0.1:%u", port);
+  LOG_DEBUG("serving on 127.0.0.1:%u", port);
   write_state_file();
 
   while(1) {
@@ -500,7 +491,7 @@ static int serve_elfldr(uint16_t port) {
     socklen_t socklen = sizeof(cliaddr);
     int connfd = accept(srvfd, (struct sockaddr*)&cliaddr, &socklen);
     if(connfd < 0) {
-      log_msg("accept failed: %s", strerror(errno));
+      LOG_ERROR("accept failed: %s", strerror(errno));
       break;
     }
     on_connection(connfd);
@@ -520,14 +511,14 @@ int main(void) {
   unlink(ONION_SYSTEM_TMP_ELFLDR_BUSY);
 
   if(chdir("/") != 0) {
-    log_msg("chdir failed: %s", strerror(errno));
+    LOG_ERROR("chdir failed: %s", strerror(errno));
   }
   if(elfldr_raise_privileges(getpid()) != 0) {
-    log_msg("self privilege raise failed");
+    LOG_ERROR("self privilege raise failed");
     return -1;
   }
   if(kernel_set_ucred_authid(getpid(), PTRACE_AUTHID) != 0) {
-    log_msg("ptrace authid raise failed");
+    LOG_ERROR("ptrace authid raise failed");
     return -1;
   }
 

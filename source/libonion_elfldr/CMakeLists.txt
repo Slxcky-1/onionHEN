@@ -24,6 +24,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-builtin -nostdlib -Wall -fPIC -gfull -O
 target_include_directories(${PROJECT_NAME}
   PUBLIC  "${D_CWD}/include"
   PRIVATE "${D_CWD}/../include"
+  "${PROJECT_ROOT}/libonion_platform/include"
 )
 
 # Authid policy: no per-syscall flip in pt.c; injectors elevate once at entry.

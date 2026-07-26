@@ -122,12 +122,12 @@ void onion_notify_v(int show_watermark, const char *fmt, va_list ap) {
   req.target_id = -1;
   strncpy(req.uri, "cxml://psnotification/tex_icon_system", sizeof(req.uri) - 1);
 
-  OnionHEN_log("Notify: %s", req.message);
+  LOG_INFO("Notify: %s", req.message);
 
   if (!g_send) {
     /* Never fall back to a direct CALL of sceKernelSendNotificationRequest —
      * that symbol is a data pointer in shellui/fps injectees. */
-    OnionHEN_log("Notify: send fn not registered (onion_notify_set_send)");
+    LOG_INFO("Notify: send fn not registered (onion_notify_set_send)");
     return;
   }
   (void)g_send(0, &req, sizeof(req), 0);
@@ -206,14 +206,14 @@ void onion_notify_rich(const char *message, const char *sub_message,
       "}",
       icon, msg, sub, preview, sub[0] ? sub : msg, id);
   if (rc < 0 || (size_t)rc >= sizeof(payload)) {
-    OnionHEN_log("Rich notify: payload too large");
+    LOG_INFO("Rich notify: payload too large");
     return;
   }
 
-  OnionHEN_log("Rich notify: %s%s%s", msg, sub[0] ? " - " : "", sub);
+  LOG_INFO("Rich notify: %s%s%s", msg, sub[0] ? " - " : "", sub);
 
   if (!g_rich_send) {
-    OnionHEN_log("Rich notify: send fn not registered");
+    LOG_INFO("Rich notify: send fn not registered");
     return;
   }
   (void)g_rich_send(0xFE, true, payload);

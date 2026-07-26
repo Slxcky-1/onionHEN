@@ -336,7 +336,7 @@ static bool validate_patch(const HbcView &hbc, const BytePatch &patch,
                            bool *already_applied) {
   if (!range_contains(hbc.size, patch.offset, patch.size)) {
 #if SHELL_DEBUG == 1
-    shellui_log("homeui_top_nav_patch: %s out of range at hbc+0x%llx",
+    LOG_DEBUG("homeui_top_nav_patch: %s out of range at hbc+0x%llx",
                 patch.name, (unsigned long long)patch.offset);
 #endif
     return false;
@@ -358,7 +358,7 @@ static bool validate_patch(const HbcView &hbc, const BytePatch &patch,
   }
 
 #if SHELL_DEBUG == 1
-  shellui_log("homeui_top_nav_patch: %s mismatch at hbc+0x%llx; skip",
+  LOG_WARN("homeui_top_nav_patch: %s mismatch at hbc+0x%llx; skip",
               patch.name, (unsigned long long)patch.offset);
 #endif
   return false;
@@ -422,7 +422,7 @@ static void ReactButtonShadowNode_SetIconSource_Hook(MonoObject *instance,
   g_react_button_set_inverted_icon_source(instance, source);
   --depth;
 #if SHELL_DEBUG == 1
-  shellui_log("homeui_top_nav_patch: mirrored OnionHEN icon to invertedIcon");
+  LOG_DEBUG("homeui_top_nav_patch: mirrored OnionHEN icon to invertedIcon");
 #endif
 }
 
@@ -433,7 +433,7 @@ static void ReactButtonShadowNode_SetIconSource_Hook(MonoObject *instance,
 void install_homeui_top_nav_hooks(MonoImage *react_pui) {
 #if SHELLUI_HOMEUI_TOP_NAV_PATCH == 1
   if (!react_pui) {
-    shellui_log("homeui_top_nav_patch: ReactNative.PUI image missing");
+    LOG_ERROR("homeui_top_nav_patch: ReactNative.PUI image missing");
     return;
   }
 
@@ -443,7 +443,7 @@ void install_homeui_top_nav_hooks(MonoImage *react_pui) {
                                 "ReactButtonShadowNode",
                                 "SetinvertedIconSource", 1));
   if (!g_react_button_set_inverted_icon_source) {
-    shellui_log("homeui_top_nav_patch: SetinvertedIconSource missing; "
+    LOG_ERROR("homeui_top_nav_patch: SetinvertedIconSource missing; "
                 "focused icon may be blank");
   }
 
@@ -451,7 +451,7 @@ void install_homeui_top_nav_hooks(MonoImage *react_pui) {
       Get_Address_of_Method(react_pui, "ReactNative.Views.UI3.View",
                             "ReactButtonShadowNode", "SetIconSource", 1);
   if (!set_icon_source) {
-    shellui_log("homeui_top_nav_patch: SetIconSource missing");
+    LOG_ERROR("homeui_top_nav_patch: SetIconSource missing");
     return;
   }
 
@@ -459,7 +459,7 @@ void install_homeui_top_nav_hooks(MonoImage *react_pui) {
       set_icon_source,
       reinterpret_cast<void *>(&ReactButtonShadowNode_SetIconSource_Hook),
       reinterpret_cast<void **>(&g_react_button_set_icon_source_orig));
-  shellui_log(installed ? "homeui_top_nav_patch: SetIconSource hooked "
+  LOG_DEBUG(installed ? "homeui_top_nav_patch: SetIconSource hooked "
                           "(invertedIcon mirror for OnionHEN)"
                         : "homeui_top_nav_patch: SetIconSource detour failed");
 #else
@@ -484,7 +484,7 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
     const unsigned char b1 = visible_size > 1 ? buffer[1] : 0;
     const unsigned char b2 = visible_size > 2 ? buffer[2] : 0;
     const unsigned char b3 = visible_size > 3 ? buffer[3] : 0;
-    shellui_log("homeui_top_nav_patch: no HBC candidate (size=%d capacity=%d "
+    LOG_DEBUG("homeui_top_nav_patch: no HBC candidate (size=%d capacity=%d "
                 "head=%02x %02x %02x %02x)",
                 *size_ptr, buffer_capacity, b0, b1, b2, b3);
 #endif
@@ -494,7 +494,7 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
   size_t hbc_file_length = 0;
   if (!read_hbc_file_length(hbc, &hbc_file_length)) {
 #if SHELL_DEBUG == 1
-    shellui_log("homeui_top_nav_patch: invalid HBC length at base+0x%llx",
+    LOG_ERROR("homeui_top_nav_patch: invalid HBC length at base+0x%llx",
                 (unsigned long long)hbc.base_offset);
 #endif
     return;
@@ -503,7 +503,7 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
   uint32_t hbc_version = 0;
   if (!read_hbc_version(hbc, &hbc_version)) {
 #if SHELL_DEBUG == 1
-    shellui_log("homeui_top_nav_patch: invalid HBC version at base+0x%llx",
+    LOG_ERROR("homeui_top_nav_patch: invalid HBC version at base+0x%llx",
                 (unsigned long long)hbc.base_offset);
 #endif
     return;
@@ -518,7 +518,7 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
               true, std::memory_order_relaxed)) {
         char source_hash[kHbcSourceHashSize * 2 + 1];
         format_hbc_source_hash(hbc, source_hash, sizeof(source_hash));
-        shellui_log("homeui_top_nav_patch: unsupported HomeUI HBC "
+        LOG_WARN("homeui_top_nav_patch: unsupported HomeUI HBC "
                     "(hbc_base=0x%llx version=%u file_length=0x%llx "
                     "source_hash=%s)",
                     (unsigned long long)hbc.base_offset, hbc_version,
@@ -526,7 +526,7 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
       }
     } else if (!g_logged_non_homeui_skip.exchange(true,
                                                    std::memory_order_relaxed)) {
-      shellui_log("homeui_top_nav_patch: skip non-HomeUI HBC "
+      LOG_WARN("homeui_top_nav_patch: skip non-HomeUI HBC "
                   "(hbc_base=0x%llx version=%u file_length=0x%llx)",
                   (unsigned long long)hbc.base_offset, hbc_version,
                   (unsigned long long)hbc_file_length);
@@ -536,7 +536,7 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
   }
 
 #if SHELL_DEBUG == 1
-  shellui_log("homeui_top_nav_patch: matched profile '%s' hbc_base=0x%llx "
+  LOG_DEBUG("homeui_top_nav_patch: matched profile '%s' hbc_base=0x%llx "
               "version=%u hbc_file_length=0x%llx size=%d capacity=%d",
               profile->name,
               (unsigned long long)hbc.base_offset,
@@ -628,7 +628,7 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
 
   if (!any_change) {
 #if SHELL_DEBUG == 1
-    shellui_log("homeui_top_nav_patch: already applied profile='%s' "
+    LOG_WARN("homeui_top_nav_patch: already applied profile='%s' "
                 "(hbc_base=0x%llx)",
                 profile->name, (unsigned long long)hbc.base_offset);
 #endif
@@ -641,7 +641,7 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
   update_hbc_footer_sha1(hbc, hbc_file_length);
 
 #if SHELL_DEBUG == 1
-  shellui_log("homeui_top_nav_patch: activated OnionHEN top-nav slot "
+  LOG_DEBUG("homeui_top_nav_patch: activated OnionHEN top-nav slot "
               "profile='%s' "
               "(hbc_base=0x%llx)",
               profile->name, (unsigned long long)hbc.base_offset);
@@ -656,7 +656,7 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
 void shellui_request_homeui_top_nav_reload(void) {
 #if SHELLUI_HOMEUI_TOP_NAV_PATCH == 1
   g_homeui_top_nav_reload_pending.store(true, std::memory_order_release);
-  shellui_log("homeui_top_nav_patch: queued NPXS40002 reload for next UI tick");
+  LOG_DEBUG("homeui_top_nav_patch: queued NPXS40002 reload for next UI tick");
 #endif
 }
 
@@ -667,7 +667,7 @@ void shellui_poll_homeui_top_nav_reload(void) {
     return;
   }
 
-  shellui_log("homeui_top_nav_patch: applying NPXS40002 reload on UI thread");
+  LOG_DEBUG("homeui_top_nav_patch: applying NPXS40002 reload on UI thread");
   ReloadRNPSApp("NPXS40002");
 #endif
 }

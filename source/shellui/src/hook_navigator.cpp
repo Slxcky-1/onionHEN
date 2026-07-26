@@ -58,13 +58,13 @@ static bool within_legacy_nav_debounce() {
 
 static void clear_legacy_nav_debounce(const char *why) {
   g_last_legacy_nav = {};
-  shellui_log("[DBG-NAV] debounce cleared (%s)", why);
+  LOG_DEBUG("[DBG-NAV] debounce cleared (%s)", why);
 }
 
 /** In-app navigate to legacy DebugSettingsOldScreen (not a full ShellUI re-launch). */
 static void navigate_legacy_debug_settings(const char *reason) {
   if (within_legacy_nav_debounce()) {
-    shellui_log("[DBG-NAV] debounce skip (%s)", reason);
+    LOG_WARN("[DBG-NAV] debounce skip (%s)", reason);
     return;
   }
 
@@ -72,7 +72,7 @@ static void navigate_legacy_debug_settings(const char *reason) {
   if (!dom)
     dom = Root_Domain;
   if (!dom || !mono_string_new) {
-    shellui_log("[DBG-NAV] no domain; fallback GoToURI (%s)", reason);
+    LOG_WARN("[DBG-NAV] no domain; fallback GoToURI (%s)", reason);
     GoToURI(shellui_debug_settings_toolbox_uri_simple());
     return;
   }
@@ -80,14 +80,14 @@ static void navigate_legacy_debug_settings(const char *reason) {
   MonoString *uri =
       mono_string_new(dom, shellui_debug_settings_toolbox_uri_simple());
   if (!uri) {
-    shellui_log("[DBG-NAV] mono_string_new failed; fallback GoToURI (%s)", reason);
+    LOG_ERROR("[DBG-NAV] mono_string_new failed; fallback GoToURI (%s)", reason);
     GoToURI(shellui_debug_settings_toolbox_uri_simple());
     return;
   }
 
   if (boot_orig) {
     const bool ok = boot_orig(uri, 0, nullptr);
-    shellui_log("[DBG-NAV] BootHelper.Boot(3) → legacy (%s) ret=%d", reason, ok ? 1 : 0);
+    LOG_DEBUG("[DBG-NAV] BootHelper.Boot(3) → legacy (%s) ret=%d", reason, ok ? 1 : 0);
     // If BootHelper failed, allow an immediate retry on next GetModel/nav tick.
     if (!ok)
       clear_legacy_nav_debounce("Boot(3) failed");
@@ -95,13 +95,13 @@ static void navigate_legacy_debug_settings(const char *reason) {
   }
   if (boot_orig_2) {
     const bool ok = boot_orig_2(uri, 0);
-    shellui_log("[DBG-NAV] BootHelper.Boot(2) → legacy (%s) ret=%d", reason, ok ? 1 : 0);
+    LOG_DEBUG("[DBG-NAV] BootHelper.Boot(2) → legacy (%s) ret=%d", reason, ok ? 1 : 0);
     if (!ok)
       clear_legacy_nav_debounce("Boot(2) failed");
     return;
   }
 
-  shellui_log("[DBG-NAV] BootHelper missing; fallback GoToURI (%s)", reason);
+  LOG_ERROR("[DBG-NAV] BootHelper missing; fallback GoToURI (%s)", reason);
   GoToURI(shellui_debug_settings_toolbox_uri_simple());
 }
 
@@ -138,7 +138,7 @@ void ReactNavigatorManager_UpdateNavigationState_Hook(MonoObject *instance,
   if (state_text.find("DebugSettingsScreen") != std::string::npos &&
       state_text.find("DebugSettingsOldScreen") == std::string::npos &&
       state_text.find("ps5:settings:debug settings old") == std::string::npos) {
-    shellui_log("[DBG-NAV] block DebugSettingsScreen state apply");
+    LOG_DEBUG("[DBG-NAV] block DebugSettingsScreen state apply");
     navigate_legacy_debug_settings("UpdateNavigationState");
     // Do not apply RN DebugSettings native scene.
     return;
@@ -196,21 +196,21 @@ void DebugSettings_GetModel_Hook(MonoObject *instance, MonoObject *param,
   }
 
   if (!page_id.empty())
-    shellui_log("[DBG-GETMODEL] pageId=%s", page_id.c_str());
+    LOG_DEBUG("[DBG-GETMODEL] pageId=%s", page_id.c_str());
   else
-    shellui_log("[DBG-GETMODEL] pageId=<empty>");
+    LOG_DEBUG("[DBG-GETMODEL] pageId=<empty>");
 
   if (!param_text.empty())
-    shellui_log("[DBG-GETMODEL] param=%s", param_text.c_str());
+    LOG_DEBUG("[DBG-GETMODEL] param=%s", param_text.c_str());
   else
-    shellui_log("[DBG-GETMODEL] param=<empty>");
+    LOG_DEBUG("[DBG-GETMODEL] param=<empty>");
 
   // RN Debug Settings root — open legacy host; skip RN model (blank without data is OK
   // only if BootHelper actually runs). Never leave a sticky "pending" that blocks later
   // entries after the user has returned to main.
   if (page_id == "id_debug_settings" ||
       param_text.find("id_debug_settings") != std::string::npos) {
-    shellui_log("[DBG-GETMODEL] id_debug_settings → BootHelper legacy");
+    LOG_DEBUG("[DBG-GETMODEL] id_debug_settings → BootHelper legacy");
     navigate_legacy_debug_settings("GetModel");
     return;
   }

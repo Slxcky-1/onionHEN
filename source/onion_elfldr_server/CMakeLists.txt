@@ -18,9 +18,10 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-keyword-macro -fPIC -fPIE -march=znver2
 target_include_directories(${PROJECT_NAME} PRIVATE
   "${PROJECT_ROOT}/include"
   "${PROJECT_ROOT}/libonion_elfldr/include"
+  "${PROJECT_ROOT}/libonion_platform/include"
 )
 target_link_directories(${PROJECT_NAME} PUBLIC "${ONIONHEN_PS5_STUB_DIR}")
 add_dependencies(${PROJECT_NAME} onion_elfldr)
-target_link_libraries(${PROJECT_NAME} PUBLIC onion_elfldr)
+target_link_libraries(${PROJECT_NAME} PUBLIC onion_platform onion_elfldr)
 
 onion_strip_debug(${PROJECT_NAME})

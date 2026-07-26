@@ -26,7 +26,7 @@ int LaunchApp(MonoString* titleId, uint64_t* args, int argsSize, LaunchAppParam 
 #if 1
    if(!if_exists(ONION_SYSTEM_TMP_PATCH_PLUGIN)) {
       #if SHELL_DEBUG == 1
-      shellui_log("patch payload not running .. returning with orig");
+      LOG_DEBUG("patch payload not running .. returning with orig");
       #endif
 	  unsigned int ret = LaunchApp_orig(titleId, args, argsSize, param);
       if (ret < 0) {
@@ -42,7 +42,7 @@ int LaunchApp(MonoString* titleId, uint64_t* args, int argsSize, LaunchAppParam 
    }
 #endif
 #if SHELL_DEBUG == 1
-  shellui_log("LaunchApp called with titleId: %s, argsSize: %d, param->size: %d", mono_string_to_utf8(titleId), argsSize, param->size);
+  LOG_DEBUG("LaunchApp called with titleId: %s, argsSize: %d, param->size: %d", mono_string_to_utf8(titleId), argsSize, param->size);
 #endif
   notify("Launching app: %s checking for patches ...", mono_string_to_utf8(titleId));
 
@@ -82,7 +82,7 @@ int sceRegMgrGetInt_hook(long regid, int* out_val){
        *out_val = 1;
     }
 #if SHELL_DEBUG==1
-    shellui_log("RegMGR lookup called for SHELLUI_disp_titleid, spoofing out_var to 1");
+    LOG_DEBUG("RegMGR lookup called for SHELLUI_disp_titleid, spoofing out_var to 1");
 #endif
     return 0;
   }
@@ -95,7 +95,7 @@ int sceRegMgrGetInt_hook(long regid, int* out_val){
 
   if(regid == visualize_fps_range) {
       crash();
-    shellui_log("visualize_fps_range regid %lx", regid);
+    LOG_DEBUG("visualize_fps_range regid %lx", regid);
     if (out_val) {
       *out_val = 2;
     }
@@ -104,7 +104,7 @@ int sceRegMgrGetInt_hook(long regid, int* out_val){
   else if(regid == visualize_fps_en) {
 
 	  crash();
-    shellui_log("visualize_fps_en regid %lx", regid); 
+    LOG_DEBUG("visualize_fps_en regid %lx", regid); 
     if (out_val) {
       *out_val = 3;
     }
@@ -112,7 +112,7 @@ int sceRegMgrGetInt_hook(long regid, int* out_val){
   }
   else if(regid == visualize_fps_pos) {
       crash();
-    shellui_log("visualize_fps_pos regid %lx", regid);
+    LOG_DEBUG("visualize_fps_pos regid %lx", regid);
     if (out_val) {
       *out_val = 1;
     }
@@ -120,7 +120,7 @@ int sceRegMgrGetInt_hook(long regid, int* out_val){
   }
   else if(regid == visualize_fps_port) {
       crash();
-    shellui_log("visualize_fps_port regid %lx", regid);
+    LOG_DEBUG("visualize_fps_port regid %lx", regid);
     if (out_val) {
       *out_val = 0;
     }
@@ -128,12 +128,12 @@ int sceRegMgrGetInt_hook(long regid, int* out_val){
     return 0;
   }
 
-  //shellui_log("sceRegMgrGetInt_hook: regid %lx", regid);
+  //LOG_DEBUG("sceRegMgrGetInt_hook: regid %lx", regid);
 
   int ret = 0;
   if(__sys_regmgr_call(2, regid, &ret, out_val, SCE_REGMGR_INT_SIZE)){
 #if SHELL_DEBUG==1
-    shellui_log("sceRegMgrGetInt_hook: Failed to get regid 0x%lx, ret %d", regid, ret);
+    LOG_ERROR("sceRegMgrGetInt_hook: Failed to get regid 0x%lx, ret %d", regid, ret);
 #endif
     ret = SCE_REGMGR_ERROR_PRM_REGID;
   }
@@ -168,8 +168,8 @@ void createJson_hook(MonoObject* inst, MonoObject* array, MonoString* id, MonoSt
     std::string id_str = Mono_to_String(id);
 
 #if SHELL_DEBUG==1
-    shellui_log("createJson_hook: %lx id: %s, label: %s, actionUrl: %s, actionId: %s, messageId: %s", 
-               inst, id_str.c_str(), 
+    LOG_DEBUG("createJson_hook: %p id: %s, label: %s, actionUrl: %s, actionId: %s, messageId: %s", 
+               static_cast<void *>(inst), id_str.c_str(), 
                Mono_to_String(label).c_str(), 
                Mono_to_String(actionUrl).c_str(), 
                Mono_to_String(actionId).c_str(), 
@@ -187,7 +187,7 @@ void createJson_hook(MonoObject* inst, MonoObject* array, MonoString* id, MonoSt
         g_ui.current_menu_tid = extracted_tid;
 #if SHELL_DEBUG==1
         //notify("Current menu titleId: %s", g_ui.current_menu_tid.c_str());
-        shellui_log("Updated menu titleId: %s", g_ui.current_menu_tid.c_str());
+        LOG_DEBUG("Updated menu titleId: %s", g_ui.current_menu_tid.c_str());
 #endif
     }
     if(id_str == "MENU_ID_CHECK_PATCH"){  
@@ -206,18 +206,18 @@ void Terminate() {
         return;
     }
 
-    shellui_log("******************************\nShellUI is exiting\n*****************************");
-    shellui_log("Sending Action");
+    LOG_DEBUG("******************************\nShellUI is exiting\n*****************************");
+    LOG_DEBUG("Sending Action");
     IPC_Client& main_ipc = IPC_Client::getInstance(false);
     if(g_settings.game_rest_kill) {
-	    	shellui_log("Killing Game");
+	    	LOG_DEBUG("Killing Game");
         int pid = onion_find_pid_ex("NA", false, true, false);
         if(pid > 0)
            main_ipc.ForceKillPID(pid);
     }
     //dont send the command if the util is already dead
     if(g_settings.util_rest_kill) {
-        shellui_log("Killing Util");
+        LOG_DEBUG("Killing Util");
         KillAllWithName("Utility", SIGKILL);
     }
     else {

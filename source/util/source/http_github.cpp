@@ -1,12 +1,12 @@
 /* Copyright (C) 2025 OnionHEN / LightningMods */
 
+#include <onion/log.h>
 #include "http_github.h"
 
 #include "cJSON.hpp"
 
 #include <cstring>
 
-extern "C" void OnionHEN_log(const char *fmt, ...);
 
 extern "C" bool onion_http_extract_commit_sha(const char *json_data,
                                               char *sha_buffer,
@@ -16,27 +16,27 @@ extern "C" bool onion_http_extract_commit_sha(const char *json_data,
 
   cJSON *root = cJSON_Parse(json_data);
   if (!root) {
-    OnionHEN_log("Could not parse GitHub commit JSON");
+    LOG_INFO("Could not parse GitHub commit JSON");
     return false;
   }
 
   cJSON *commit = cJSON_IsArray(root) ? cJSON_GetArrayItem(root, 0) : root;
   if (!commit) {
-    OnionHEN_log("Could not find commit object in JSON response");
+    LOG_INFO("Could not find commit object in JSON response");
     cJSON_Delete(root);
     return false;
   }
 
   cJSON *sha = cJSON_GetObjectItemCaseSensitive(commit, "sha");
   if (!cJSON_IsString(sha) || !sha->valuestring) {
-    OnionHEN_log("Could not find 'sha' field in JSON response");
+    LOG_INFO("Could not find 'sha' field in JSON response");
     cJSON_Delete(root);
     return false;
   }
 
   size_t sha_length = std::strlen(sha->valuestring);
   if (sha_length >= buffer_size) {
-    OnionHEN_log("SHA too long for buffer");
+    LOG_INFO("SHA too long for buffer");
     cJSON_Delete(root);
     return false;
   }
@@ -45,6 +45,6 @@ extern "C" bool onion_http_extract_commit_sha(const char *json_data,
   sha_buffer[sha_length] = '\0';
   cJSON_Delete(root);
 
-  OnionHEN_log("Extracted commit SHA: %s", sha_buffer);
+  LOG_INFO("Extracted commit SHA: %s", sha_buffer);
   return true;
 }

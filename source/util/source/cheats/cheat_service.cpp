@@ -1,3 +1,4 @@
+#include <onion/log.h>
 #include "cheats/cheat_service.hpp"
 
 #include <cstdio>
@@ -5,7 +6,6 @@
 #include <fstream>
 
 extern "C" {
-void OnionHEN_log(const char *fmt, ...);
 int sceKernelGetProcessName(int pid, char *name);
 }
 
@@ -41,7 +41,7 @@ void CheatService::onGameExec(pid_t pid, const char *title_id, int appid) {
   if (title_id) {
     std::snprintf(game_.title_id, sizeof(game_.title_id), "%s", title_id);
   }
-  OnionHEN_log("[service] cheat track exec title=%s pid=%d",
+  LOG_INFO("[service] cheat track exec title=%s pid=%d",
                title_id ? title_id : "?", (int)pid);
 }
 
@@ -50,7 +50,7 @@ void CheatService::onGameExit(pid_t pid) {
   if (!has_tracked_game_ || tracked_pid_ != pid) {
     return;
   }
-  OnionHEN_log("[service] cheat track exit title=%s pid=%d", game_.title_id,
+  LOG_INFO("[service] cheat track exit title=%s pid=%d", game_.title_id,
                (int)pid);
   has_tracked_game_ = false;
   tracked_pid_ = 0;
@@ -104,7 +104,7 @@ void CheatService::disableEnabledLocked(const char *reason) {
     }
     std::string status;
     if (applier_.toggle(game_, file_, static_cast<int>(i), status) < 0) {
-      OnionHEN_log("[service] disable stale cheat %zu (%s): %s", i,
+      LOG_WARN("[service] disable stale cheat %zu (%s): %s", i,
                    reason ? reason : "?", status.c_str());
     }
   }
@@ -149,7 +149,7 @@ int CheatService::refreshLocked(const game_context_t &game) {
     }
     sig_ = std::move(sig);
     loaded_ = true;
-    OnionHEN_log("[service] loaded %s cheats=%zu", path.c_str(),
+    LOG_INFO("[service] loaded %s cheats=%zu", path.c_str(),
                  file_.cheat_count);
   }
   return 0;

@@ -1,3 +1,4 @@
+#include <onion/log.h>
 #include "cheats/i_cheat_parser.hpp"
 
 #include <cctype>
@@ -7,7 +8,6 @@
 
 #include "cheats/cheat_engine_internal.h"
 
-extern "C" void OnionHEN_log(const char *fmt, ...);
 
 namespace onion::cheats {
 
@@ -67,7 +67,7 @@ int CheatParserFactory::loadBuffer(const std::string &format,
     return -1;
   }
   auto parser = createByFormat(format);
-  OnionHEN_log("[engine] parse format=%s size=%zu", parser->name(), size);
+  LOG_INFO("[engine] parse format=%s size=%zu", parser->name(), size);
   return parser->parse(data, size, out);
 }
 
@@ -81,10 +81,10 @@ int CheatParserFactory::loadFile(const std::string &path,
     return -1;
   }
 
-  OnionHEN_log("[engine] load path=%s", path.c_str());
+  LOG_INFO("[engine] load path=%s", path.c_str());
   buf = onion_cheat_load_file_buffer(path.c_str(), &size);
   if (buf == nullptr || size <= 0) {
-    OnionHEN_log("[engine] load failed path=%s", path.c_str());
+    LOG_ERROR("[engine] load failed path=%s", path.c_str());
     free(buf);
     return -1;
   }
@@ -95,7 +95,7 @@ int CheatParserFactory::loadFile(const std::string &path,
 
   onion_cheat_secure_zero(buf, static_cast<size_t>(size));
   free(buf);
-  OnionHEN_log("[engine] loaded format=%s cheats=%zu rc=%d", parser->name(),
+  LOG_INFO("[engine] loaded format=%s cheats=%zu rc=%d", parser->name(),
                out.cheat_count, rc);
   return rc;
 }

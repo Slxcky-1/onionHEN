@@ -66,14 +66,14 @@ bool copyFile(const char *source, const char *destination) {
   FILE *src = fopen(source, "rb");
   if (src == NULL) {
     onion_notify(false, "copyFile failed for %s", source);
-    OnionHEN_log("copyFile failed for %s", source);
+    LOG_ERROR("copyFile failed for %s", source);
     return false;
   }
 
   FILE *dest = fopen(destination, "wb");
   if (dest == NULL) {
     onion_notify(false, "copyFile failed for %s", destination);
-    OnionHEN_log("copyFile failed for %s", destination);
+    LOG_ERROR("copyFile failed for %s", destination);
     fclose(src);
     return false;
   }

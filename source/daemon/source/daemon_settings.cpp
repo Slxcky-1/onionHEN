@@ -36,13 +36,13 @@ bool LoadSettings() {
   }
 
   if (newest == 0) {
-    OnionHEN_log("[Daemon] Config file not found. Creating default schema...");
+    LOG_ERROR("[Daemon] Config file not found. Creating default schema...");
     if (onion::settings_ensure_default()) {
       onion_notify(true, "OnionHEN config created! @ /data/OnionHEN/config.ini");
     }
   }
 
-  OnionHEN_log("[Daemon] Loading Settings from shared schema...");
+  LOG_INFO("[Daemon] Loading Settings from shared schema...");
   onion::Settings s{};
   const bool from_file = onion::settings_load(&s);
   if (!from_file && newest != 0) {
@@ -51,19 +51,19 @@ bool LoadSettings() {
   }
 
   if (from_file) {
-    OnionHEN_log("[Daemon] Reading Settings from %s",
+    LOG_INFO("[Daemon] Reading Settings from %s",
                  onion::settings_last_loaded_path());
   } else {
-    OnionHEN_log("[Daemon] Using default settings (no config file)");
+    LOG_INFO("[Daemon] Using default settings (no config file)");
   }
-  OnionHEN_log("fan_threshold: %d", s.fan_threshold);
-  OnionHEN_log("enable_fan_speed: %d", s.enable_fan_speed ? 1 : 0);
+  LOG_INFO("fan_threshold: %d", s.fan_threshold);
+  LOG_INFO("enable_fan_speed: %d", s.enable_fan_speed ? 1 : 0);
 
   /* Apply before the rest: a reload that raises the level should take effect
      for the messages that follow it in this same call. */
   const onion_log_level effective = onion::apply_log_settings(s);
   if (effective != static_cast<onion_log_level>(s.log_level)) {
-    OnionHEN_log("[Daemon] log level '%s' unavailable in this build; using '%s'",
+    LOG_WARN("[Daemon] log level '%s' unavailable in this build; using '%s'",
                  onion_log_level_name(static_cast<onion_log_level>(s.log_level)),
                  onion_log_level_name(effective));
   }

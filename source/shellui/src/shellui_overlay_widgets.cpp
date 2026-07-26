@@ -218,13 +218,13 @@ void ensure_bg_panel(MonoObject *root) {
   MonoClass *panelClass =
       mono_class_from_name(pui_img, "Sce.PlayStation.PUI.UI2", "Panel");
   if (!panelClass) {
-    shellui_log("overlay: UI2.Panel class missing — no bg bar");
+    LOG_ERROR("overlay: UI2.Panel class missing — no bg bar");
     return;
   }
 
   MonoObject *panel = New_Object(panelClass);
   if (!panel) {
-    shellui_log("overlay: failed to alloc Panel");
+    LOG_ERROR("overlay: failed to alloc Panel");
     return;
   }
   mono_runtime_object_init(panel);

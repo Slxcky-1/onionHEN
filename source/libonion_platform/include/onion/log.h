@@ -106,6 +106,13 @@ void onion_log_shutdown(void);
  * The compile-time test comes first and is a constant expression, so for a
  * disabled level the whole statement — including the arguments — is discarded
  * before the runtime load is ever reached.
+ *
+ * There is deliberately no second backend for the -nostdlib libraries
+ * (NidResolver, NineS, onion_elfldr). Those flags only stop the static
+ * library itself from pulling in stdlib at its own link step; every one of
+ * them is ultimately linked into a host that has full libc and pthread, which
+ * is why they already call vsnprintf today. Giving them their own logger
+ * would recreate exactly the split this replaced.
  */
 #define ONION_LOG_AT(level, ...)                                               \
   do {                                                                         \
@@ -121,14 +128,6 @@ void onion_log_shutdown(void);
 #define LOG_DEBUG(...) ONION_LOG_AT(ONION_LOG_DEBUG, __VA_ARGS__)
 #define LOG_TRACE(...) ONION_LOG_AT(ONION_LOG_TRACE, __VA_ARGS__)
 
-/**
- * Historical entry point, used by ~600 existing call sites. Treated as INFO:
- * those sites predate levels and are mostly lifecycle reporting, so silently
- * demoting them would strip a release log of its content.
- *
- * New code should pick an explicit level.
- */
-void OnionHEN_log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
 #ifdef __cplusplus
 }

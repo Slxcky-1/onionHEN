@@ -80,7 +80,7 @@ bool copyFile(const char *source, const char *destination)
     if (src == NULL)
     {
         onion_notify(false, "copyFile failed for %s", source);
-        OnionHEN_log("copyFile failed for %s", source);
+        LOG_ERROR("copyFile failed for %s", source);
         return false;
     }
 
@@ -88,7 +88,7 @@ bool copyFile(const char *source, const char *destination)
     if (dest == NULL)
     {
         onion_notify(false, "copyFile failed for %s", destination);
-        OnionHEN_log("copyFile failed for %s", destination);
+        LOG_ERROR("copyFile failed for %s", destination);
         fclose(src);
         return false;
     }
@@ -121,10 +121,10 @@ int launchApp(const char *titleId)
 	uint32_t res = sceUserServiceGetForegroundUser(&id);
 	if (res != 0)
 	{
-		printf("sceUserServiceGetForegroundUser failed: 0x%x\n", res);
+		LOG_ERROR("sceUserServiceGetForegroundUser failed: 0x%x", res);
 		return res;
 	}
-	OnionHEN_log("[LA] user id %u", id);
+	LOG_INFO("[LA] user id %u", id);
 
     LncAppParam param;
 	param.sz = sizeof(LncAppParam);
@@ -134,9 +134,9 @@ int launchApp(const char *titleId)
 	param.check_flag = Flag_None;
 
 
-	puts("calling sceLncUtilLaunchApp");
+	LOG_DEBUG("calling sceLncUtilLaunchApp");
 	int err = sceLncUtilLaunchApp(titleId, NULL, &param);
-	OnionHEN_log("sceLncUtilLaunchApp returned 0x%x", (uint32_t)err);
+	LOG_INFO("sceLncUtilLaunchApp returned 0x%x", (uint32_t)err);
 	if (err >= 0)
 	{
 		return err;
@@ -144,14 +144,14 @@ int launchApp(const char *titleId)
 	switch ((uint32_t)err)
 	{
 	case SCE_LNC_UTIL_ERROR_ALREADY_RUNNING:
-		OnionHEN_log("app %s is already running", titleId);
+		LOG_WARN("app %s is already running", titleId);
 		break;
 	case SCE_LNC_ERROR_APP_NOT_FOUND:
-		OnionHEN_log("app %s not found", titleId);
+		LOG_ERROR("app %s not found", titleId);
 		onion_notify(true, "app %s not found", titleId);
 		break;
 	default:
-		OnionHEN_log("[LA] unknown error 0x%x", (uint32_t)err);
+		LOG_ERROR("[LA] unknown error 0x%x", (uint32_t)err);
 		// onion_notify(true, "unknown error 0x%llx", (uint32_t)err);
 		break;
 	}
