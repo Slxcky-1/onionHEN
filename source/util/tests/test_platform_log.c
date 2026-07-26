@@ -1,48 +1,250 @@
-/* Host tests for libonion_platform OnionHEN_log / configure. */
+/* Host tests for libonion_platform logging: sinks, levels, rotation. */
 #include "test_harness.h"
 
 #include <onion/log.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
-static int test_log_file_sink(void) {
-  char tmpl[] = "/tmp/onion-log-XXXXXX";
-  int fd = mkstemp(tmpl);
-  TEST_ASSERT_TRUE(fd >= 0);
-  close(fd);
-  unlink(tmpl); /* log open will create */
+/* --- helpers -------------------------------------------------------------- */
 
-  onion_log_configure("HostTest", tmpl);
+static char g_path[64];
+
+static void begin(const char *tag) {
+  snprintf(g_path, sizeof(g_path), "/tmp/onion-log-test-%d", (int)getpid());
+  unlink(g_path);
+  char old[80];
+  snprintf(old, sizeof(old), "%s.old", g_path);
+  unlink(old);
+  onion_log_set_max_bytes(0); /* restore default cap */
+  onion_log_set_level(ONION_LOG_TRACE);
+  onion_log_configure(tag, g_path);
+}
+
+static void end(void) {
+  onion_log_configure("OnionHEN", NULL);
+  char old[80];
+  snprintf(old, sizeof(old), "%s.old", g_path);
+  unlink(g_path);
+  unlink(old);
+  onion_log_set_level(ONION_LOG_INFO);
+  onion_log_set_max_bytes(0);
+}
+
+static size_t read_file(const char *path, char *out, size_t out_size) {
+  FILE *f = fopen(path, "r");
+  if (!f) {
+    out[0] = '\0';
+    return 0;
+  }
+  size_t n = fread(out, 1, out_size - 1, f);
+  fclose(f);
+  out[n] = '\0';
+  return n;
+}
+
+static long file_size(const char *path) {
+  struct stat st;
+  return (stat(path, &st) == 0) ? (long)st.st_size : -1;
+}
+
+/* --- tests ---------------------------------------------------------------- */
+
+static int test_log_file_sink(void) {
+  char buf[512];
+  begin("HostTest");
   OnionHEN_log("hello %d", 42);
 
-  FILE *f = fopen(tmpl, "r");
-  TEST_ASSERT_TRUE(f != NULL);
-  char buf[256];
-  size_t n = fread(buf, 1, sizeof(buf) - 1, f);
-  fclose(f);
-  buf[n] = '\0';
+  read_file(g_path, buf, sizeof(buf));
   TEST_ASSERT_TRUE(strstr(buf, "hello 42") != NULL);
+  TEST_ASSERT_TRUE(strstr(buf, "[HostTest]") != NULL);
+  TEST_ASSERT_TRUE(strstr(buf, "info:") != NULL);
   TEST_ASSERT_TRUE(strchr(buf, '\n') != NULL);
-
-  unlink(tmpl);
-  /* disable file sink for later suites */
-  onion_log_configure("OnionHEN", NULL);
+  end();
   return 0;
 }
 
 static int test_log_configure_tag_only(void) {
   onion_log_configure("TagOnly", NULL);
-  /* no file sink — should not crash */
-  OnionHEN_log("silent-ish");
+  OnionHEN_log("no file sink configured"); /* must not crash */
   onion_log_configure("OnionHEN", NULL);
+  return 0;
+}
+
+/* The runtime gate must drop records below the threshold. */
+static int test_runtime_level_filters(void) {
+  char buf[1024];
+  begin("Lvl");
+
+  onion_log_set_level(ONION_LOG_WARN);
+  onion_log_write(ONION_LOG_ERROR, "keep-error");
+  onion_log_write(ONION_LOG_WARN, "keep-warn");
+  onion_log_write(ONION_LOG_INFO, "drop-info");
+  onion_log_write(ONION_LOG_DEBUG, "drop-debug");
+  OnionHEN_log("drop-legacy-info");
+
+  read_file(g_path, buf, sizeof(buf));
+  TEST_ASSERT_TRUE(strstr(buf, "keep-error") != NULL);
+  TEST_ASSERT_TRUE(strstr(buf, "keep-warn") != NULL);
+  TEST_ASSERT_TRUE(strstr(buf, "drop-info") == NULL);
+  TEST_ASSERT_TRUE(strstr(buf, "drop-debug") == NULL);
+  TEST_ASSERT_TRUE(strstr(buf, "drop-legacy-info") == NULL);
+  end();
+  return 0;
+}
+
+static int test_level_off_silences_everything(void) {
+  char buf[512];
+  begin("Off");
+  onion_log_set_level(ONION_LOG_OFF);
+  onion_log_write(ONION_LOG_ERROR, "must-not-appear");
+  OnionHEN_log("must-not-appear-either");
+
+  read_file(g_path, buf, sizeof(buf));
+  TEST_ASSERT_TRUE(strstr(buf, "must-not-appear") == NULL);
+  end();
+  return 0;
+}
+
+/* An unbounded log on a console the user cannot clean out is a real failure
+ * mode, so the cap must actually rotate and keep one generation. */
+static int test_rotation_caps_size_and_keeps_backup(void) {
+  char old_path[80];
+  char buf[2048];
+
+  begin("Rot");
+  onion_log_set_max_bytes(512);
+  for (int i = 0; i < 60; i++) {
+    onion_log_write(ONION_LOG_ERROR, "record-%02d-padding-padding-padding", i);
+  }
+
+  const long live = file_size(g_path);
+  TEST_ASSERT_TRUE(live >= 0);
+  TEST_ASSERT_TRUE(live <= 512);
+
+  snprintf(old_path, sizeof(old_path), "%s.old", g_path);
+  TEST_ASSERT_TRUE(file_size(old_path) > 0);
+
+  /* Newest records live in the current file. */
+  read_file(g_path, buf, sizeof(buf));
+  TEST_ASSERT_TRUE(strstr(buf, "record-59") != NULL);
+  end();
+  return 0;
+}
+
+/* Rotation keeps exactly one backup; older generations are dropped. */
+static int test_rotation_keeps_only_one_backup(void) {
+  char old_path[80];
+  char buf[2048];
+
+  begin("Rot2");
+  onion_log_set_max_bytes(256);
+  for (int i = 0; i < 200; i++) {
+    onion_log_write(ONION_LOG_ERROR, "spam-%03d-aaaaaaaaaaaaaaaaaaaa", i);
+  }
+  snprintf(old_path, sizeof(old_path), "%s.old", g_path);
+
+  char older[96];
+  snprintf(older, sizeof(older), "%s.old.old", g_path);
+  TEST_ASSERT_TRUE(file_size(older) < 0); /* never created */
+
+  read_file(old_path, buf, sizeof(buf));
+  TEST_ASSERT_TRUE(strstr(buf, "spam-000") == NULL); /* oldest rotated away */
+  end();
+  return 0;
+}
+
+/* Exactly one trailing newline regardless of what the caller passed. */
+static int test_single_trailing_newline(void) {
+  char buf[512];
+  begin("NL");
+  onion_log_write(ONION_LOG_ERROR, "trailing-newline-supplied\n");
+
+  const size_t n = read_file(g_path, buf, sizeof(buf));
+  TEST_ASSERT_TRUE(n >= 2);
+  TEST_ASSERT_EQ_INT('\n', buf[n - 1]);
+  TEST_ASSERT_TRUE(buf[n - 2] != '\n');
+  end();
+  return 0;
+}
+
+/* Over-long records must truncate, stay terminated, and still end in \n. */
+static int test_oversized_record_truncates(void) {
+  static char big[0x2000];
+  char buf[0x2000];
+
+  memset(big, 'x', sizeof(big) - 1);
+  big[sizeof(big) - 1] = '\0';
+
+  begin("Big");
+  onion_log_set_max_bytes(1024u * 1024u);
+  onion_log_write(ONION_LOG_ERROR, "%s", big);
+
+  const size_t n = read_file(g_path, buf, sizeof(buf));
+  TEST_ASSERT_TRUE(n > 0);
+  TEST_ASSERT_EQ_INT('\n', buf[n - 1]);
+  TEST_ASSERT_TRUE(n < sizeof(big)); /* truncated, not overflowed */
+  end();
+  return 0;
+}
+
+static int test_level_name_roundtrip(void) {
+  onion_log_level lvl;
+
+  TEST_ASSERT_TRUE(onion_log_level_from_name("error", &lvl));
+  TEST_ASSERT_EQ_INT(ONION_LOG_ERROR, lvl);
+  TEST_ASSERT_TRUE(onion_log_level_from_name("TRACE", &lvl)); /* case-insensitive */
+  TEST_ASSERT_EQ_INT(ONION_LOG_TRACE, lvl);
+  TEST_ASSERT_TRUE(onion_log_level_from_name("Off", &lvl));
+  TEST_ASSERT_EQ_INT(ONION_LOG_OFF, lvl);
+
+  TEST_ASSERT_TRUE(!onion_log_level_from_name("verbose", &lvl));
+  TEST_ASSERT_TRUE(!onion_log_level_from_name("inf", &lvl)); /* prefix != match */
+  TEST_ASSERT_TRUE(!onion_log_level_from_name("infoo", &lvl));
+  TEST_ASSERT_TRUE(!onion_log_level_from_name(NULL, &lvl));
+
+  TEST_ASSERT_TRUE(strcmp("warn", onion_log_level_name(ONION_LOG_WARN)) == 0);
+  TEST_ASSERT_TRUE(strcmp("?", onion_log_level_name((onion_log_level)99)) == 0);
+  return 0;
+}
+
+static int test_set_level_clamps(void) {
+  onion_log_set_level((onion_log_level)99);
+  TEST_ASSERT_EQ_INT(ONION_LOG_TRACE, onion_log_get_level());
+  onion_log_set_level((onion_log_level)-5);
+  TEST_ASSERT_EQ_INT(ONION_LOG_OFF, onion_log_get_level());
+  onion_log_set_level(ONION_LOG_INFO);
+  return 0;
+}
+
+/* The crash path bypasses both gates — a fault is always worth recording. */
+static int test_emergency_bypasses_level(void) {
+  char buf[512];
+  begin("Emerg");
+  onion_log_set_level(ONION_LOG_OFF);
+  onion_log_emergency("crash-record %d", 7);
+
+  read_file(g_path, buf, sizeof(buf));
+  TEST_ASSERT_TRUE(strstr(buf, "crash-record 7") != NULL);
+  end();
   return 0;
 }
 
 int test_platform_log_suite(void) {
   int failures = 0;
-  failures += onion_test_run("log_file_sink", test_log_file_sink);
-  failures += onion_test_run("log_configure_tag_only", test_log_configure_tag_only);
+  failures += onion_test_run("log.file_sink", test_log_file_sink);
+  failures += onion_test_run("log.configure_tag_only", test_log_configure_tag_only);
+  failures += onion_test_run("log.runtime_level_filters", test_runtime_level_filters);
+  failures += onion_test_run("log.level_off", test_level_off_silences_everything);
+  failures += onion_test_run("log.rotation_caps_size", test_rotation_caps_size_and_keeps_backup);
+  failures += onion_test_run("log.rotation_one_backup", test_rotation_keeps_only_one_backup);
+  failures += onion_test_run("log.single_newline", test_single_trailing_newline);
+  failures += onion_test_run("log.oversized_truncates", test_oversized_record_truncates);
+  failures += onion_test_run("log.level_name_roundtrip", test_level_name_roundtrip);
+  failures += onion_test_run("log.set_level_clamps", test_set_level_clamps);
+  failures += onion_test_run("log.emergency_bypasses_level", test_emergency_bypasses_level);
   return failures;
 }
