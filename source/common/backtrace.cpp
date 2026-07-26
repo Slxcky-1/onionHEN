@@ -1,4 +1,4 @@
-#include "../include/backtrace.hpp"
+#include <backtrace.hpp>
 
 const Frame * __attribute__((naked)) getFramePointer() {
 	__asm__ volatile(

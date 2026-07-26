@@ -63,6 +63,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	"${D_CWD}/include"
 	"${I18N_GENERATED_DIR}"
 	"${ONIONHEN_THIRD_PARTY_DIR}/cjson"
+	"${ONIONHEN_THIRD_PARTY_DIR}/sha1"
 	"${PROJECT_ROOT}/libonion_ipc/include"
 	"${PROJECT_ROOT}/libonion_settings/include"
 	"${PROJECT_ROOT}/libonion_detour/include"

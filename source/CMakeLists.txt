@@ -46,7 +46,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ONIONHEN_OUT_LIB})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${ONIONHEN_OUT_LIB})
 
 include_directories(BEFORE "${ONIONHEN_GENERATED_INCLUDE_DIR}")
-include_directories	(SYSTEM "${PROJECT_ROOT}/include")
+# First-party shared contracts — not SYSTEM, so warnings in them are visible.
+include_directories("${PROJECT_ROOT}/include")
 include_directories(SYSTEM "${PS5_PAYLOAD_SDK}")
 include_directories(SYSTEM "${PS5_PAYLOAD_SDK}/include")
 

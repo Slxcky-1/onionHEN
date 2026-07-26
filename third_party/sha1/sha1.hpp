@@ -279,28 +279,6 @@ static inline void SHA1Final(
 	__builtin_memset(&finalcount, '\0', sizeof(finalcount));
 }
 
-static inline constexpr uint8_t NID_KEY[]{
-	(uint8_t) 0x51, (uint8_t) 0x8D, (uint8_t) 0x64, (uint8_t) 0xA6,
-	(uint8_t) 0x35, (uint8_t) 0xDE, (uint8_t) 0xD8, (uint8_t) 0xC1,
-	(uint8_t) 0xE6, (uint8_t) 0xB0, (uint8_t) 0x39, (uint8_t) 0xB1,
-	(uint8_t) 0xC3, (uint8_t) 0xE5, (uint8_t) 0x52, (uint8_t) 0x30
-};
-
-}
-
-struct Sha1 {
-	uint8_t hash[20];
-};
-
-#include "util.hpp"
-
-static inline void genSha1(uint8_t *res, const StringView &str) {
-	SHA1_CTX ctx;
-
-	SHA1Init(&ctx);
-	SHA1Update(&ctx, (const unsigned char*)str.c_str(), str.length());
-	SHA1Update(&ctx, NID_KEY, sizeof(NID_KEY));
-	SHA1Final(res, &ctx);
 }
 
 // NOLINTEND(*)

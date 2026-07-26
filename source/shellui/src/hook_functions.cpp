@@ -29,7 +29,6 @@ along with this program; see the file COPYING. If not, see
 #include <sys/stat.h>
 #include <fstream>
 #include <unistd.h>
-#include <util.hpp>
 #include <vector>
 #include <sys/socket.h>
 #include <netinet/in.h>

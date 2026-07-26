@@ -35,7 +35,6 @@ along with this program; see the file COPYING. If not, see
 #include <cstdint>
 #include <string>
 #include <unistd.h>
-#include <util.hpp>
 #include <vector>
 
 // ---------------------------------------------------------------------------

@@ -381,23 +381,23 @@ struct Registers : reg { // these are helpers as it is annoying that register_t 
 		rdi(a); rsi(b); rdx(c); rcx(d); r8(e); r9(f);
 	}
 	void dump() const noexcept {
-		printf("rax: 0x%08llx\n", rax());
-		printf("rbx: 0x%08llx\n", rbx());
-		printf("rcx: 0x%08llx\n", rcx());
-		printf("rdx: 0x%08llx\n", rdx());
-		printf("rsi: 0x%08llx\n", rsi());
-		printf("rdi: 0x%08llx\n", rdi());
-		printf("r8:  0x%08llx\n", r8());
-		printf("r9:  0x%08llx\n", r9());
-		printf("r10: 0x%08llx\n", r10());
-		printf("r11: 0x%08llx\n", r11());
-		printf("r12: 0x%08llx\n", r12());
-		printf("r13: 0x%08llx\n", r13());
-		printf("r14: 0x%08llx\n", r14());
-		printf("r15: 0x%08llx\n", r15());
-		printf("rbp: 0x%08llx\n", rbp());
-		printf("rsp: 0x%08llx\n", rsp());
-		printf("rip: 0x%08llx\n", rip());
+		printf("rax: 0x%08llx\n", (unsigned long long)rax());
+		printf("rbx: 0x%08llx\n", (unsigned long long)rbx());
+		printf("rcx: 0x%08llx\n", (unsigned long long)rcx());
+		printf("rdx: 0x%08llx\n", (unsigned long long)rdx());
+		printf("rsi: 0x%08llx\n", (unsigned long long)rsi());
+		printf("rdi: 0x%08llx\n", (unsigned long long)rdi());
+		printf("r8:  0x%08llx\n", (unsigned long long)r8());
+		printf("r9:  0x%08llx\n", (unsigned long long)r9());
+		printf("r10: 0x%08llx\n", (unsigned long long)r10());
+		printf("r11: 0x%08llx\n", (unsigned long long)r11());
+		printf("r12: 0x%08llx\n", (unsigned long long)r12());
+		printf("r13: 0x%08llx\n", (unsigned long long)r13());
+		printf("r14: 0x%08llx\n", (unsigned long long)r14());
+		printf("r15: 0x%08llx\n", (unsigned long long)r15());
+		printf("rbp: 0x%08llx\n", (unsigned long long)rbp());
+		printf("rsp: 0x%08llx\n", (unsigned long long)rsp());
+		printf("rip: 0x%08llx\n", (unsigned long long)rip());
 	}
 };
 

@@ -42,7 +42,7 @@ along with this program; see the file COPYING. If not, see
 #include <ps5/klog.h>
 
 // Project includes
-#include "../../include/backtrace.hpp"
+#include <backtrace.hpp>
 #include "globalconf.hpp"
 #include "launcher.hpp"
 #include "ipc.hpp"

@@ -33,4 +33,8 @@ set(CMAKE_C_FLAGS "${ONION_PS5_TARGET_FLAGS_MARCH} ")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC  -fstack-protector-all")
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O3 -march=znver2 -Wall -Wextra -Wmove -Wmost -Werror -fno-exceptions")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g0 -O0")
-target_include_directories(${PROJECT_NAME} PRIVATE "${D_CWD}/../include")
+target_include_directories(${PROJECT_NAME}
+	PUBLIC  "${D_CWD}/include"
+	PRIVATE "${D_CWD}/../include"
+	PRIVATE "${ONIONHEN_THIRD_PARTY_DIR}/sha1"
+)

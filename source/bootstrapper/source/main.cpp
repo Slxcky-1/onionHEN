@@ -60,7 +60,6 @@ along with this program; see the file COPYING. If not, see
  /******************************************************************************
   * Custom Header Includes
   ******************************************************************************/
- #include <util.hpp>
  #include <freebsd-helper.h>
  #include <elfldr_remote.h>
  

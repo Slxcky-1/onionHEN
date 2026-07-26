@@ -46,6 +46,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   # miniz / sha256 / mc4 headers live beside their vendored .c files.
   "${ONIONHEN_THIRD_PARTY_DIR}/cheat_support"
   "${ONIONHEN_THIRD_PARTY_DIR}/keystone/include"
+  "${PROJECT_ROOT}/libhijacker/include"
   "${PROJECT_ROOT}/libonion_settings/include"
   "${PROJECT_ROOT}/libonion_ipc/include"
   "${PROJECT_ROOT}/libonion_proc/include"

@@ -23,7 +23,7 @@ along with this program; see the file COPYING. If not, see
 #include "external_symbols.hpp"
 #include "hooked_funcs.hpp"
 #include "ipc.hpp"
-#include <elf/nid/sha1.hpp>
+#include <sha1.hpp>
 
 #include <atomic>
 #include <stddef.h>
