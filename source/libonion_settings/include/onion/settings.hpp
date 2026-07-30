@@ -81,9 +81,7 @@ struct AppJailbreakAllowlist {
 
 struct Settings {
   // [rest_mode]
-  bool util_rest_kill = false;
-  bool game_rest_kill = false;
-  uint64_t rest_mode_delay_seconds = 0;
+  uint64_t rest_mode_delay_seconds = 10;
 
   // [cheats], [app_jailbreak]
   bool libhijacker_cheats = false;

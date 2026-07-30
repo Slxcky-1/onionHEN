@@ -415,12 +415,6 @@ bool apply_parser(IniParser *parser, Settings *out) {
   out->rest_mode_delay_seconds = parse_u64(
       ini_get(parser, "rest_mode.resume_reinject_delay_seconds"),
       out->rest_mode_delay_seconds);
-  out->util_rest_kill =
-      parse_bool(ini_get(parser, "rest_mode.stop_utility_daemon_on_entry"),
-                 out->util_rest_kill);
-  out->game_rest_kill =
-      parse_bool(ini_get(parser, "rest_mode.close_running_game_on_entry"),
-                 out->game_rest_kill);
   out->libhijacker_cheats = parse_libhijacker_backend(
       ini_get(parser, "cheats.memory_backend"), out->libhijacker_cheats);
   out->debug_app_jb_msg =
@@ -542,12 +536,6 @@ std::string settings_serialize(const Settings &in) {
   b += "resume_reinject_delay_seconds=" +
        std::to_string(static_cast<unsigned long long>(in.rest_mode_delay_seconds)) +
        "\n";
-  b += "# stop_utility_daemon_on_entry stops the utility daemon before Rest Mode.\n";
-  b += "# Available values: true, false\n";
-  b += "stop_utility_daemon_on_entry=" + bool_text(in.util_rest_kill) + "\n";
-  b += "# close_running_game_on_entry closes the active game before Rest Mode.\n";
-  b += "# Available values: true, false\n";
-  b += "close_running_game_on_entry=" + bool_text(in.game_rest_kill) + "\n";
   b += "\n";
   b += "[cheats]\n";
   b += "# memory_backend selects the cheat memory access implementation.\n";

@@ -32,7 +32,11 @@ static int test_defaults_and_serialize_keys(void) {
   TEST_ASSERT_TRUE(text.find("level=info") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("temperature_threshold_celsius=77") !=
                    std::string::npos);
-  TEST_ASSERT_TRUE(text.find("stop_utility_daemon_on_entry=false") !=
+  TEST_ASSERT_TRUE(text.find("resume_reinject_delay_seconds=10") !=
+                   std::string::npos);
+  TEST_ASSERT_TRUE(text.find("stop_utility_daemon_on_entry") ==
+                   std::string::npos);
+  TEST_ASSERT_TRUE(text.find("close_running_game_on_entry") ==
                    std::string::npos);
   TEST_ASSERT_TRUE(text.find("edge=top") != std::string::npos);
   TEST_ASSERT_TRUE(
@@ -85,8 +89,6 @@ static int test_full_schema_roundtrip(void) {
   TEST_ASSERT_TRUE(!path.empty());
 
   onion::Settings in{};
-  in.util_rest_kill = true;
-  in.game_rest_kill = true;
   in.rest_mode_delay_seconds = 42;
   in.libhijacker_cheats = true;
   in.debug_app_jb_msg = true;
@@ -115,8 +117,6 @@ static int test_full_schema_roundtrip(void) {
   onion::Settings out{};
   TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
 
-  TEST_ASSERT_TRUE(out.util_rest_kill == in.util_rest_kill);
-  TEST_ASSERT_TRUE(out.game_rest_kill == in.game_rest_kill);
   TEST_ASSERT_EQ_U64(in.rest_mode_delay_seconds, out.rest_mode_delay_seconds);
   TEST_ASSERT_TRUE(out.libhijacker_cheats == in.libhijacker_cheats);
   TEST_ASSERT_TRUE(out.debug_app_jb_msg == in.debug_app_jb_msg);
@@ -155,14 +155,15 @@ static int test_partial_ini_keeps_defaults(void) {
   FILE *f = fopen(path.c_str(), "w");
   TEST_ASSERT_TRUE(f != nullptr);
   fputs("[meta]\nschema_version=1\n\n[rest_mode]\n"
-        "stop_utility_daemon_on_entry=true\n",
+        "stop_utility_daemon_on_entry=true\n"
+        "close_running_game_on_entry=true\n",
         f);
   fclose(f);
 
   onion::Settings out{};
   TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
-  /* specified key applied; unspecified keys stay at defaults */
-  TEST_ASSERT_TRUE(out.util_rest_kill == true);
+  /* Removed keys are ignored; unspecified keys stay at defaults. */
+  TEST_ASSERT_EQ_U64(10, out.rest_mode_delay_seconds);
   TEST_ASSERT_EQ_INT(77, out.fan_threshold);
   TEST_ASSERT_EQ_U64(5, out.app_jailbreak_allowlist.exact_title_id_count);
   TEST_ASSERT_STREQ("ITEM00001",

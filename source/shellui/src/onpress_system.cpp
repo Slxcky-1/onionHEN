@@ -47,28 +47,6 @@ static OnPressResult id_rest_1(OnPressContext &ctx) {
   return OnPressResult::Handled;
 }
 
-static OnPressResult id_rest_2(OnPressContext &ctx) {
-  bool &util_rest_kill = g_settings.util_rest_kill;
-  if (atoi(ctx.value.c_str()) == util_rest_kill) {
-    LOG_WARN("util_rest_kill already %s",
-                util_rest_kill ? "Enabled" : "Disabled");
-    return OnPressResult::EarlyReturn;
-  }
-  util_rest_kill = !util_rest_kill;
-  return OnPressResult::Handled;
-}
-
-static OnPressResult id_rest_3(OnPressContext &ctx) {
-  bool &game_rest_kill = g_settings.game_rest_kill;
-  if (atoi(ctx.value.c_str()) == game_rest_kill) {
-    LOG_WARN("game_rest_kill already %s",
-                game_rest_kill ? "Enabled" : "Disabled");
-    return OnPressResult::EarlyReturn;
-  }
-  game_rest_kill = !game_rest_kill;
-  return OnPressResult::Handled;
-}
-
 static OnPressResult id_enable_fan_speed(OnPressContext &ctx) {
   if (atol(ctx.value.c_str()) == g_settings.enable_fan_speed) {
     LOG_WARN("Fan speed control already %s",
@@ -146,8 +124,6 @@ static const OnPressExactEntry kExact[] = {
     {"id_custom_game_opts", id_custom_game_opts},
     {"id_ui_lang", id_ui_lang},
     {"id_rest_1", id_rest_1},
-    {"id_rest_2", id_rest_2},
-    {"id_rest_3", id_rest_3},
     {"id_enable_fan_speed", id_enable_fan_speed},
     {"id_fan_speed", id_fan_speed},
     {"id_cheats_shortcut", id_cheats_shortcut},

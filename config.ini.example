@@ -35,13 +35,7 @@ show_onionhen_options=true
 [rest_mode]
 # resume_reinject_delay_seconds waits before Toolbox reinjection after resume.
 # Available values: 0 or a positive number of seconds.
-resume_reinject_delay_seconds=0
-# stop_utility_daemon_on_entry stops the utility daemon before Rest Mode.
-# Available values: true, false
-stop_utility_daemon_on_entry=false
-# close_running_game_on_entry closes the active game before Rest Mode.
-# Available values: true, false
-close_running_game_on_entry=false
+resume_reinject_delay_seconds=10
 
 [cheats]
 # memory_backend selects the cheat memory access implementation.

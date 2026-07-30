@@ -268,9 +268,7 @@ annotated default based on [`config.ini.example`](config.ini.example).
 | `toolbox.language` | `system` | `system`, `zh-Hans`, `en` |
 | `home_screen.show_title_ids` | `false` | `true`, `false` |
 | `game_menu.show_onionhen_options` | `true` | `true`, `false` |
-| `rest_mode.resume_reinject_delay_seconds` | `0` | seconds |
-| `rest_mode.stop_utility_daemon_on_entry` | `false` | `true`, `false` |
-| `rest_mode.close_running_game_on_entry` | `false` | `true`, `false` |
+| `rest_mode.resume_reinject_delay_seconds` | `10` | seconds |
 | `cheats.memory_backend` | `default` | `default`, `libhijacker` |
 | `app_jailbreak.debug_notifications` | `false` | `true`, `false` |
 | `app_jailbreak.exact_title_ids` | `ITEM00001,NPXS39041,PKGI13337,PKGI12345,TOOL00001` | comma-separated exact Title IDs, or `none` |

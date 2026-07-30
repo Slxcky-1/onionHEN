@@ -208,21 +208,7 @@ void Terminate() {
 
     LOG_DEBUG("******************************\nShellUI is exiting\n*****************************");
     LOG_DEBUG("Sending Action");
-    IPC_Client& main_ipc = IPC_Client::getInstance(false);
-    if(g_settings.game_rest_kill) {
-	    	LOG_DEBUG("Killing Game");
-        int pid = onion_find_pid_ex("NA", false, true, false);
-        if(pid > 0)
-           main_ipc.ForceKillPID(pid);
-    }
-    //dont send the command if the util is already dead
-    if(g_settings.util_rest_kill) {
-        LOG_DEBUG("Killing Util");
-        KillAllWithName("Utility", SIGKILL);
-    }
-    else {
-        IPC_Client& ipc = IPC_Client::getInstance(true);
-        ipc.SendRestModeAction();
-    }
+    IPC_Client& ipc = IPC_Client::getInstance(true);
+    ipc.SendRestModeAction();
     oTerminate();
 }

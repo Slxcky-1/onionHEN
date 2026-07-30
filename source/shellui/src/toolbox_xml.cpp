@@ -594,13 +594,7 @@ void append_toolbox_system_group(ps5ui::Group& g) {
             r.text_field("id_rest_1", toolbox_i18n::tr("rest.delay"),
                          toolbox_i18n::tr("rest.delay.sub"), "number", "1",
                          "255", std::nullopt, std::nullopt, std::nullopt,
-                         toolbox_val("id_rest_1", ""))
-                .toggle("id_rest_2", toolbox_i18n::tr("rest.kill_util"),
-                        toolbox_on("id_rest_2"),
-                        toolbox_i18n::tr("rest.kill_util.sub"))
-                .toggle("id_rest_3", toolbox_i18n::tr("rest.kill_game"),
-                        toolbox_on("id_rest_3"),
-                        toolbox_i18n::tr("rest.kill_game.sub"));
+                         toolbox_val("id_rest_1", ""));
           },
           toolbox_i18n::tr("rest.group.sub"), kIconRestMode, "id_rest_1")
       .link("id_external_hdd", toolbox_i18n::tr("hdd.external"),
