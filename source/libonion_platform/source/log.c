@@ -203,7 +203,7 @@ static size_t format_record(char *out, size_t out_size, onion_log_level level,
 
 /* --- public API ---------------------------------------------------------- */
 
-void onion_log_configure(const char *tag, const char *log_path) {
+static void configure_log(const char *tag, const char *log_path, bool fresh) {
   pthread_mutex_lock(&g_lock);
   if (tag && tag[0]) {
     snprintf(g_tag, sizeof(g_tag), "%s", tag);
@@ -211,11 +211,24 @@ void onion_log_configure(const char *tag, const char *log_path) {
   close_file_locked();
   if (log_path && log_path[0]) {
     snprintf(g_log_path, sizeof(g_log_path), "%s", log_path);
+    if (fresh) {
+      /* Unlink before open. Reversing these calls creates an anonymous inode:
+       * writes still succeed through g_fd, but the user cannot retrieve it. */
+      (void)unlink(g_log_path);
+    }
     open_file_locked();
   } else {
     g_log_path[0] = '\0';
   }
   pthread_mutex_unlock(&g_lock);
+}
+
+void onion_log_configure(const char *tag, const char *log_path) {
+  configure_log(tag, log_path, false);
+}
+
+void onion_log_configure_fresh(const char *tag, const char *log_path) {
+  configure_log(tag, log_path, true);
 }
 
 void onion_log_set_max_bytes(size_t max_bytes) {

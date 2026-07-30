@@ -76,6 +76,12 @@ extern volatile int onion_log_runtime_level;
 /** Configure tag and optional file sink. Pass NULL path to disable the file. */
 void onion_log_configure(const char *tag, const char *log_path);
 
+/**
+ * Configure a file sink for a new process run. Any file at log_path is removed
+ * before the new descriptor is opened, keeping the path visible to the user.
+ */
+void onion_log_configure_fresh(const char *tag, const char *log_path);
+
 /** Bound the file sink. 0 restores ONION_LOG_DEFAULT_MAX_BYTES. */
 void onion_log_set_max_bytes(size_t max_bytes);
 

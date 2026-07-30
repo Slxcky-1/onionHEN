@@ -67,6 +67,31 @@ static int test_log_file_sink(void) {
   return 0;
 }
 
+/* Starting a daemon with a fresh log must remove the previous run before the
+ * file is opened, otherwise unlinking the live path leaves only an anonymous
+ * inode behind and the user cannot retrieve the log. */
+static int test_fresh_config_keeps_log_path_visible(void) {
+  char buf[512];
+  snprintf(g_path, sizeof(g_path), "/tmp/onion-log-test-%d", (int)getpid());
+  unlink(g_path);
+
+  FILE *stale = fopen(g_path, "w");
+  TEST_ASSERT_TRUE(stale != NULL);
+  fputs("previous-run\n", stale);
+  fclose(stale);
+
+  onion_log_set_level(ONION_LOG_INFO);
+  onion_log_configure_fresh("Fresh", g_path);
+  LOG_INFO("current-run");
+
+  TEST_ASSERT_TRUE(file_size(g_path) >= 0);
+  read_file(g_path, buf, sizeof(buf));
+  TEST_ASSERT_TRUE(strstr(buf, "previous-run") == NULL);
+  TEST_ASSERT_TRUE(strstr(buf, "current-run") != NULL);
+  end();
+  return 0;
+}
+
 static int test_log_configure_tag_only(void) {
   onion_log_configure("TagOnly", NULL);
   LOG_INFO("no file sink configured"); /* must not crash */
@@ -236,6 +261,8 @@ static int test_emergency_bypasses_level(void) {
 int test_platform_log_suite(void) {
   int failures = 0;
   failures += onion_test_run("log.file_sink", test_log_file_sink);
+  failures += onion_test_run("log.fresh_config_visible",
+                             test_fresh_config_keeps_log_path_visible);
   failures += onion_test_run("log.configure_tag_only", test_log_configure_tag_only);
   failures += onion_test_run("log.runtime_level_filters", test_runtime_level_filters);
   failures += onion_test_run("log.level_off", test_level_off_silences_everything);
