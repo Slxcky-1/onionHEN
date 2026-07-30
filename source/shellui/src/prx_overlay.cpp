@@ -5,9 +5,9 @@
 #include "homeui_top_nav_patch.hpp"
 #include "ipc.hpp"
 #include "external_symbols.hpp"
+#include "overlay_text_metrics.hpp"
 #include <onion/net.h>
 #include <onion/settings.hpp>
-#include <cstring>
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
@@ -224,9 +224,6 @@ void layout_bar_labels(const char *cpu_temp, const char *cpu_usage,
                        const char *gpu_temp, const char *gpu_usage,
                        const char *ram_str, const char *ip_str) {
   constexpr float kScreenW = 1920.0f;
-  /* Bold 18pt is wider than a monospaced 10px estimate; keep headroom so
-   * labels never wrap under FitHeightToText. */
-  constexpr float kCharW = 12.0f;
   constexpr float kPairGap = 8.0f;   /* label → first value */
   constexpr float kValGap = 10.0f;   /* value → value (temp / usage) */
   constexpr float kSepGap = 10.0f;   /* last value → "|" */
@@ -242,14 +239,6 @@ void layout_bar_labels(const char *cpu_temp, const char *cpu_usage,
   };
   std::vector<Piece> pieces;
   pieces.reserve(24);
-
-  auto text_w = [](const char *s) -> float {
-    if (!s || !s[0])
-      return 0.f;
-    /* Min width so short tags ("CPU") do not collapse; pad a little. */
-    const float raw = static_cast<float>(std::strlen(s)) * kCharW + 6.f;
-    return raw < 32.f ? 32.f : raw;
-  };
 
   struct GroupSpec {
     const char *id_l;
@@ -293,13 +282,17 @@ void layout_bar_labels(const char *cpu_temp, const char *cpu_usage,
     const GroupSpec &gs = groups[g];
     if (!gs.v0 || !gs.v0[0])
       continue;
-    pieces.push_back({gs.id_l, gs.lab, text_w(gs.lab), true, false});
-    pieces.push_back({gs.id_v0, gs.v0, text_w(gs.v0), false, false});
+    pieces.push_back({gs.id_l, gs.lab,
+                      onion::overlay::estimate_text_width(gs.lab), true, false});
+    pieces.push_back({gs.id_v0, gs.v0,
+                      onion::overlay::estimate_text_width(gs.v0), false, false});
     if (gs.id_v1 && gs.v1 && gs.v1[0])
-      pieces.push_back({gs.id_v1, gs.v1, text_w(gs.v1), false, false});
+      pieces.push_back({gs.id_v1, gs.v1,
+                        onion::overlay::estimate_text_width(gs.v1), false, false});
     /* Pipe after every item except the last. */
     if (g + 1 < ng)
-      pieces.push_back({gs.id_sep, "|", text_w("|"), false, true});
+      pieces.push_back({gs.id_sep, "|",
+                        onion::overlay::estimate_text_width("|"), false, true});
   }
 
   if (pieces.empty())
