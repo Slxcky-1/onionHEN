@@ -159,11 +159,26 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 target_link_directories	(${PROJECT_NAME} PUBLIC "${ONIONHEN_PS5_STUB_DIR}")
 target_sources(${PROJECT_NAME} PRIVATE "${ONIONHEN_COMMON_DIR}/elfldr_remote.c")
-target_link_libraries	(${PROJECT_NAME} PUBLIC onion_proc onion_platform onion_settings onion_payload onion_ready onion_elfldr SceNotification SceSystemService)
+# kernel_sys: sceKernelGetHwSerialNumber / OpenPsId (libonion_trial device id).
+target_link_libraries	(${PROJECT_NAME} PUBLIC onion_proc onion_platform onion_settings onion_payload onion_ready onion_elfldr onion_integrity kernel_sys SceNotification SceSystemService)
 add_custom_target(${PROJECT_NAME}_assets
 	DEPENDS ${_generated_icon_files} "${_icon_asm}" "${_icon_manifest}")
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_assets)
-add_dependencies(${PROJECT_NAME} daemon util shellui onion_elfldr_server onion_proc onion_platform onion_settings onion_payload onion_ready onion_elfldr)
+add_dependencies(${PROJECT_NAME} daemon util shellui onion_elfldr_server onion_proc onion_platform onion_settings onion_payload onion_ready onion_elfldr onion_integrity)
+
+# Same trial / ELF-protection flags as daemon so bootstrapper can gate launch.
+if(ONION_ENABLE_BETA_TRIAL)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE ONION_ENABLE_BETA_TRIAL=1)
+	target_include_directories(${PROJECT_NAME} PRIVATE
+		"${PROJECT_ROOT}/libonion_trial/include")
+	add_dependencies(${PROJECT_NAME} onion_trial)
+	target_link_libraries(${PROJECT_NAME} PUBLIC onion_trial)
+endif()
+if(ONION_ENABLE_ELF_PROTECTION)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE ONION_ENABLE_ELF_PROTECTION=1)
+endif()
+target_include_directories(${PROJECT_NAME} PRIVATE
+	"${PROJECT_ROOT}/libonion_integrity/include")
 
 # Copy bootstrapper.elf as test.elf before processing
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

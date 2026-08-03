@@ -48,6 +48,7 @@ along with this program; see the file COPYING. If not, see
 #include "welcome_toast.hpp"
 #include <onion/debug_settings_route_policy.hpp>
 #include <onion/ready.h>
+#include <onion/integrity.h>
 #if defined(ONION_ENABLE_BETA_TRIAL)
 #include <onion/trial.h>
 #endif
@@ -241,9 +242,23 @@ int main() {
 
   /*
    * Settings (incl. notify i18n language) before any user-facing toast so the
-   * temporary beta trial gate can use onion_notify_debug + catalogs.
+   * integrity / trial gates can use onion_notify_debug + catalogs.
    */
   LoadSettings();
+
+  /*
+   * ELF self-integrity (libonion_integrity). When protection is compiled out
+   * this is a no-op. Runs before trial/services so a patched image cannot skip
+   * the check by only touching later gates.
+   */
+  if (onion_self_integrity_verify() != 0) {
+    LOG_ERROR("ELF self-integrity verification failed");
+    onion_notify_debug(
+        "Integrity check failed\nThis build is corrupted or modified");
+    for (;;)
+      sleep(3600);
+  }
+  onion_self_integrity_start_monitor();
 
 #if defined(ONION_ENABLE_BETA_TRIAL)
   /* Temporary beta trial time gate — see source/libonion_trial/. */

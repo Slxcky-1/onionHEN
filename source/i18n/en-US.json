@@ -266,6 +266,7 @@
     "Beta trial: %d day(s) remaining": "Beta trial: %d day(s) remaining",
     "Beta trial expired\nThis build is no longer valid": "Beta trial expired\nThis build is no longer valid",
     "Beta trial blocked\nSystem clock appears incorrect": "Beta trial blocked\nSystem clock appears incorrect",
-    "This is a beta build. Redistribution is prohibited.\nIf you paid for this plugin, please request a refund.": "This is a beta build. Redistribution is prohibited.\nIf you paid for this plugin, please request a refund."
+    "This is a beta build. Redistribution is prohibited.\nIf you paid for this plugin, please request a refund.": "This is a beta build. Redistribution is prohibited.\nIf you paid for this plugin, please request a refund.",
+    "Integrity check failed\nThis build is corrupted or modified": "Integrity check failed\nThis build is corrupted or modified"
   }
 }

@@ -109,6 +109,7 @@ function(onion_strip_debug target)
 			--remove-section .debug_loc --remove-section .debug_aranges
 			--remove-section .debug_ranges --remove-section .debug_pubnames
 			--remove-section .debug_pubtypes --remove-section .debug_frame
+			--keep-section=.onion_signature
 			--strip-unneeded $<TARGET_FILE:${target}>
 		COMMENT "Stripping debugging information from ${target}"
 	)

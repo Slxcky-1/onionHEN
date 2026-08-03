@@ -59,6 +59,12 @@ link_directories("${ONIONHEN_OUT_LIB}" "${ONIONHEN_PS5_STUB_DIR}")
 option(ONION_ENABLE_BETA_TRIAL
 	"Build temporary beta trial time gate (30-day build campaign)" ON)
 
+# Optional Ed25519 self-integrity for signed payload ELFs (see libonion_integrity/).
+# When ON, also pass ONION_ELF_SIGNING_PUBLIC_KEY_HEX and post-link sign with
+# tools/elf_sign (scripts/build.sh does this for daemon.elf).
+option(ONION_ENABLE_ELF_PROTECTION
+	"Embed ELF self-integrity verifier (requires signing public key)" OFF)
+
 add_subdirectory(libhijacker)
 add_subdirectory(libNidResolver)
 # add_subdirectory(libRPI)
@@ -66,6 +72,7 @@ add_subdirectory(libNidResolver)
 # Shared proc/ucred before NineS (inject path links these symbols).
 add_subdirectory(libonion_proc)
 add_subdirectory(libonion_platform)
+add_subdirectory(libonion_integrity)
 if(ONION_ENABLE_BETA_TRIAL)
 	add_subdirectory(libonion_trial)
 endif()

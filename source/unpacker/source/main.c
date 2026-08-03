@@ -201,19 +201,8 @@ int main() {
 
   LOG_DEBUG("Bootstrapping OnionHEN.elf...");
 
-  mkdir("/data/OnionHEN", 0777);
-  // cache decompressed payload for re-launch / recovery
-  int fd = open("/data/OnionHEN/OnionHEN.bin", O_WRONLY | O_CREAT | O_TRUNC, 0666);
-  if (fd >= 0) {
-
-    // Write the buffer to the file
-    if (write(fd, decompressed, decompress_size) == -1) {
-      perror("write failed");
-    }
-
-    // Close the file descriptor
-    close(fd);
-  }
+  /* Do not write OnionHEN.bin under /data/OnionHEN — keep the payload in RAM
+   * only and hand it straight to elfldr :9021. */
 
   if(!send_to_elfldr(decompressed, decompress_size)) {
     notify("The elfldr on port 9021 is REQUIRED for OnionHEN make sure its running and try again!");
