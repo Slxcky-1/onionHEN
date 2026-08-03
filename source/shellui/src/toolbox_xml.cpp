@@ -652,7 +652,13 @@ void append_toolbox_debug_group(ps5ui::Group& g) {
 }
 
 void append_toolbox_about_group(ps5ui::Group& g) {
-  g.group(
+  /* About page top: same ONIONHEN_VERSION as welcome toast / beta banner. */
+  char build_line[160];
+  std::snprintf(build_line, sizeof(build_line), toolbox_i18n::tr("about.build"),
+                ONIONHEN_VERSION);
+
+  g.label("id_about_build", build_line, ps5ui::Style::Center)
+      .group(
        "id_donation_methods", toolbox_i18n::tr("about.donate"),
        [](ps5ui::Group& d) {
          d.label("id_method_info", toolbox_i18n::tr("about.donate.methods"),
@@ -660,6 +666,7 @@ void append_toolbox_about_group(ps5ui::Group& g) {
              .label("id_method_1",
                     "- Ko-fi  | https://ko-fi.com/0xp0co",
                     ps5ui::Style::Center)
+             .label("id_method_2", "- 微信｜polichan01", ps5ui::Style::Center)
              .button("id_author_0xp0co", "麒麟/0xp0co", std::nullopt, "@0xp0co",
                      kIconAuthorAvatar)
              .label("id_author_donor_spacer", "　", ps5ui::Style::Center)
