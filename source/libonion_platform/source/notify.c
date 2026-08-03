@@ -106,23 +106,36 @@ static void json_escape(char *out, size_t out_sz, const char *in) {
 void onion_notify_format(char *out, size_t out_sz, int show_watermark,
                          const char *fmt, va_list ap) {
   char buff[3075];
+
+  /* English source fmt → onion_notify_tr → printf-style body. */
   vsnprintf(buff, sizeof(buff), onion_notify_tr(fmt), ap);
-  (void)show_watermark;
-  snprintf(out, out_sz, "[OnionHEN] %s", buff);
+  if (show_watermark) {
+    snprintf(out, out_sz, "[OnionHEN] %s", buff);
+  } else {
+    snprintf(out, out_sz, "%s", buff);
+  }
 }
 
-void onion_notify_v(int show_watermark, const char *fmt, va_list ap) {
-  OrbisNotificationRequest req;
-  memset(&req, 0, sizeof(req));
-  onion_notify_format(req.message, sizeof(req.message), show_watermark, fmt, ap);
+static void onion_notify_send_request(OrbisNotificationRequest *req,
+                                      int with_system_icon) {
+  if (!req) {
+    return;
+  }
 
-  req.type = 0;
-  req.unk3 = 0;
-  req.use_icon_image_uri = 1;
-  req.target_id = -1;
-  strncpy(req.uri, "cxml://psnotification/tex_icon_system", sizeof(req.uri) - 1);
+  req->type = 0;
+  req->unk3 = 0;
+  req->target_id = -1;
+  if (with_system_icon) {
+    req->use_icon_image_uri = 1;
+    strncpy(req->uri, "cxml://psnotification/tex_icon_system",
+            sizeof(req->uri) - 1);
+  } else {
+    /* Debug-style toast (SDK notify_debug): text only, no icon URI. */
+    req->use_icon_image_uri = 0;
+    req->uri[0] = '\0';
+  }
 
-  LOG_INFO("Notify: %s", req.message);
+  LOG_INFO("Notify%s: %s", with_system_icon ? "" : "(debug)", req->message);
 
   if (!g_send) {
     /* Never fall back to a direct CALL of sceKernelSendNotificationRequest —
@@ -130,13 +143,36 @@ void onion_notify_v(int show_watermark, const char *fmt, va_list ap) {
     LOG_INFO("Notify: send fn not registered (onion_notify_set_send)");
     return;
   }
-  (void)g_send(0, &req, sizeof(req), 0);
+  (void)g_send(0, req, sizeof(*req), 0);
+}
+
+void onion_notify_v(int show_watermark, const char *fmt, va_list ap) {
+  OrbisNotificationRequest req;
+  memset(&req, 0, sizeof(req));
+  onion_notify_format(req.message, sizeof(req.message), show_watermark, fmt, ap);
+  onion_notify_send_request(&req, /*with_system_icon=*/1);
 }
 
 void onion_notify(int show_watermark, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
   onion_notify_v(show_watermark, fmt, args);
+  va_end(args);
+}
+
+void onion_notify_debug_v(const char *fmt, va_list ap) {
+  OrbisNotificationRequest req;
+  memset(&req, 0, sizeof(req));
+  /* Same i18n path as onion_notify; watermark off for bare debug text. */
+  onion_notify_format(req.message, sizeof(req.message), /*show_watermark=*/0,
+                      fmt, ap);
+  onion_notify_send_request(&req, /*with_system_icon=*/0);
+}
+
+void onion_notify_debug(const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  onion_notify_debug_v(fmt, args);
   va_end(args);
 }
 

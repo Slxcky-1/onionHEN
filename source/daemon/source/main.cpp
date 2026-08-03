@@ -48,6 +48,9 @@ along with this program; see the file COPYING. If not, see
 #include "welcome_toast.hpp"
 #include <onion/debug_settings_route_policy.hpp>
 #include <onion/ready.h>
+#if defined(ONION_ENABLE_BETA_ACTIVATION)
+#include <onion/activation.h>
+#endif
 
 #define MSG_NOSIGNAL 0x20000 /* do not generate SIGPIPE on EOF. */
 pthread_t cheat_thr = nullptr;
@@ -236,6 +239,21 @@ int main() {
   sceUserServiceInitialize(&DEFAULT_PRIORITY);
   LOG_DEBUG("daemon entered");
 
+  /*
+   * Settings (incl. notify i18n language) before any user-facing toast so the
+   * temporary beta activation gate can use onion_notify_debug + catalogs.
+   */
+  LoadSettings();
+
+#if defined(ONION_ENABLE_BETA_ACTIVATION)
+  /* Temporary internal-test license gate — see source/libonion_activation/. */
+  if (onion_activation_gate() != 0) {
+    LOG_ERROR("beta activation gate failed; daemon will idle");
+    for (;;)
+      sleep(3600);
+  }
+#endif
+
   OrbisKernelSwVersion sys_ver;
   sceKernelGetProsperoSystemSwVersion(&sys_ver);
   const int fw_ver = (sys_ver.version >> 16);
@@ -254,8 +272,6 @@ int main() {
   (void)sceKernelMprotect(&buz[0], 100, 0x7); // probe mprotect / kstuff state
   const bool toolbox_only = (fw_ver >= 0x10000);
   is_800 = (fw_ver >= 0x800);
-
-  LoadSettings();
 
   /* Drop any stale FPS-overlay ready flag from older builds/configs. */
   onion_ready_clear(ONION_FLAG_FPS_OVERLAY);

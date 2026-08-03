@@ -297,6 +297,22 @@ clean_build_artifacts() {
 configure() {
   log "Configure (${BUILD_TYPE}, V_FW=${V_FW})"
   mkdir -p "${BUILD}"
+  local -a extra_cmake=()
+  # Temporary beta certificate activation (libonion_activation/README.md)
+  if [[ -n "${ONION_ENABLE_BETA_ACTIVATION:-}" ]]; then
+    extra_cmake+=("-DONION_ENABLE_BETA_ACTIVATION=${ONION_ENABLE_BETA_ACTIVATION}")
+  fi
+  # Required when activation is enabled (default ON): Ed25519 verify key, compile-time only.
+  local enable_act="${ONION_ENABLE_BETA_ACTIVATION:-ON}"
+  case "${enable_act}" in
+    0|OFF|off|Off|FALSE|false|False|N|n|NO|no) ;;
+    *)
+      if [[ -z "${ONION_ACTIVATION_PUBLIC_KEY_HEX:-}" ]]; then
+        die "ONION_ACTIVATION_PUBLIC_KEY_HEX is required (64 hex) when beta activation is on; or set ONION_ENABLE_BETA_ACTIVATION=OFF"
+      fi
+      extra_cmake+=("-DONION_ACTIVATION_PUBLIC_KEY_HEX=${ONION_ACTIVATION_PUBLIC_KEY_HEX}")
+      ;;
+  esac
   "${CMAKE[@]}" \
     -S "${SOURCE}" \
     -B "${BUILD}" \
@@ -304,7 +320,8 @@ configure() {
     -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
     -DV_FW="${V_FW}" \
     -DONIONHEN_KSTUFF_ELF="${CACHE}/kstuff.elf" \
-    -DPS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}"
+    -DPS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}" \
+    "${extra_cmake[@]}"
   ok "configured -> ${BUILD}"
 }
 

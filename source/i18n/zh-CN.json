@@ -259,6 +259,10 @@
     "SCE_REGMGR: unable to set REMOTEPLAY_rp_enable (0x%x)": "SCE_REGMGR：无法设置 REMOTEPLAY_rp_enable（0x%x）",
     "SCE_REGMGR: unable to verify REMOTEPLAY_rp_enable (0x%x)": "SCE_REGMGR：无法验证 REMOTEPLAY_rp_enable（0x%x）",
     "sceRemoteplayConfirmDeviceRegist 0x%X pair_stat: %d pair_err: %d": "sceRemoteplayConfirmDeviceRegist 0x%X 配对状态：%d 配对错误：%d",
-    "Remote Play paired! For better stability a reboot is recommended": "远程游玩已配对！建议重启主机以获得更好的稳定性"
+    "Remote Play paired! For better stability a reboot is recommended": "远程游玩已配对！建议重启主机以获得更好的稳定性",
+    "Beta activation failed: cannot read device identity": "内测激活失败：无法读取设备标识",
+    "Beta certificate required\nDevice code: %.12s...\nPlace license.json under %s\nOr TCP :%d LICENSE <json>": "需要内测证书激活\n设备码: %.12s...\n将 license.json 放到 %s\n或 TCP :%d LICENSE <json>",
+    "Beta activation successful\nWelcome to OnionHEN": "内测激活成功\n欢迎使用 OnionHEN",
+    "Waiting for beta certificate\nDevice code: %.12s...\nTCP :%d": "等待证书激活\n设备码: %.12s...\nTCP :%d"
   }
 }

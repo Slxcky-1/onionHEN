@@ -259,6 +259,10 @@
     "SCE_REGMGR: unable to set REMOTEPLAY_rp_enable (0x%x)": "SCE_REGMGR: unable to set REMOTEPLAY_rp_enable (0x%x)",
     "SCE_REGMGR: unable to verify REMOTEPLAY_rp_enable (0x%x)": "SCE_REGMGR: unable to verify REMOTEPLAY_rp_enable (0x%x)",
     "sceRemoteplayConfirmDeviceRegist 0x%X pair_stat: %d pair_err: %d": "sceRemoteplayConfirmDeviceRegist 0x%X pair_stat: %d pair_err: %d",
-    "Remote Play paired! For better stability a reboot is recommended": "Remote Play paired! For better stability a reboot is recommended"
+    "Remote Play paired! For better stability a reboot is recommended": "Remote Play paired! For better stability a reboot is recommended",
+    "Beta activation failed: cannot read device identity": "Beta activation failed: cannot read device identity",
+    "Beta certificate required\nDevice code: %.12s...\nPlace license.json under %s\nOr TCP :%d LICENSE <json>": "Beta certificate required\nDevice code: %.12s...\nPlace license.json under %s\nOr TCP :%d LICENSE <json>",
+    "Beta activation successful\nWelcome to OnionHEN": "Beta activation successful\nWelcome to OnionHEN",
+    "Waiting for beta certificate\nDevice code: %.12s...\nTCP :%d": "Waiting for beta certificate\nDevice code: %.12s...\nTCP :%d"
   }
 }

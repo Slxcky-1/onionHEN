@@ -25,16 +25,24 @@ static int test_notify_format_prefix(void) {
 
 static int test_notify_format_truncates(void) {
   char out[16];
-  format_msg(out, sizeof(out), 0, "0123456789ABCDEFGHIJ");
-  /* must be NUL-terminated and start with prefix */
+  format_msg(out, sizeof(out), 1, "0123456789ABCDEFGHIJ");
+  /* must be NUL-terminated and start with watermark prefix */
   TEST_ASSERT_TRUE(out[sizeof(out) - 1] == '\0' || strlen(out) < sizeof(out));
   TEST_ASSERT_TRUE(strncmp(out, "[OnionHEN]", 10) == 0);
+  return 0;
+}
+
+static int test_notify_format_no_watermark(void) {
+  char out[128];
+  format_msg(out, sizeof(out), 0, "hello %s", "world");
+  TEST_ASSERT_STREQ("hello world", out);
   return 0;
 }
 
 static int test_notify_send_noop(void) {
   /* hits sceKernelSendNotificationRequest stub — must not crash */
   onion_notify(1, "host test notify %d", 7);
+  onion_notify_debug("host test debug notify %d", 7);
   return 0;
 }
 
@@ -114,6 +122,8 @@ int test_platform_notify_suite(void) {
   int failures = 0;
   failures += onion_test_run("notify_format_prefix", test_notify_format_prefix);
   failures += onion_test_run("notify_format_truncates", test_notify_format_truncates);
+  failures +=
+      onion_test_run("notify_format_no_watermark", test_notify_format_no_watermark);
   failures += onion_test_run("notify_send_noop", test_notify_send_noop);
   failures += onion_test_run("notify_language_resolution",
                              test_notify_language_resolution);

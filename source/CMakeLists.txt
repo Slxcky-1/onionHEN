@@ -54,6 +54,12 @@ include_directories(SYSTEM "${PS5_PAYLOAD_SDK}/include")
 # Built libraries first, then PS5 system stubs.
 link_directories("${ONIONHEN_OUT_LIB}" "${ONIONHEN_PS5_STUB_DIR}")
 
+# Temporary internal-test Ed25519 certificate activation
+# (self-contained under libonion_activation/).
+# Disable with -DONION_ENABLE_BETA_ACTIVATION=OFF; remove the whole module later.
+option(ONION_ENABLE_BETA_ACTIVATION
+	"Build temporary beta Ed25519 certificate activation gate" ON)
+
 add_subdirectory(libhijacker)
 add_subdirectory(libNidResolver)
 # add_subdirectory(libRPI)
@@ -61,6 +67,9 @@ add_subdirectory(libNidResolver)
 # Shared proc/ucred before NineS (inject path links these symbols).
 add_subdirectory(libonion_proc)
 add_subdirectory(libonion_platform)
+if(ONION_ENABLE_BETA_ACTIVATION)
+	add_subdirectory(libonion_activation)
+endif()
 add_subdirectory(libonion_payload)
 add_subdirectory(libonion_ipc)
 add_subdirectory(libonion_settings)
