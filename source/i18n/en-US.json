@@ -1,7 +1,7 @@
 {
   "toolbox": {
     "root.title": "★OnionHEN Toolbox",
-    "beta.banner": "★ BETA · DO NOT REDISTRIBUTE · If paid, request a refund ★",
+    "beta.banner": "★ BETA %s · DO NOT REDISTRIBUTE · If paid, request a refund ★",
     "group.pkg": "Content Install & Management",
     "group.pkg.sub": "Install PKGs and manage add-on content",
     "group.payloads": "Payloads & Kernel",

@@ -758,9 +758,14 @@ void generate_toolbox_xml(std::string& new_xml) {
    * Beta notice at the top of the root settings list (centered labels).
    * Visible as soon as the toolbox opens — no need to enter a subgroup.
    * Focus still lands on the first interactive group (PKG).
+   * Include ONIONHEN_VERSION (git describe / dirty-sha), same as welcome toast.
    */
-  page.label("id_beta_banner", toolbox_i18n::tr("beta.banner"),
-             ps5ui::Style::Center);
+  {
+    char beta_banner[192];
+    std::snprintf(beta_banner, sizeof(beta_banner), toolbox_i18n::tr("beta.banner"),
+                  ONIONHEN_VERSION);
+    page.label("id_beta_banner", beta_banner, ps5ui::Style::Center);
+  }
 #endif
 
   page.group(
