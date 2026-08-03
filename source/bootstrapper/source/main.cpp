@@ -52,6 +52,7 @@ along with this program; see the file COPYING. If not, see
 #include <onion/settings.hpp>
 #include <onion/platform.h>
 #include <onion/notify.h>
+#include <onion/obf_str.h>
 #include <onion/platform.h>
 #include <onion/proc_query.h>
 #include <onion/payload.h>
@@ -702,8 +703,8 @@ static int onion_boot_gates(void) {
   /* Verify embedded signed daemon.elf before any component is launched. */
   if (onion_elf_verify_signed_image(daemon_start, daemon_size) != 0) {
     LOG_ERROR("daemon.elf self-integrity verification failed — aborting boot");
-    onion_notify_debug(
-        "Integrity check failed\nThis build is corrupted or modified");
+    /* Obfuscated en/zh — not plain C strings in .rodata. */
+    onion_notify_debug_integrity_failed();
     return -1;
   }
 
@@ -712,9 +713,8 @@ static int onion_boot_gates(void) {
     LOG_ERROR("beta trial gate failed — aborting boot (no util/daemon/elfldr)");
     return -1;
   }
-  onion_notify_debug(
-      "This is a beta build. Redistribution is prohibited.\n"
-      "If you paid for this plugin, please request a refund.");
+  /* Obfuscated en/zh redistribution notice (see onion/obf_str.h). */
+  onion_notify_debug_beta_redistrib();
 #endif
   return 0;
 }

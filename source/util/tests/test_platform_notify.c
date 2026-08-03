@@ -2,6 +2,7 @@
 #include "test_harness.h"
 
 #include <onion/notify.h>
+#include <onion/obf_str.h>
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -118,6 +119,36 @@ static int test_notify_rich_localizes_both_text_fields(void) {
   return 0;
 }
 
+/* Same algorithm as encrypt_banner.py / obf_str.c (integrity en). */
+static const uint8_t kTestIntegrityEn[] = {
+    0x39, 0x57, 0x68, 0x83, 0x98, 0xb6, 0xbb, 0xd3, 0xcd, 0x2b, 0xef, 0x07,
+    0x25, 0x36, 0x31, 0x93, 0x64, 0x68, 0x8b, 0x9a, 0xaa, 0xd8, 0xea, 0xc3,
+    0xee, 0x02, 0x0f, 0x4f, 0x38, 0x38, 0x43, 0x67, 0x76, 0xb9, 0x9b, 0x99,
+    0xf5, 0xe7, 0xd5, 0xf1, 0xf4, 0xfe, 0x1e, 0x2b, 0x45, 0x59, 0x9c, 0x78,
+    0x70, 0xc9, 0xaf, 0xbd, 0xc9, 0xfd, 0xee, 0xe6, 0x11, 0x1f};
+
+static int test_obf_decode_integrity_en(void) {
+  char plain[128];
+  TEST_ASSERT_EQ_INT(
+      0, onion_obf_decode(kTestIntegrityEn, sizeof(kTestIntegrityEn), plain,
+                          sizeof(plain)));
+  TEST_ASSERT_STREQ(
+      "Integrity check failed\nThis build is corrupted or modified", plain);
+  return 0;
+}
+
+static int test_obf_notify_debug_helpers(void) {
+  /* Must not crash; send path is stubbed on host. */
+  onion_notify_set_language(ONION_NOTIFY_LANG_EN);
+  onion_notify_debug_integrity_failed();
+  onion_notify_debug_beta_redistrib();
+  onion_notify_set_language(ONION_NOTIFY_LANG_ZH_HANS);
+  onion_notify_debug_integrity_failed();
+  onion_notify_debug_beta_redistrib();
+  onion_notify_set_language(ONION_NOTIFY_LANG_EN);
+  return 0;
+}
+
 int test_platform_notify_suite(void) {
   int failures = 0;
   failures += onion_test_run("notify_format_prefix", test_notify_format_prefix);
@@ -135,5 +166,9 @@ int test_platform_notify_suite(void) {
       onion_test_run("notify_rich_formats_payload", test_notify_rich_formats_payload);
   failures += onion_test_run("notify_rich_localizes_both_text_fields",
                              test_notify_rich_localizes_both_text_fields);
+  failures +=
+      onion_test_run("obf_decode_integrity_en", test_obf_decode_integrity_en);
+  failures +=
+      onion_test_run("obf_notify_debug_helpers", test_obf_notify_debug_helpers);
   return failures;
 }

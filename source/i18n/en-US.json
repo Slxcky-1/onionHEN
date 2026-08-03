@@ -1,7 +1,6 @@
 {
   "toolbox": {
     "root.title": "★OnionHEN Toolbox",
-    "beta.banner": "★ BETA %s · DO NOT REDISTRIBUTE · If paid, request a refund ★",
     "group.pkg": "Content Install & Management",
     "group.pkg.sub": "Install PKGs and manage add-on content",
     "group.payloads": "Payloads & Kernel",
@@ -266,8 +265,6 @@
     "Beta trial misconfigured (invalid seal)": "Beta trial misconfigured (invalid seal)",
     "Beta trial: %d day(s) remaining": "Beta trial: %d day(s) remaining",
     "Beta trial expired\nThis build is no longer valid": "Beta trial expired\nThis build is no longer valid",
-    "Beta trial blocked\nSystem clock appears incorrect": "Beta trial blocked\nSystem clock appears incorrect",
-    "This is a beta build. Redistribution is prohibited.\nIf you paid for this plugin, please request a refund.": "This is a beta build. Redistribution is prohibited.\nIf you paid for this plugin, please request a refund.",
-    "Integrity check failed\nThis build is corrupted or modified": "Integrity check failed\nThis build is corrupted or modified"
+    "Beta trial blocked\nSystem clock appears incorrect": "Beta trial blocked\nSystem clock appears incorrect"
   }
 }

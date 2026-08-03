@@ -49,6 +49,7 @@ along with this program; see the file COPYING. If not, see
 #include <onion/debug_settings_route_policy.hpp>
 #include <onion/ready.h>
 #include <onion/integrity.h>
+#include <onion/obf_str.h>
 #if defined(ONION_ENABLE_BETA_TRIAL)
 #include <onion/trial.h>
 #endif
@@ -253,8 +254,8 @@ int main() {
    */
   if (onion_self_integrity_verify() != 0) {
     LOG_ERROR("ELF self-integrity verification failed");
-    onion_notify_debug(
-        "Integrity check failed\nThis build is corrupted or modified");
+    /* Obfuscated en/zh — not plain C strings in .rodata (shared with bootstrapper). */
+    onion_notify_debug_integrity_failed();
     for (;;)
       sleep(3600);
   }
