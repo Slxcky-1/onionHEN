@@ -58,6 +58,27 @@ int onion_trial_state_sign(const onion_beta_seal_t *seal,
 int onion_trial_state_verify(const onion_beta_seal_t *seal,
                              const onion_trial_state_t *state);
 
+/**
+ * On-disk sealed blob (AES-256-CBC + outer HMAC-SHA256, encrypt-then-MAC).
+ * Layout: magic[8]="OHNTRLV1" | iv[16] | ciphertext[padded] | mac[32]
+ */
+#define ONION_TRIAL_BLOB_MAGIC "OHNTRLV1"
+#define ONION_TRIAL_BLOB_IV_LEN 16
+#define ONION_TRIAL_BLOB_MAX_CT 128 /* covers padded onion_trial_state_t */
+#define ONION_TRIAL_BLOB_MAX_SIZE                                              \
+  (8 + ONION_TRIAL_BLOB_IV_LEN + ONION_TRIAL_BLOB_MAX_CT + ONION_TRIAL_HMAC_LEN)
+
+/** Seal a signed state into an opaque on-disk blob. */
+int onion_trial_state_encrypt(const onion_beta_seal_t *seal,
+                              const onion_trial_state_t *state,
+                              unsigned char *out, size_t out_cap,
+                              size_t *out_len);
+
+/** Unseal on-disk blob into state (verifies outer MAC + inner HMAC). */
+int onion_trial_state_decrypt(const onion_beta_seal_t *seal,
+                              const unsigned char *blob, size_t blob_len,
+                              onion_trial_state_t *out);
+
 /** device_fp = first 16 bytes of SHA256("onionhen-trial-v1" || serial). */
 int onion_trial_device_fp(const char *serial,
                           unsigned char out[ONION_TRIAL_DEVICE_FP_LEN]);

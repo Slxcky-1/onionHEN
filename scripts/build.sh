@@ -387,7 +387,7 @@ configure() {
   mkdir -p "${BUILD}"
   local -a extra_cmake=()
   # Temporary beta trial gate (libonion_trial/README.md).
-  # Seal params are optional: CMake auto-fills not_before/after (30d), build_id, state key.
+  # Seal params are optional: CMake auto-fills not_before/after (14d), build_id, state key.
   # Accept legacy ONION_ENABLE_BETA_ACTIVATION as an alias for ONION_ENABLE_BETA_TRIAL.
   if [[ -n "${ONION_ENABLE_BETA_TRIAL:-}" ]]; then
     extra_cmake+=("-DONION_ENABLE_BETA_TRIAL=${ONION_ENABLE_BETA_TRIAL}")

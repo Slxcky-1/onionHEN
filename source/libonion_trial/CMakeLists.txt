@@ -4,7 +4,7 @@
 #
 # Optional at configure/build time (auto-filled when omitted):
 #   ONION_BETA_NOT_BEFORE      Unix seconds (default: configure time)
-#   ONION_BETA_NOT_AFTER       Unix seconds (default: not_before + 30 days)
+#   ONION_BETA_NOT_AFTER       Unix seconds (default: not_before + 14 days)
 #   ONION_BETA_BUILD_ID        short id string (default: beta-YYYYMMDD)
 #   ONION_BETA_STATE_KEY_HEX   64 hex chars for trial.state HMAC (default: random, cached)
 #   ONION_BETA_SKEW_SEC        clock skew tolerance (default: 86400)
@@ -40,7 +40,7 @@ if(NOT DEFINED ONION_BETA_NOT_BEFORE OR ONION_BETA_NOT_BEFORE STREQUAL "")
 endif()
 
 if(NOT DEFINED ONION_BETA_NOT_AFTER OR ONION_BETA_NOT_AFTER STREQUAL "")
-	math(EXPR ONION_BETA_NOT_AFTER "${ONION_BETA_NOT_BEFORE} + 2592000") # +30d
+	math(EXPR ONION_BETA_NOT_AFTER "${ONION_BETA_NOT_BEFORE} + 1209600") # +14d
 endif()
 
 if(NOT DEFINED ONION_BETA_BUILD_ID OR ONION_BETA_BUILD_ID STREQUAL "")
@@ -89,9 +89,11 @@ set(ONION_BETA_SKEW_SEC "${ONION_BETA_SKEW_SEC}" CACHE STRING "Beta trial clock 
 add_library(${PROJECT_NAME} STATIC
   source/gate.c
   source/eval.c
+  source/seal_store.c
   source/device.c
   source/crypto_util.c
   "${CHEAT_SUPPORT_DIR}/sha256.c"
+  "${CHEAT_SUPPORT_DIR}/aes.c"
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
 
@@ -103,6 +105,8 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
   ONION_BETA_BUILD_ID="${ONION_BETA_BUILD_ID}"
   ONION_BETA_STATE_KEY_HEX="${ONION_BETA_STATE_KEY_HEX}"
   ONION_BETA_SKEW_SEC=${ONION_BETA_SKEW_SEC}LL
+  CBC=1
+  AES256=1
 )
 
 target_include_directories(${PROJECT_NAME}

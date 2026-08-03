@@ -57,7 +57,7 @@ link_directories("${ONIONHEN_OUT_LIB}" "${ONIONHEN_PS5_STUB_DIR}")
 # Temporary beta trial gate (build-time seal + local anti-rollback state).
 # Disable with -DONION_ENABLE_BETA_TRIAL=OFF; remove the whole module later.
 option(ONION_ENABLE_BETA_TRIAL
-	"Build temporary beta trial time gate (30-day build campaign)" ON)
+	"Build temporary beta trial time gate (14-day build campaign)" ON)
 
 # Optional Ed25519 self-integrity for signed payload ELFs (see libonion_integrity/).
 # When ON, also pass ONION_ELF_SIGNING_PUBLIC_KEY_HEX and post-link sign with

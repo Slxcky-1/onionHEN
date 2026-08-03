@@ -1,13 +1,13 @@
 # libonion_trial — 内测 Beta 时间门闩（可插拔）
 
 > **临时模块**：仅用于内测包限时，正式发布前应整体移除。  
-> 所有人共用同一构建战役窗口（构建日起 30 天）；无按设备签发、无装证流程。
+> 所有人共用同一构建战役窗口（构建日起 14 天）；无按设备签发、无装证流程。
 
 ## 语义
 
 | 规则 | 说明 |
 |------|------|
-| 战役窗口 | 从 **构建配置时刻** 起 **30 天**（`not_before` … `not_after`） |
+| 战役窗口 | 从 **构建配置时刻** 起 **14 天**（`not_before` … `not_after`） |
 | 防外传 | 外传包与正版 **同寿**，到期后启动被拒绝 |
 | 防改时间 | 本机密封 `trial.state` 记录 `last_seen`，检测时钟回拨 |
 | 正式版 | `-DONION_ENABLE_BETA_TRIAL=OFF` 不链接本库 |
@@ -23,7 +23,7 @@ CMake 注入：
 | 宏 | 含义 | 默认 |
 |----|------|------|
 | `ONION_BETA_NOT_BEFORE` | 窗口起点 Unix 秒 | configure 时刻 |
-| `ONION_BETA_NOT_AFTER` | 窗口终点 | `not_before + 30d` |
+| `ONION_BETA_NOT_AFTER` | 窗口终点 | `not_before + 14d` |
 | `ONION_BETA_BUILD_ID` | 战役 id（≤31 字符） | `beta-YYYYMMDD` |
 | `ONION_BETA_STATE_KEY_HEX` | 状态 HMAC 密钥（64 hex） | 随机并 cache |
 | `ONION_BETA_SKEW_SEC` | 允许时钟偏差 | `86400`（1 天） |
@@ -32,7 +32,7 @@ CMake 注入：
 # 可选覆盖；不设则自动生成
 export ONION_BETA_BUILD_ID=beta-20260315
 export ONION_BETA_NOT_BEFORE=$(date -u +%s)
-export ONION_BETA_NOT_AFTER=$(( ONION_BETA_NOT_BEFORE + 30*86400 ))
+export ONION_BETA_NOT_AFTER=$(( ONION_BETA_NOT_BEFORE + 14*86400 ))
 export ONION_BETA_STATE_KEY_HEX=$(openssl rand -hex 32)
 
 cmake ... -DONION_ENABLE_BETA_TRIAL=ON
@@ -40,17 +40,26 @@ cmake ... -DONION_ENABLE_BETA_TRIAL=ON
 cmake ... -DONION_ENABLE_BETA_TRIAL=OFF
 ```
 
-### 2. 本机 `trial.state`
+### 2. 本机 `trial.state`（加密）
 
 路径：`/data/OnionHEN/trial/trial.state`
 
-| 字段 | 说明 |
+**落盘格式**（encrypt-then-MAC，非明文）：
+
+```text
+magic[8]="OHNTRLV1" | iv[16] | AES-256-CBC(ciphertext) | HMAC-SHA256[32]
+```
+
+- AES/MAC 密钥由 `state_key` + 标签派生（`onion-trial-aes-v1` / `onion-trial-mac-v1`）
+- 明文状态内仍含字段级 HMAC；外层加密隐藏 `last_seen` 等
+
+| 明文逻辑字段 | 说明 |
 |------|------|
 | `build_id` | 必须与当前二进制一致 |
 | `device_fp` | 序列号派生指纹（防跨机拷状态） |
 | `last_seen` | 上次成功通过 gate 的 wall clock |
 | `sticky_expired` | 曾判定过期则置位 |
-| `hmac` | HMAC-SHA256（`state_key`） |
+| 内层 `hmac` | HMAC-SHA256（`state_key`） |
 
 ## Gate 流程
 

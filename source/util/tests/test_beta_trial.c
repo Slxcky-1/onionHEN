@@ -157,6 +157,50 @@ test_hmac_roundtrip(void) {
 }
 
 static int
+test_encrypt_roundtrip(void) {
+  onion_beta_seal_t seal;
+  onion_trial_state_t state;
+  onion_trial_state_t out;
+  unsigned char fp[ONION_TRIAL_DEVICE_FP_LEN];
+  unsigned char blob[ONION_TRIAL_BLOB_MAX_SIZE];
+  size_t blob_len = 0;
+
+  fill_seal(&seal, 1000, 1000 + 14 * 86400);
+  TEST_ASSERT_TRUE(fill_fp(fp) == 0);
+  memset(&state, 0, sizeof(state));
+  state.magic = ONION_TRIAL_MAGIC;
+  state.version = ONION_TRIAL_VERSION;
+  snprintf(state.build_id, sizeof(state.build_id), "%s", seal.build_id);
+  memcpy(state.device_fp, fp, sizeof(fp));
+  state.last_seen = 1234567890LL;
+  state.sticky_expired = 0;
+  TEST_ASSERT_TRUE(onion_trial_state_sign(&seal, &state) == 0);
+  TEST_ASSERT_TRUE(onion_trial_state_encrypt(&seal, &state, blob, sizeof(blob),
+                                             &blob_len) == 0);
+  TEST_ASSERT_TRUE(blob_len > 32);
+  /* Ciphertext must not contain plaintext last_seen as a raw int64. */
+  {
+    int found = 0;
+    for(size_t i = 0; i + sizeof(state.last_seen) <= blob_len; ++i) {
+      if(memcmp(blob + i, &state.last_seen, sizeof(state.last_seen)) == 0) {
+        found = 1;
+        break;
+      }
+    }
+    TEST_ASSERT_TRUE(!found);
+  }
+  memset(&out, 0, sizeof(out));
+  TEST_ASSERT_TRUE(onion_trial_state_decrypt(&seal, blob, blob_len, &out) == 0);
+  TEST_ASSERT_EQ_U64((unsigned long long)state.last_seen,
+                     (unsigned long long)out.last_seen);
+  TEST_ASSERT_EQ_INT((int)state.sticky_expired, (int)out.sticky_expired);
+  /* Tamper outer blob. */
+  blob[20] ^= 0xff;
+  TEST_ASSERT_TRUE(onion_trial_state_decrypt(&seal, blob, blob_len, &out) != 0);
+  return 0;
+}
+
+static int
 test_wrong_device_treated_as_fresh(void) {
   onion_beta_seal_t seal;
   onion_trial_state_t prior;
@@ -195,6 +239,7 @@ test_beta_trial_suite(void) {
   failures += onion_test_run("beta_trial_sticky", test_sticky_blocks_even_in_window);
   failures += onion_test_run("beta_trial_clock_early", test_clock_early);
   failures += onion_test_run("beta_trial_hmac", test_hmac_roundtrip);
+  failures += onion_test_run("beta_trial_encrypt", test_encrypt_roundtrip);
   failures += onion_test_run("beta_trial_wrong_device",
                              test_wrong_device_treated_as_fresh);
   return failures;

@@ -62,7 +62,8 @@ PROD_C_SRCS := \
 	$(REPO_ROOT)/source/libonion_platform/source/notify_i18n.c \
 	$(REPO_ROOT)/source/libonion_ready/source/ready.c \
 	$(REPO_ROOT)/source/libonion_payload/source/payload.c \
-	$(REPO_ROOT)/source/libonion_trial/source/eval.c
+	$(REPO_ROOT)/source/libonion_trial/source/eval.c \
+	$(REPO_ROOT)/source/libonion_trial/source/seal_store.c
 
 PROD_CXX_SRCS := \
 	$(UTIL_ROOT)/source/cheats/json_cheat_parser.cpp \
@@ -129,6 +130,7 @@ PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_platform/notify_i18n.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_ready/ready.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_payload/payload.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_trial/eval.o
+PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_trial/seal_store.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_detour/hde64.o
 
 CHEAT_SUPPORT_SRCS := $(wildcard $(THIRD_PARTY_ROOT)/cheat_support/*.c)
@@ -244,6 +246,10 @@ $(BUILD_DIR)/prod/libonion_ready/ready.o: $(REPO_ROOT)/source/libonion_ready/sou
 $(BUILD_DIR)/prod/libonion_trial/eval.o: $(REPO_ROOT)/source/libonion_trial/source/eval.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(HOST_CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/prod/libonion_trial/seal_store.o: $(REPO_ROOT)/source/libonion_trial/source/seal_store.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(HOST_CC) $(CFLAGS) -DCBC=1 -DAES256=1 -c -o $@ $<
 
 $(BUILD_DIR)/prod/libonion_platform/fs.o: $(REPO_ROOT)/source/libonion_platform/source/fs.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)

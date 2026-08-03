@@ -76,20 +76,26 @@ ensure_trial_dir(void) {
 }
 
 static int
-read_trial_state(const char *path, onion_trial_state_t *state) {
+read_trial_state(const onion_beta_seal_t *seal, const char *path,
+                 onion_trial_state_t *state) {
   FILE *fp;
+  unsigned char blob[ONION_TRIAL_BLOB_MAX_SIZE];
   size_t n;
 
-  if(path == NULL || state == NULL) {
+  if(seal == NULL || path == NULL || state == NULL) {
     return -1;
   }
   fp = fopen(path, "rb");
   if(fp == NULL) {
     return -1;
   }
-  n = fread(state, 1, sizeof(*state), fp);
+  n = fread(blob, 1, sizeof(blob), fp);
   fclose(fp);
-  if(n != sizeof(*state)) {
+  if(n == 0) {
+    return -1;
+  }
+  /* Encrypted blob (OHNTRLV1); reject legacy plaintext formats. */
+  if(onion_trial_state_decrypt(seal, blob, n, state) < 0) {
     return -1;
   }
   return 0;
@@ -100,12 +106,18 @@ write_trial_state(const char *path, const onion_beta_seal_t *seal,
                   onion_trial_state_t *state) {
   FILE *fp;
   onion_trial_state_t signed_state;
+  unsigned char blob[ONION_TRIAL_BLOB_MAX_SIZE];
+  size_t blob_len = 0;
 
   if(path == NULL || seal == NULL || state == NULL) {
     return -1;
   }
   signed_state = *state;
   if(onion_trial_state_sign(seal, &signed_state) < 0) {
+    return -1;
+  }
+  if(onion_trial_state_encrypt(seal, &signed_state, blob, sizeof(blob),
+                               &blob_len) < 0) {
     return -1;
   }
   if(ensure_trial_dir() < 0) {
@@ -115,7 +127,7 @@ write_trial_state(const char *path, const onion_beta_seal_t *seal,
   if(fp == NULL) {
     return -1;
   }
-  if(fwrite(&signed_state, 1, sizeof(signed_state), fp) != sizeof(signed_state)) {
+  if(fwrite(blob, 1, blob_len, fp) != blob_len) {
     fclose(fp);
     return -1;
   }
@@ -130,11 +142,8 @@ load_valid_state(const onion_beta_seal_t *seal, const unsigned char *device_fp,
   onion_trial_state_t raw;
 
   *have_out = 0;
-  if(read_trial_state(ONION_TRIAL_STATE_PATH, &raw) < 0) {
-    return 0;
-  }
-  if(onion_trial_state_verify(seal, &raw) < 0) {
-    LOG_WARN("[trial] trial.state hmac/magic invalid; treating as fresh");
+  if(read_trial_state(seal, ONION_TRIAL_STATE_PATH, &raw) < 0) {
+    LOG_WARN("[trial] trial.state missing/unreadable/decrypt failed; fresh");
     return 0;
   }
   if(!onion_trial_state_matches(seal, device_fp, &raw)) {
