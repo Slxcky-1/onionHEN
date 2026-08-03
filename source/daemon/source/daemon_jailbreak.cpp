@@ -116,9 +116,20 @@ bool jb_apply_privileges(pid_t pid, bool escape_sandbox) {
     return false;
   }
 
-  /* Match Hijacker: low byte of sceAttr = 0x80. */
-  const uint64_t attrs = (kernel_get_ucred_attrs(pid) & ~0xffull) | 0x80ull;
-  (void)kernel_set_ucred_attrs(pid, attrs);
+  /* Match Hijacker: sceAttr byte at ucred+0x83 = 0x80 (ptrace).
+   * SDK v0.41+ exposes 32-byte attrs starting at ucred+0x80, so [3] == +0x83. */
+  uint8_t attrs[32] = {};
+  if (kernel_get_ucred_attrs(pid, attrs) != 0) {
+    LOG_ERROR("[JB] kernel_get_ucred_attrs failed pid=%d",
+                 static_cast<int>(pid));
+    return false;
+  }
+  attrs[3] = 0x80;
+  if (kernel_set_ucred_attrs(pid, attrs) != 0) {
+    LOG_ERROR("[JB] kernel_set_ucred_attrs failed pid=%d",
+                 static_cast<int>(pid));
+    return false;
+  }
 
   if (escape_sandbox) {
     const intptr_t root = kernel_get_root_vnode();
