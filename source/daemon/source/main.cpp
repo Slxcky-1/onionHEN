@@ -48,8 +48,8 @@ along with this program; see the file COPYING. If not, see
 #include "welcome_toast.hpp"
 #include <onion/debug_settings_route_policy.hpp>
 #include <onion/ready.h>
-#if defined(ONION_ENABLE_BETA_ACTIVATION)
-#include <onion/activation.h>
+#if defined(ONION_ENABLE_BETA_TRIAL)
+#include <onion/trial.h>
 #endif
 
 #define MSG_NOSIGNAL 0x20000 /* do not generate SIGPIPE on EOF. */
@@ -241,17 +241,20 @@ int main() {
 
   /*
    * Settings (incl. notify i18n language) before any user-facing toast so the
-   * temporary beta activation gate can use onion_notify_debug + catalogs.
+   * temporary beta trial gate can use onion_notify_debug + catalogs.
    */
   LoadSettings();
 
-#if defined(ONION_ENABLE_BETA_ACTIVATION)
-  /* Temporary internal-test license gate — see source/libonion_activation/. */
-  if (onion_activation_gate() != 0) {
-    LOG_ERROR("beta activation gate failed; daemon will idle");
+#if defined(ONION_ENABLE_BETA_TRIAL)
+  /* Temporary beta trial time gate — see source/libonion_trial/. */
+  if (onion_trial_gate() != 0) {
+    LOG_ERROR("beta trial gate failed; daemon will idle");
     for (;;)
       sleep(3600);
   }
+  onion_notify_debug(
+      "This is a beta build. Redistribution is prohibited.\n"
+      "If you paid for this plugin, please request a refund.");
 #endif
 
   OrbisKernelSwVersion sys_ver;

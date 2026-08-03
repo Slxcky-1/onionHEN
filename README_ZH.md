@@ -202,7 +202,6 @@ export PS5_PAYLOAD_SDK=/path/to/ps5-payload-sdk
 
 | 选项 | 说明 |
 | --- | --- |
-| `--fw <hex>` | 设置 `PS5_FW_VERSION` / `V_FW` |
 | `--build-type Debug\|Release` | 选择 CMake 构建类型 |
 | `--build-dir <path>` | 覆盖默认的 `build/` 目录 |
 | `--cache-dir <path>` | 覆盖 `.cache/dependencies/` |

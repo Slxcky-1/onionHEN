@@ -510,6 +510,6 @@ export PS5_PAYLOAD_SDK=/path/to/ps5-payload-sdk
 手动 CMake：
 
 ```bash
-./scripts/ps5_cmake.sh -S source -B build -G Ninja -DV_FW=0x3000000
+./scripts/ps5_cmake.sh -S source -B build -G Ninja
 cmake --build build
 ```

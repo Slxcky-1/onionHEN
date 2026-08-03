@@ -30,6 +30,8 @@ COMMON_FLAGS := -Wall -Wextra -g -O0 $(DEPFLAGS) -DONION_HOST_TEST=1 -DCBC=1 \
 	-I$(REPO_ROOT)/source/libonion_ipc/include \
 	-I$(REPO_ROOT)/source/libonion_detour/include \
 	-I$(REPO_ROOT)/source/libonion_ready \
+	-I$(REPO_ROOT)/source/libonion_trial/source \
+	-I$(REPO_ROOT)/source/libonion_trial/include \
 	-I$(REPO_ROOT)/source/daemon/include \
 	-I$(THIRD_PARTY_ROOT)/cjson \
 	-I$(THIRD_PARTY_ROOT)/cheat_support \
@@ -59,7 +61,8 @@ PROD_C_SRCS := \
 	$(REPO_ROOT)/source/libonion_platform/source/notify.c \
 	$(REPO_ROOT)/source/libonion_platform/source/notify_i18n.c \
 	$(REPO_ROOT)/source/libonion_ready/source/ready.c \
-	$(REPO_ROOT)/source/libonion_payload/source/payload.c
+	$(REPO_ROOT)/source/libonion_payload/source/payload.c \
+	$(REPO_ROOT)/source/libonion_trial/source/eval.c
 
 PROD_CXX_SRCS := \
 	$(UTIL_ROOT)/source/cheats/json_cheat_parser.cpp \
@@ -93,6 +96,7 @@ TEST_C_SRCS := \
 	test_platform_notify.c \
 	test_toolbox_timing.c \
 	test_hijack_retry.c \
+	test_beta_trial.c \
 	stubs/host_stubs.c
 
 TEST_CXX_SRCS := \
@@ -124,6 +128,7 @@ PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_platform/notify.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_platform/notify_i18n.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_ready/ready.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_payload/payload.o
+PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_trial/eval.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_detour/hde64.o
 
 CHEAT_SUPPORT_SRCS := $(wildcard $(THIRD_PARTY_ROOT)/cheat_support/*.c)
@@ -233,6 +238,10 @@ $(BUILD_DIR)/prod/shellui/toolbox_i18n.o: $(REPO_ROOT)/source/shellui/src/toolbo
 	$(HOST_CXX) $(CXXFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/prod/libonion_ready/ready.o: $(REPO_ROOT)/source/libonion_ready/source/ready.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(HOST_CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/prod/libonion_trial/eval.o: $(REPO_ROOT)/source/libonion_trial/source/eval.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(HOST_CC) $(CFLAGS) -c -o $@ $<
 

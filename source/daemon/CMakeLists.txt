@@ -60,13 +60,13 @@ add_dependencies(${PROJECT_NAME} onion_version util onion_elfldr_server NineS sh
 # Supervises private :9020 via external :9021, then restarts embedded util via :9020.
 target_link_libraries	(${PROJECT_NAME} PUBLIC onion_ipc onion_settings onion_proc onion_platform onion_ready onion_elfldr hijacker SceSystemService SceNotification SceUserService SceNetCtl SceSysCore kernel_sys NineS)
 
-# Optional beta activation gate (entirely under libonion_activation; remove later).
-if(ONION_ENABLE_BETA_ACTIVATION)
-	target_compile_definitions(${PROJECT_NAME} PRIVATE ONION_ENABLE_BETA_ACTIVATION=1)
+# Optional beta trial time gate (entirely under libonion_trial; remove later).
+if(ONION_ENABLE_BETA_TRIAL)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE ONION_ENABLE_BETA_TRIAL=1)
 	target_include_directories(${PROJECT_NAME} PRIVATE
-		"${PROJECT_ROOT}/libonion_activation/include")
-	add_dependencies(${PROJECT_NAME} onion_activation)
-	target_link_libraries(${PROJECT_NAME} PUBLIC onion_activation)
+		"${PROJECT_ROOT}/libonion_trial/include")
+	add_dependencies(${PROJECT_NAME} onion_trial)
+	target_link_libraries(${PROJECT_NAME} PUBLIC onion_trial)
 endif()
 # Add post-build command
 onion_strip_debug(${PROJECT_NAME})

@@ -97,14 +97,14 @@ read_hardware_serial(char *out, size_t out_size) {
   memset(raw, 0, sizeof(raw));
   ret = sceKernelGetHwSerialNumber(raw);
   if(ret != 0) {
-    LOG_WARN("[activation] sceKernelGetHwSerialNumber failed ret=0x%x",
+    LOG_WARN("[trial] sceKernelGetHwSerialNumber failed ret=0x%x",
              (unsigned)ret);
     return -1;
   }
   raw_len = strnlen(raw, sizeof(raw));
   serial_len = trim_device_serial(raw, raw_len, out, out_size);
   if(serial_len == 0) {
-    LOG_WARN("[activation] hardware serial unusable");
+    LOG_WARN("[trial] hardware serial unusable");
     return -1;
   }
   return 0;
@@ -121,20 +121,20 @@ read_open_psid_fallback(char *out, size_t out_size) {
   memset(&id, 0, sizeof(id));
   ret = sceKernelGetOpenPsId(&id);
   if(ret == 0 && format_open_psid_string(id.open_psid, out, out_size) == 0) {
-    LOG_INFO("[activation] using OpenPsId fallback");
+    LOG_INFO("[trial] using OpenPsId fallback");
     return 0;
   }
   memset(&id, 0, sizeof(id));
   ret = sceKernelGetOpenPsIdForSystem(&id);
   if(ret == 0 && format_open_psid_string(id.open_psid, out, out_size) == 0) {
-    LOG_INFO("[activation] using OpenPsIdForSystem fallback");
+    LOG_INFO("[trial] using OpenPsIdForSystem fallback");
     return 0;
   }
   return -1;
 }
 
 int
-onion_activation_device_serial(char *out, size_t out_size) {
+onion_trial_device_serial(char *out, size_t out_size) {
   if(out == NULL || out_size == 0) {
     return -1;
   }

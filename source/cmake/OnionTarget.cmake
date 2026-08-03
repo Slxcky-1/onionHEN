@@ -23,11 +23,11 @@ include_guard(GLOBAL)
 # NOTE: no -march here — a few modules place it at a different position in
 # their flag string, so they append it themselves.
 set(ONION_PS5_TARGET_FLAGS
-	"--target=x86_64-sie-ps5 -DPPR -DPS5 -DPS5_FW_VERSION=${V_FW}")
+	"--target=x86_64-sie-ps5 -DPPR -DPS5")
 
 # Same, with -march=znver2 folded in, which is what most modules want.
 set(ONION_PS5_TARGET_FLAGS_MARCH
-	"--target=x86_64-sie-ps5 -march=znver2 -DPPR -DPS5 -DPS5_FW_VERSION=${V_FW}")
+	"--target=x86_64-sie-ps5 -march=znver2 -DPPR -DPS5")
 
 # Language standards, PS5 SDK headers, and a compiler sanity check.
 # A macro (not a function) so the CMAKE_* settings land in the caller's scope.

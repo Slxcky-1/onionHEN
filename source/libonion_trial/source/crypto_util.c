@@ -3,8 +3,8 @@
 #include <string.h>
 
 int
-onion_act_hex_encode(const unsigned char *in, size_t in_len, char *out,
-                     size_t out_size) {
+onion_trial_hex_encode(const unsigned char *in, size_t in_len, char *out,
+                       size_t out_size) {
   static const char hex[] = "0123456789abcdef";
 
   if(in == NULL || out == NULL || out_size < in_len * 2 + 1) {
@@ -33,7 +33,7 @@ hex_nibble(char ch) {
 }
 
 int
-onion_act_hex_decode(const char *hex, unsigned char *out, size_t out_len) {
+onion_trial_hex_decode(const char *hex, unsigned char *out, size_t out_len) {
   if(hex == NULL || out == NULL || strlen(hex) != out_len * 2) {
     return -1;
   }

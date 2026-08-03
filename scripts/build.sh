@@ -14,7 +14,7 @@
 #   ./scripts/build.sh              # cleans previous outputs first
 #   ./scripts/build.sh --clean      # same as default; kept for compatibility
 #   ./scripts/build.sh --release    # non-interactive Release build
-#   ./scripts/build.sh --fw 0x3000000 --jobs 8
+#   ./scripts/build.sh --jobs 8
 #   ./scripts/build.sh --stub-missing   # compile-only placeholders for missing external ELFs
 #
 set -euo pipefail
@@ -27,7 +27,6 @@ CACHE="${ONIONHEN_CACHE_DIR:-${ROOT}/.cache/dependencies}"
 BIN="${BUILD}/bin"
 
 PS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK:-${PS5SDK:-}}"
-V_FW="${V_FW:-0x3000000}"
 DEFAULT_BUILD_TYPE="Debug"
 BUILD_TYPE="${BUILD_TYPE:-}"
 BUILD_TYPE_EXPLICIT=0
@@ -65,7 +64,6 @@ Usage: $(basename "$0") [options]
 Options:
   --clean              Accepted for compatibility; builds are cleaned by default
   --configure-only     Only run CMake configure
-  --fw <hex>           PS5_FW_VERSION / V_FW (default: ${V_FW})
   --jobs <n>           Parallel build jobs (default: ${JOBS})
   --build-type <t>     Debug|Release (default: ${DEFAULT_BUILD_TYPE})
   --debug              Same as --build-type Debug
@@ -86,7 +84,6 @@ Environment:
   PS5_PAYLOAD_SDK   Path to ps5-payload-sdk (required)
   ONIONHEN_CACHE_DIR Override dependency cache directory
   BUILD_DIR         Override build directory
-  V_FW              Same as --fw
   BUILD_TYPE        Debug|Release; skips the interactive build-type prompt
 
 Third-party (git submodules under third_party/ + release downloads):
@@ -110,7 +107,6 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --clean) shift ;;
     --configure-only) CONFIGURE_ONLY=1; shift ;;
-    --fw) V_FW="$2"; shift 2 ;;
     --jobs) JOBS="$2"; shift 2 ;;
     --build-type) BUILD_TYPE="$2"; BUILD_TYPE_EXPLICIT=1; shift 2 ;;
     --debug) BUILD_TYPE="Debug"; BUILD_TYPE_EXPLICIT=1; shift ;;
@@ -295,33 +291,35 @@ clean_build_artifacts() {
 }
 
 configure() {
-  log "Configure (${BUILD_TYPE}, V_FW=${V_FW})"
+  log "Configure (${BUILD_TYPE})"
   mkdir -p "${BUILD}"
   local -a extra_cmake=()
-  # Temporary beta certificate activation (libonion_activation/README.md)
-  if [[ -n "${ONION_ENABLE_BETA_ACTIVATION:-}" ]]; then
-    extra_cmake+=("-DONION_ENABLE_BETA_ACTIVATION=${ONION_ENABLE_BETA_ACTIVATION}")
+  # Temporary beta trial gate (libonion_trial/README.md).
+  # Seal params are optional: CMake auto-fills not_before/after (30d), build_id, state key.
+  # Accept legacy ONION_ENABLE_BETA_ACTIVATION as an alias for ONION_ENABLE_BETA_TRIAL.
+  if [[ -n "${ONION_ENABLE_BETA_TRIAL:-}" ]]; then
+    extra_cmake+=("-DONION_ENABLE_BETA_TRIAL=${ONION_ENABLE_BETA_TRIAL}")
+  elif [[ -n "${ONION_ENABLE_BETA_ACTIVATION:-}" ]]; then
+    warn "ONION_ENABLE_BETA_ACTIVATION is deprecated; use ONION_ENABLE_BETA_TRIAL"
+    extra_cmake+=("-DONION_ENABLE_BETA_TRIAL=${ONION_ENABLE_BETA_ACTIVATION}")
   fi
-  # Required when activation is enabled (default ON): Ed25519 verify key, compile-time only.
-  local enable_act="${ONION_ENABLE_BETA_ACTIVATION:-ON}"
-  case "${enable_act}" in
-    0|OFF|off|Off|FALSE|false|False|N|n|NO|no) ;;
-    *)
-      if [[ -z "${ONION_ACTIVATION_PUBLIC_KEY_HEX:-}" ]]; then
-        die "ONION_ACTIVATION_PUBLIC_KEY_HEX is required (64 hex) when beta activation is on; or set ONION_ENABLE_BETA_ACTIVATION=OFF"
-      fi
-      extra_cmake+=("-DONION_ACTIVATION_PUBLIC_KEY_HEX=${ONION_ACTIVATION_PUBLIC_KEY_HEX}")
-      ;;
-  esac
+  for _beta_var in ONION_BETA_NOT_BEFORE ONION_BETA_NOT_AFTER ONION_BETA_BUILD_ID \
+                   ONION_BETA_STATE_KEY_HEX ONION_BETA_SKEW_SEC; do
+    if [[ -n "${!_beta_var:-}" ]]; then
+      extra_cmake+=("-D${_beta_var}=${!_beta_var}")
+    fi
+  done
+  unset _beta_var
+  # Bash 3.2 (macOS) + set -u: empty "${arr[@]}" is "unbound variable".
+  # ${arr[@]+"${arr[@]}"} expands to nothing when empty, or the elements when set.
   "${CMAKE[@]}" \
     -S "${SOURCE}" \
     -B "${BUILD}" \
     -G Ninja \
     -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
-    -DV_FW="${V_FW}" \
     -DONIONHEN_KSTUFF_ELF="${CACHE}/kstuff.elf" \
     -DPS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}" \
-    "${extra_cmake[@]}"
+    ${extra_cmake[@]+"${extra_cmake[@]}"}
   ok "configured -> ${BUILD}"
 }
 
@@ -340,7 +338,6 @@ main() {
   echo "  SDK      = ${PS5_PAYLOAD_SDK}"
   echo "  BUILD    = ${BUILD}"
   echo "  CACHE    = ${CACHE}"
-  echo "  V_FW     = ${V_FW}"
   echo "  TYPE     = ${BUILD_TYPE}"
   echo "  JOBS     = ${JOBS}"
 

@@ -206,7 +206,6 @@ embedding chain in the required order.
 
 | Option | Description |
 | --- | --- |
-| `--fw <hex>` | Set `PS5_FW_VERSION` / `V_FW` |
 | `--build-type Debug\|Release` | Select the CMake build type |
 | `--build-dir <path>` | Override the default `build/` directory |
 | `--cache-dir <path>` | Override `.cache/dependencies/` |

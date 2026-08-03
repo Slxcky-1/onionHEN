@@ -660,7 +660,7 @@ void append_toolbox_about_group(ps5ui::Group& g) {
              .label("id_method_1",
                     "- Ko-fi  | https://ko-fi.com/0xp0co",
                     ps5ui::Style::Center)
-             .button("id_author_0xp0co", "0xP0CO", std::nullopt, "@0xP0CO",
+             .button("id_author_0xp0co", "麒麟/0xp0co", std::nullopt, "@0xp0co",
                      kIconAuthorAvatar)
              .label("id_author_donor_spacer", "　", ps5ui::Style::Center)
              .label("id_donor_info", "★ 捐赠者 ★", ps5ui::Style::Center)
@@ -752,6 +752,16 @@ void append_toolbox_about_group(ps5ui::Group& g) {
 void generate_toolbox_xml(std::string& new_xml) {
   ps5ui::Page page("id_debug_settings", toolbox_i18n::tr("root.title"));
   page.root_focus("id_group_pkg");
+
+#if defined(ONION_ENABLE_BETA_TRIAL)
+  /*
+   * Beta notice at the top of the root settings list (centered labels).
+   * Visible as soon as the toolbox opens — no need to enter a subgroup.
+   * Focus still lands on the first interactive group (PKG).
+   */
+  page.label("id_beta_banner", toolbox_i18n::tr("beta.banner"),
+             ps5ui::Style::Center);
+#endif
 
   page.group(
           "id_group_pkg", toolbox_i18n::tr("group.pkg"),

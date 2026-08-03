@@ -1,6 +1,7 @@
 {
   "toolbox": {
     "root.title": "★OnionHEN 工具箱",
+    "beta.banner": "★ 内测版本 · 禁止外传 · 若付费购买请退款 ★",
     "group.pkg": "内容安装与管理",
     "group.pkg.sub": "安装 PKG 与管理附加内容",
     "group.payloads": "Payload 与内核",
@@ -260,9 +261,11 @@
     "SCE_REGMGR: unable to verify REMOTEPLAY_rp_enable (0x%x)": "SCE_REGMGR：无法验证 REMOTEPLAY_rp_enable（0x%x）",
     "sceRemoteplayConfirmDeviceRegist 0x%X pair_stat: %d pair_err: %d": "sceRemoteplayConfirmDeviceRegist 0x%X 配对状态：%d 配对错误：%d",
     "Remote Play paired! For better stability a reboot is recommended": "远程游玩已配对！建议重启主机以获得更好的稳定性",
-    "Beta activation failed: cannot read device identity": "内测激活失败：无法读取设备标识",
-    "Beta certificate required\nDevice code: %.12s...\nPlace license.json under %s\nOr TCP :%d LICENSE <json>": "需要内测证书激活\n设备码: %.12s...\n将 license.json 放到 %s\n或 TCP :%d LICENSE <json>",
-    "Beta activation successful\nWelcome to OnionHEN": "内测激活成功\n欢迎使用 OnionHEN",
-    "Waiting for beta certificate\nDevice code: %.12s...\nTCP :%d": "等待证书激活\n设备码: %.12s...\nTCP :%d"
+    "Beta trial failed: cannot read device identity": "内测失败：无法读取设备标识",
+    "Beta trial misconfigured (invalid seal)": "内测配置无效（seal 错误）",
+    "Beta trial: %d day(s) remaining": "内测剩余 %d 天",
+    "Beta trial expired\nThis build is no longer valid": "内测已结束\n此版本已无法使用",
+    "Beta trial blocked\nSystem clock appears incorrect": "内测启动被拒绝\n系统时间异常",
+    "This is a beta build. Redistribution is prohibited.\nIf you paid for this plugin, please request a refund.": "本版本为内测版本，禁止外传。\n如果您付费购买了此插件，请退款。"
   }
 }

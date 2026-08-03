@@ -1,6 +1,7 @@
 {
   "toolbox": {
     "root.title": "★OnionHEN Toolbox",
+    "beta.banner": "★ BETA · DO NOT REDISTRIBUTE · If paid, request a refund ★",
     "group.pkg": "Content Install & Management",
     "group.pkg.sub": "Install PKGs and manage add-on content",
     "group.payloads": "Payloads & Kernel",
@@ -260,9 +261,11 @@
     "SCE_REGMGR: unable to verify REMOTEPLAY_rp_enable (0x%x)": "SCE_REGMGR: unable to verify REMOTEPLAY_rp_enable (0x%x)",
     "sceRemoteplayConfirmDeviceRegist 0x%X pair_stat: %d pair_err: %d": "sceRemoteplayConfirmDeviceRegist 0x%X pair_stat: %d pair_err: %d",
     "Remote Play paired! For better stability a reboot is recommended": "Remote Play paired! For better stability a reboot is recommended",
-    "Beta activation failed: cannot read device identity": "Beta activation failed: cannot read device identity",
-    "Beta certificate required\nDevice code: %.12s...\nPlace license.json under %s\nOr TCP :%d LICENSE <json>": "Beta certificate required\nDevice code: %.12s...\nPlace license.json under %s\nOr TCP :%d LICENSE <json>",
-    "Beta activation successful\nWelcome to OnionHEN": "Beta activation successful\nWelcome to OnionHEN",
-    "Waiting for beta certificate\nDevice code: %.12s...\nTCP :%d": "Waiting for beta certificate\nDevice code: %.12s...\nTCP :%d"
+    "Beta trial failed: cannot read device identity": "Beta trial failed: cannot read device identity",
+    "Beta trial misconfigured (invalid seal)": "Beta trial misconfigured (invalid seal)",
+    "Beta trial: %d day(s) remaining": "Beta trial: %d day(s) remaining",
+    "Beta trial expired\nThis build is no longer valid": "Beta trial expired\nThis build is no longer valid",
+    "Beta trial blocked\nSystem clock appears incorrect": "Beta trial blocked\nSystem clock appears incorrect",
+    "This is a beta build. Redistribution is prohibited.\nIf you paid for this plugin, please request a refund.": "This is a beta build. Redistribution is prohibited.\nIf you paid for this plugin, please request a refund."
   }
 }

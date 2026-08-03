@@ -41,7 +41,7 @@ See [`../third_party/README.md`](../third_party/README.md) and
 Manual CMake:
 
 ```bash
-./scripts/ps5_cmake.sh -S source -B build -G Ninja -DV_FW=0x3000000
+./scripts/ps5_cmake.sh -S source -B build -G Ninja
 cmake --build build
 ```
 
