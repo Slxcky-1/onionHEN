@@ -261,15 +261,13 @@ int main() {
   onion_self_integrity_start_monitor();
 
 #if defined(ONION_ENABLE_BETA_TRIAL)
-  /* Temporary beta trial time gate — see source/libonion_trial/. */
-  if (onion_trial_gate() != 0) {
+  /* Defense-in-depth only: bootstrapper already gated and toasted. Quiet on OK
+   * so we do not re-show remaining-days or redistribution notices. */
+  if (onion_trial_gate_ex(/*notify_ok=*/0) != 0) {
     LOG_ERROR("beta trial gate failed; daemon will idle");
     for (;;)
       sleep(3600);
   }
-  onion_notify_debug(
-      "This is a beta build. Redistribution is prohibited.\n"
-      "If you paid for this plugin, please request a refund.");
 #endif
 
   OrbisKernelSwVersion sys_ver;

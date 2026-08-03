@@ -224,7 +224,7 @@ onion_trial_is_active(void) {
 }
 
 int
-onion_trial_gate(void) {
+onion_trial_gate_ex(int notify_ok) {
   onion_beta_seal_t seal;
   onion_trial_state_t prior;
   onion_trial_state_t next;
@@ -262,7 +262,9 @@ onion_trial_gate(void) {
   switch(code) {
   case ONION_TRIAL_OK:
     should_write = 1;
-    onion_notify_debug("Beta trial: %d day(s) remaining", days);
+    if(notify_ok) {
+      onion_notify_debug("Beta trial: %d day(s) remaining", days);
+    }
     break;
   case ONION_TRIAL_EXPIRED:
     should_write = 1;
@@ -292,4 +294,9 @@ onion_trial_gate(void) {
   }
 
   return code == ONION_TRIAL_OK ? 0 : -1;
+}
+
+int
+onion_trial_gate(void) {
+  return onion_trial_gate_ex(1);
 }

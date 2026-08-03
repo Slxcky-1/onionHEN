@@ -43,12 +43,17 @@ int onion_trial_get_status(onion_trial_status_t *status);
 int onion_trial_is_active(void);
 
 /**
- * Single-shot gate for daemon startup.
+ * Single-shot trial gate (boot path).
  * Validates the compile-time beta seal against wall clock and a sealed
  * per-device trial.state (anti clock-rollback).
  *
+ * @param notify_ok  if non-zero, toast remaining days on success; failures
+ *                   always toast. Pass 0 for quiet rechecks (e.g. daemon).
  * @return 0 when allowed to continue, -1 when the beta build must not run.
  */
+int onion_trial_gate_ex(int notify_ok);
+
+/** Equivalent to onion_trial_gate_ex(1) — used by bootstrapper. */
 int onion_trial_gate(void);
 
 #ifdef __cplusplus
