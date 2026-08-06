@@ -43,6 +43,10 @@ resume_reinject_delay_seconds=10
 memory_backend=default
 
 [app_jailbreak]
+# enabled controls the App lifecycle and sandbox event listeners. When false,
+# OnionHEN does not register either listener.
+# Available values: true, false
+enabled=true
 # debug_notifications shows a notification when OnionHEN jailbreaks an app.
 # Available values: true, false
 debug_notifications=false

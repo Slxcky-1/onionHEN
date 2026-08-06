@@ -27,6 +27,7 @@ ConfigState config_state;
 onion::SettingsStore g_settings;
 
 bool LoadSettings(bool force) {
+  const onion::Settings previous = g_settings.snapshot();
   const time_t newest = onion::settings_config_newest_mtime();
 
   // Skip disk I/O when neither twin is newer than the last applied snapshot.
@@ -69,6 +70,16 @@ bool LoadSettings(bool force) {
   }
 
   g_settings.store(s);
+  app_jailbreak_set_enabled(s.app_jailbreak_enabled);
+
+  /* Fan maintenance used to run inside the app-jailbreak poller. Keep the
+     features independent by applying fan state at the configuration boundary. */
+  if (s.enable_fan_speed) {
+    (void)set_fan_threshold(s.fan_threshold);
+  } else if (config_state.ever_loaded && previous.enable_fan_speed) {
+    (void)set_fan_threshold(77);
+  }
+
   int system_language = 1;
   if (s.ui_lang == onion::kUiLanguageSystem)
     (void)sceSystemServiceParamGetInt(1, &system_language);

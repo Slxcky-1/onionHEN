@@ -38,7 +38,13 @@ static int test_defaults_and_serialize_keys(void) {
                    std::string::npos);
   TEST_ASSERT_TRUE(text.find("close_running_game_on_entry") ==
                    std::string::npos);
-  TEST_ASSERT_TRUE(text.find("enabled=true") != std::string::npos);
+  TEST_ASSERT_TRUE(text.find("[app_jailbreak]\n") != std::string::npos);
+  TEST_ASSERT_TRUE(text.find("[app_jailbreak]\n# enabled controls the App "
+                                 "lifecycle and sandbox event listeners. "
+                                 "When false,\n"
+                                 "# OnionHEN does not register either listener.\n"
+                                 "# Available values: true, false\n"
+                                 "enabled=true\n") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("edge=top") != std::string::npos);
   TEST_ASSERT_TRUE(
       text.find("exact_title_ids=ITEM00001,NPXS39041,PKGI13337,PKGI12345,"
@@ -92,6 +98,7 @@ static int test_full_schema_roundtrip(void) {
   onion::Settings in{};
   in.rest_mode_delay_seconds = 42;
   in.libhijacker_cheats = true;
+  in.app_jailbreak_enabled = false;
   in.debug_app_jb_msg = true;
   in.display_tids = true;
   in.onionhen_game_opts = false;
@@ -121,6 +128,7 @@ static int test_full_schema_roundtrip(void) {
 
   TEST_ASSERT_EQ_U64(in.rest_mode_delay_seconds, out.rest_mode_delay_seconds);
   TEST_ASSERT_TRUE(out.libhijacker_cheats == in.libhijacker_cheats);
+  TEST_ASSERT_TRUE(out.app_jailbreak_enabled == in.app_jailbreak_enabled);
   TEST_ASSERT_TRUE(out.debug_app_jb_msg == in.debug_app_jb_msg);
   TEST_ASSERT_TRUE(out.display_tids == in.display_tids);
   TEST_ASSERT_TRUE(out.onionhen_game_opts == in.onionhen_game_opts);
@@ -169,6 +177,7 @@ static int test_partial_ini_keeps_defaults(void) {
   TEST_ASSERT_EQ_U64(10, out.rest_mode_delay_seconds);
   TEST_ASSERT_EQ_INT(77, out.fan_threshold);
   TEST_ASSERT_TRUE(out.overlay_enabled);
+  TEST_ASSERT_TRUE(out.app_jailbreak_enabled);
   TEST_ASSERT_EQ_U64(5, out.app_jailbreak_allowlist.exact_title_id_count);
   TEST_ASSERT_STREQ("ITEM00001",
                     out.app_jailbreak_allowlist.exact_title_ids[0].c_str());
@@ -217,6 +226,7 @@ static int test_app_jailbreak_allowlist_parse_policy(void) {
   FILE *f = fopen(path.c_str(), "w");
   TEST_ASSERT_TRUE(f != nullptr);
   fputs("[meta]\nschema_version=1\n\n[app_jailbreak]\n"
+        "enabled=false\n"
         "exact_title_ids=CUSA12345, CUSA12345, TEST00001\n"
         "title_id_prefixes=ABCD,TEST\n",
         f);
@@ -224,6 +234,7 @@ static int test_app_jailbreak_allowlist_parse_policy(void) {
 
   onion::Settings configured{};
   TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &configured));
+  TEST_ASSERT_TRUE(!configured.app_jailbreak_enabled);
   TEST_ASSERT_EQ_U64(
       2, configured.app_jailbreak_allowlist.exact_title_id_count);
   TEST_ASSERT_STREQ(

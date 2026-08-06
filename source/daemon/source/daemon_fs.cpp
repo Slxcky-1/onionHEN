@@ -342,6 +342,7 @@ static void shutdown_restart_shellui(void) {
    */
   g_stack_shutting_down.store(true, std::memory_order_release);
   is_handler_enabled = false;
+  app_jailbreak_set_enabled(false);
   /* Let fifo_and_dumper_thread observe the flag before util vanishes. */
   usleep(100 * 1000);
 

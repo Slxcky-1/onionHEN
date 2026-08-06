@@ -703,6 +703,10 @@ void append_toolbox_debug_group(ps5ui::Group& g) {
            }
          },
          toolbox_i18n::tr("log.level.sub"), toolbox_val("id_log_level", "3"))
+      .toggle("id_app_jailbreak_enabled",
+              toolbox_i18n::tr("app_jailbreak.enabled"),
+              toolbox_on("id_app_jailbreak_enabled"),
+              toolbox_i18n::tr("app_jailbreak.enabled.sub"))
       .toggle("id_debug_jb", toolbox_i18n::tr("debug.jb"),
               toolbox_on("id_debug_jb"), toolbox_i18n::tr("debug.jb.sub"))
       .text_field("id_np_env", toolbox_i18n::tr("debug.np_env"),
@@ -881,7 +885,8 @@ void generate_toolbox_xml(std::string& new_xml) {
       .group(
           "id_group_debug", toolbox_i18n::tr("group.debug"),
           [](ps5ui::Group& g) { append_toolbox_debug_group(g); },
-          toolbox_i18n::tr("group.debug.sub"), kIconDebug, "id_debug_jb")
+          toolbox_i18n::tr("group.debug.sub"), kIconDebug,
+          "id_app_jailbreak_enabled")
       .group(
           "id_onionhen_credit_options", toolbox_i18n::tr("group.about"),
           [](ps5ui::Group& g) { append_toolbox_about_group(g); },

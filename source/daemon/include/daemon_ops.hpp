@@ -69,5 +69,7 @@ bool isUserLoggedIn();
 bool Open_Utility_Elf(const char *path, uint8_t **buffer);
 
 /* ---- background threads ---- */
+/** Update the app-jailbreak gate and wake the event listener to rebuild. */
+void app_jailbreak_set_enabled(bool enabled);
 void *fifo_and_dumper_thread(void *args) noexcept; // daemon_jailbreak.cpp
 void *runtime_supervisor_thread(void *args) noexcept;

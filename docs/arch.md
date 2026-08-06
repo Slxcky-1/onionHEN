@@ -289,7 +289,8 @@ shellui / fps_elf / homebrew
         └─► /system_tmp/onionhen/ipc/util_service  (util,   0x8xxxxxxx)
 
 homebrew (app jailbreak)
-        └─► sandbox file  …/download0/etahen_jailbreak|onionhen_jailbreak  (daemon 轮询 + 白名单 TID)
+        └─► sandbox file  …/download0/etahen_jailbreak|onionhen_jailbreak
+             (SceSysCore 进程生命周期事件 + 沙盒目录 vnode 事件 + 白名单 TID)
 ```
 
 ### 3.1 消息格式
@@ -361,7 +362,7 @@ struct IPCMessage {
 - 提权与分区 remount
 - 阻止系统更新（unmount `/update`）
 - **kstuff**：fself / fpkg 相关内核能力（通常 ≥ 3.00）
-- App jailbreak（daemon 沙盒 FIFO + 白名单 TID）
+- App jailbreak（按设置启停；SceSysCore 生命周期 + 沙盒 vnode 事件 + 白名单 TID，无常驻轮询）
 - 双守护进程架构（util 可被 daemon 拉起）
 
 ### 4.2 用户界面（Toolbox）

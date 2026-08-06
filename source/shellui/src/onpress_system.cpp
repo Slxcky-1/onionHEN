@@ -40,6 +40,18 @@ static OnPressResult id_debug_jb(OnPressContext &ctx) {
   return OnPressResult::Handled;
 }
 
+static OnPressResult id_app_jailbreak_enabled(OnPressContext &ctx) {
+  const bool enabled = value_as_int(ctx);
+  if (enabled == g_settings.app_jailbreak_enabled) {
+    LOG_WARN("App jailbreak listener already %s",
+             enabled ? "Enabled" : "Disabled");
+    return OnPressResult::EarlyReturn;
+  }
+  g_settings.app_jailbreak_enabled = enabled;
+  ctx.reload_main = true;
+  return OnPressResult::Handled;
+}
+
 static OnPressResult id_custom_game_opts(OnPressContext &ctx) {
   if (atoi(ctx.value.c_str()) == g_settings.onionhen_game_opts) {
     LOG_WARN("OnionHEN Game Options already %s",
@@ -146,6 +158,7 @@ static OnPressResult id_toolbox_shortcut(OnPressContext &ctx) {
 
 static const OnPressExactEntry kExact[] = {
     {"id_log_level", id_log_level},
+    {"id_app_jailbreak_enabled", id_app_jailbreak_enabled},
     {"id_debug_jb", id_debug_jb},
     {"id_custom_game_opts", id_custom_game_opts},
     {"id_ui_lang", id_ui_lang},

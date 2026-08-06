@@ -419,6 +419,9 @@ bool apply_parser(IniParser *parser, Settings *out) {
       out->rest_mode_delay_seconds);
   out->libhijacker_cheats = parse_libhijacker_backend(
       ini_get(parser, "cheats.memory_backend"), out->libhijacker_cheats);
+  out->app_jailbreak_enabled =
+      parse_bool(ini_get(parser, "app_jailbreak.enabled"),
+                 out->app_jailbreak_enabled);
   out->debug_app_jb_msg =
       parse_bool(ini_get(parser, "app_jailbreak.debug_notifications"),
                  out->debug_app_jb_msg);
@@ -551,6 +554,11 @@ std::string settings_serialize(const Settings &in) {
        "\n";
   b += "\n";
   b += "[app_jailbreak]\n";
+  b += "# enabled controls the App lifecycle and sandbox event listeners. "
+       "When false,\n";
+  b += "# OnionHEN does not register either listener.\n";
+  b += "# Available values: true, false\n";
+  b += "enabled=" + bool_text(in.app_jailbreak_enabled) + "\n";
   b += "# debug_notifications shows a notification when OnionHEN jailbreaks an app.\n";
   b += "# Available values: true, false\n";
   b += "debug_notifications=" + bool_text(in.debug_app_jb_msg) + "\n";

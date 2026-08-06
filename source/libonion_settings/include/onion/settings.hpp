@@ -85,6 +85,7 @@ struct Settings {
 
   // [cheats], [app_jailbreak]
   bool libhijacker_cheats = false;
+  bool app_jailbreak_enabled = true;
   bool debug_app_jb_msg = false;
   AppJailbreakAllowlist app_jailbreak_allowlist{};
 

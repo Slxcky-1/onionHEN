@@ -264,6 +264,7 @@ OnionHEN 通过以下两个运行时视图创建并共享同一套配置 schema�
 | `game_menu.show_onionhen_options` | `true` | `true`, `false` |
 | `rest_mode.resume_reinject_delay_seconds` | `10` | 秒数 |
 | `cheats.memory_backend` | `default` | `default`, `libhijacker` |
+| `app_jailbreak.enabled` | `true` | `true` 注册 App 生命周期与沙盒事件监听；`false` 不注册监听 |
 | `app_jailbreak.debug_notifications` | `false` | `true`, `false` |
 | `app_jailbreak.exact_title_ids` | `ITEM00001,NPXS39041,PKGI13337,PKGI12345,TOOL00001` | 逗号分隔的精确 Title ID，或 `none` |
 | `app_jailbreak.title_id_prefixes` | `LAPY` | 逗号分隔的大写前缀，或 `none` |
