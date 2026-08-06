@@ -19,6 +19,9 @@ static int test_default_zh(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("group.display.sub"),
                                "游戏覆盖层、主菜单显示与游戏选项入口") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.preferences"), "操作偏好") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("log.level"), "日志输出等级") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("log.info"), "信息（推荐）") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("log.trace"), "跟踪") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("pkg.installer.sub"),
                                "打开系统安装界面，用于安装 PKG 游戏或应用") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("fan.enable.sub"),
@@ -38,6 +41,10 @@ static int test_en(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("group.connection"),
                                "Account, Connection & Remote Play") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.preferences"), "Preferences") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("log.level"), "Log output level") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("log.info"),
+                               "Information (recommended)") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("log.trace"), "Trace") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("sc.off"), "Off (no shortcut)") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("remote_play.link.sub"),
                                "View PIN and account details for Remote Play "

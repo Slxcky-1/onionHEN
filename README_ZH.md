@@ -259,6 +259,7 @@ OnionHEN 通过以下两个运行时视图创建并共享同一套配置 schema�
 | --- | --- | --- |
 | `meta.schema_version` | `1` | `1` |
 | `toolbox.language` | `system` | `system`, `zh-Hans`, `en` |
+| `logging.level` | `info` | `off`、`error`、`warn`、`info`、`debug`、`trace`（`trace` 需要 Debug 构建） |
 | `home_screen.show_title_ids` | `false` | `true`, `false` |
 | `game_menu.show_onionhen_options` | `true` | `true`, `false` |
 | `rest_mode.resume_reinject_delay_seconds` | `10` | 秒数 |
@@ -285,6 +286,9 @@ OnionHEN 通过以下两个运行时视图创建并共享同一套配置 schema�
 | `/data/OnionHEN/kstuff.elf` | 可选的内嵌 `kstuff` 运行时覆盖文件 |
 | `/data/OnionHEN/OnionHEN.log` | 主运行日志 |
 | `/data/OnionHEN/OnionHEN_util_daemon.log` | Utility daemon 日志 |
+
+两个日志都会在进程重启后继续追加。当前日志达到 256 KiB 时会自动轮转，
+并保留三代编号备份（`.1` 最新，`.3` 最旧）。
 
 <br>
 

@@ -689,8 +689,22 @@ void append_toolbox_preferences_group(ps5ui::Group& g) {
 }
 
 void append_toolbox_debug_group(ps5ui::Group& g) {
-  g.toggle("id_debug_jb", toolbox_i18n::tr("debug.jb"),
-           toolbox_on("id_debug_jb"), toolbox_i18n::tr("debug.jb.sub"))
+  g.list("id_log_level", toolbox_i18n::tr("log.level"),
+         [](ps5ui::ListBuilder& L) {
+           L.item("id_log_level_off", toolbox_i18n::tr("log.off"), "0")
+               .item("id_log_level_error", toolbox_i18n::tr("log.error"), "1")
+               .item("id_log_level_warn", toolbox_i18n::tr("log.warn"), "2")
+               .item("id_log_level_info", toolbox_i18n::tr("log.info"), "3");
+           if constexpr (ONION_LOG_COMPILE_LEVEL >= ONION_LOG_DEBUG) {
+             L.item("id_log_level_debug", toolbox_i18n::tr("log.debug"), "4");
+           }
+           if constexpr (ONION_LOG_COMPILE_LEVEL >= ONION_LOG_TRACE) {
+             L.item("id_log_level_trace", toolbox_i18n::tr("log.trace"), "5");
+           }
+         },
+         toolbox_i18n::tr("log.level.sub"), toolbox_val("id_log_level", "3"))
+      .toggle("id_debug_jb", toolbox_i18n::tr("debug.jb"),
+              toolbox_on("id_debug_jb"), toolbox_i18n::tr("debug.jb.sub"))
       .text_field("id_np_env", toolbox_i18n::tr("debug.np_env"),
                   toolbox_i18n::tr("debug.np_env.sub"), "basic_latin", "1",
                   "16", "/NP/env", toolbox_i18n::tr("debug.np_env.confirm"),

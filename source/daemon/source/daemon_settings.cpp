@@ -26,12 +26,12 @@ ConfigState config_state;
 
 onion::SettingsStore g_settings;
 
-bool LoadSettings() {
+bool LoadSettings(bool force) {
   const time_t newest = onion::settings_config_newest_mtime();
 
   // Skip disk I/O when neither twin is newer than the last applied snapshot.
-  if (config_state.ever_loaded && !onion::settings_config_is_newer_than(
-                                      config_state.last_modified)) {
+  if (!force && config_state.ever_loaded &&
+      !onion::settings_config_is_newer_than(config_state.last_modified)) {
     return true;
   }
 

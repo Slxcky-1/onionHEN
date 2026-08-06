@@ -21,6 +21,8 @@ along with this program; see the file COPYING. If not, see
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
+#include <memory>
+#include <new>
 #include <string>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -480,12 +482,15 @@ bool try_load_path(const char *path, Settings *out) {
   if (!path_exists(path)) {
     return false;
   }
-  IniParser parser{};
-  if (!ini_parser_load(&parser, path)) {
+  /* IniParser is about 51 KiB.  This function also runs on daemon IPC client
+     threads, where keeping it on the stack can exhaust the thread stack in
+     unoptimised/debug builds. */
+  std::unique_ptr<IniParser> parser(new (std::nothrow) IniParser{});
+  if (!parser || !ini_parser_load(parser.get(), path)) {
     return false;
   }
   Settings parsed = *out;
-  if (!apply_parser(&parser, &parsed)) {
+  if (!apply_parser(parser.get(), &parsed)) {
     return false;
   }
   *out = parsed;
@@ -519,7 +524,7 @@ std::string settings_serialize(const Settings &in) {
   b += "# level controls how much OnionHEN records to its log files.\n";
   b += "# Available values: off, error, warn, info, debug, trace\n";
   b += "# Raise to debug when reproducing an issue for a bug report.\n";
-  b += "# Release builds compile out debug and trace, so those behave as info.\n";
+  b += "# Release builds compile out trace, so trace behaves as debug.\n";
   b += "level=" + std::string(log_level_name(in.log_level)) + "\n";
   b += "\n";
   b += "[home_screen]\n";

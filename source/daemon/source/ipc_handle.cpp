@@ -309,7 +309,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     break;
   }
   case BREW_RELOAD_SETTINGS: {
-    LoadSettings();
+    LoadSettings(/*force=*/true);
     onion_notify(true, "Reloaded Settings");
     reply(sender_app, false);
     break;

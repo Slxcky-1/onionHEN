@@ -265,6 +265,7 @@ annotated default based on [`config.ini.example`](config.ini.example).
 | --- | --- | --- |
 | `meta.schema_version` | `1` | `1` |
 | `toolbox.language` | `system` | `system`, `zh-Hans`, `en` |
+| `logging.level` | `info` | `off`, `error`, `warn`, `info`, `debug`, `trace` (trace requires a debug build) |
 | `home_screen.show_title_ids` | `false` | `true`, `false` |
 | `game_menu.show_onionhen_options` | `true` | `true`, `false` |
 | `rest_mode.resume_reinject_delay_seconds` | `10` | seconds |
@@ -291,6 +292,9 @@ annotated default based on [`config.ini.example`](config.ini.example).
 | `/data/OnionHEN/kstuff.elf` | Optional runtime override for embedded `kstuff` |
 | `/data/OnionHEN/OnionHEN.log` | Main runtime log |
 | `/data/OnionHEN/OnionHEN_util_daemon.log` | Utility daemon log |
+
+Both logs append across process restarts. Each live file rotates at 256 KiB
+and retains three numbered generations (`.1` is newest, `.3` is oldest).
 
 <br>
 

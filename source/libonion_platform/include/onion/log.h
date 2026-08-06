@@ -48,22 +48,23 @@ typedef enum {
 } onion_log_level;
 
 /*
- * Highest level compiled in. Release keeps INFO and above so a user-supplied
- * log still shows what the payload did, while DEBUG/TRACE — the bulk of the
- * volume — vanish entirely.
+ * Highest level compiled in. Release keeps DEBUG so a user can temporarily
+ * raise verbosity from the Toolbox without installing a different payload;
+ * TRACE — the noisiest per-item/per-frame detail — remains debug-build only.
  *
  * Override per target with -DONION_LOG_COMPILE_LEVEL=ONION_LOG_DEBUG.
  */
 #ifndef ONION_LOG_COMPILE_LEVEL
 #ifdef NDEBUG
-#define ONION_LOG_COMPILE_LEVEL ONION_LOG_INFO
+#define ONION_LOG_COMPILE_LEVEL ONION_LOG_DEBUG
 #else
 #define ONION_LOG_COMPILE_LEVEL ONION_LOG_TRACE
 #endif
 #endif
 
-/** Default cap on the file sink before it rotates. */
-#define ONION_LOG_DEFAULT_MAX_BYTES (1024u * 1024u)
+/** Default file rotation policy: 256 KiB live log + three generations. */
+#define ONION_LOG_DEFAULT_MAX_BYTES (256u * 1024u)
+#define ONION_LOG_DEFAULT_ROTATE_COUNT 3u
 
 /*
  * Current runtime threshold. Read directly by the macros so the common
@@ -75,12 +76,6 @@ extern volatile int onion_log_runtime_level;
 
 /** Configure tag and optional file sink. Pass NULL path to disable the file. */
 void onion_log_configure(const char *tag, const char *log_path);
-
-/**
- * Configure a file sink for a new process run. Any file at log_path is removed
- * before the new descriptor is opened, keeping the path visible to the user.
- */
-void onion_log_configure_fresh(const char *tag, const char *log_path);
 
 /** Bound the file sink. 0 restores ONION_LOG_DEFAULT_MAX_BYTES. */
 void onion_log_set_max_bytes(size_t max_bytes);

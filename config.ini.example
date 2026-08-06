@@ -19,7 +19,7 @@ language=system
 # level controls how much OnionHEN records to its log files.
 # Available values: off, error, warn, info, debug, trace
 # Raise to debug when reproducing an issue for a bug report.
-# Release builds compile out debug and trace, so those behave as info.
+# Release builds compile out trace, so trace behaves as debug.
 level=info
 
 [home_screen]

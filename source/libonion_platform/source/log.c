@@ -4,10 +4,12 @@
 
 #include <fcntl.h>
 #include <pthread.h>
+#include <stdint.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -26,7 +28,6 @@ static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 static char g_tag[LOG_TAG_MAX] = "OnionHEN";
 static char g_log_path[LOG_PATH_MAX] = "";
 static int g_fd = -1;
-static size_t g_written = 0;
 static size_t g_max_bytes = ONION_LOG_DEFAULT_MAX_BYTES;
 
 volatile int onion_log_runtime_level = ONION_LOG_INFO;
@@ -85,7 +86,6 @@ static void close_file_locked(void) {
     close(g_fd);
     g_fd = -1;
   }
-  g_written = 0;
 }
 
 static void open_file_locked(void) {
@@ -94,39 +94,71 @@ static void open_file_locked(void) {
   }
   /* Keep the descriptor open: a log line should not cost open+close. */
   g_fd = open(g_log_path, O_WRONLY | O_CREAT | O_APPEND, 0777);
-  if (g_fd < 0) {
-    return;
-  }
-  const off_t end = lseek(g_fd, 0, SEEK_END);
-  g_written = (end > 0) ? (size_t)end : 0;
 }
 
-/*
- * Rotate at the size cap, keeping exactly one previous file. Unbounded logs
- * on a console the user cannot easily clean out are a real failure mode, and
- * more than one generation is rarely worth the space here.
- */
-static void rotate_if_needed_locked(size_t incoming) {
-  if (g_fd < 0 || g_max_bytes == 0 || g_written + incoming <= g_max_bytes) {
+static bool rotated_path(const char *base, unsigned index, char *out,
+                         size_t out_size) {
+  const int n = snprintf(out, out_size, "%s.%u", base, index);
+  return n >= 0 && (size_t)n < out_size;
+}
+
+/* Follow the configured path if it was replaced or removed externally. */
+static void refresh_file_locked(void) {
+  struct stat fd_st;
+  struct stat path_st;
+
+  if (g_fd < 0) {
+    open_file_locked();
     return;
   }
-
-  char old_path[LOG_PATH_MAX + 8];
-  const int n = snprintf(old_path, sizeof(old_path), "%s.old", g_log_path);
-  if (n < 0 || (size_t)n >= sizeof(old_path)) {
-    return; /* path too long to rotate; keep appending rather than lose data */
+  if (fstat(g_fd, &fd_st) == 0 && stat(g_log_path, &path_st) == 0 &&
+      fd_st.st_dev == path_st.st_dev && fd_st.st_ino == path_st.st_ino) {
+    return;
   }
-
   close_file_locked();
-  (void)unlink(old_path);
-  (void)rename(g_log_path, old_path);
   open_file_locked();
 }
 
-static void write_file_locked(const char *msg, size_t len) {
-  if (g_fd < 0) {
+/* Keep .1 as the newest backup and .3 as the oldest retained generation. */
+static void rotate_locked(void) {
+  char src[LOG_PATH_MAX + 16];
+  char dst[LOG_PATH_MAX + 16];
+
+  close_file_locked();
+  for (unsigned index = ONION_LOG_DEFAULT_ROTATE_COUNT; index > 0; --index) {
+    if (!rotated_path(g_log_path, index, dst, sizeof(dst))) {
+      continue;
+    }
+    if (index == ONION_LOG_DEFAULT_ROTATE_COUNT) {
+      (void)unlink(dst);
+    }
+    if (index == 1) {
+      snprintf(src, sizeof(src), "%s", g_log_path);
+    } else if (!rotated_path(g_log_path, index - 1, src, sizeof(src))) {
+      continue;
+    }
+    (void)rename(src, dst);
+  }
+  open_file_locked();
+}
+
+static void rotate_if_needed_locked(size_t incoming) {
+  struct stat st;
+
+  if (g_max_bytes == 0) {
     return;
   }
+  refresh_file_locked();
+  if (g_fd < 0 || fstat(g_fd, &st) != 0 || st.st_size < 0) {
+    return;
+  }
+  if ((uint64_t)st.st_size + (uint64_t)incoming < (uint64_t)g_max_bytes) {
+    return;
+  }
+  rotate_locked();
+}
+
+static void write_file_locked(const char *msg, size_t len) {
   rotate_if_needed_locked(len);
   if (g_fd < 0) {
     return;
@@ -145,7 +177,6 @@ static void write_file_locked(const char *msg, size_t len) {
     }
     off += (size_t)w;
   }
-  g_written += off;
 }
 
 /* --- formatting ---------------------------------------------------------- */
@@ -203,7 +234,7 @@ static size_t format_record(char *out, size_t out_size, onion_log_level level,
 
 /* --- public API ---------------------------------------------------------- */
 
-static void configure_log(const char *tag, const char *log_path, bool fresh) {
+void onion_log_configure(const char *tag, const char *log_path) {
   pthread_mutex_lock(&g_lock);
   if (tag && tag[0]) {
     snprintf(g_tag, sizeof(g_tag), "%s", tag);
@@ -211,24 +242,11 @@ static void configure_log(const char *tag, const char *log_path, bool fresh) {
   close_file_locked();
   if (log_path && log_path[0]) {
     snprintf(g_log_path, sizeof(g_log_path), "%s", log_path);
-    if (fresh) {
-      /* Unlink before open. Reversing these calls creates an anonymous inode:
-       * writes still succeed through g_fd, but the user cannot retrieve it. */
-      (void)unlink(g_log_path);
-    }
     open_file_locked();
   } else {
     g_log_path[0] = '\0';
   }
   pthread_mutex_unlock(&g_lock);
-}
-
-void onion_log_configure(const char *tag, const char *log_path) {
-  configure_log(tag, log_path, false);
-}
-
-void onion_log_configure_fresh(const char *tag, const char *log_path) {
-  configure_log(tag, log_path, true);
 }
 
 void onion_log_set_max_bytes(size_t max_bytes) {
@@ -298,4 +316,3 @@ void onion_log_emergency(const char *fmt, ...) {
     (void)!write(g_fd, msg, len);
   }
 }
-

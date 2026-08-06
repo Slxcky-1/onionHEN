@@ -13,12 +13,21 @@
 
 static char g_path[64];
 
+static void cleanup_log_files(void) {
+  char rotated[80];
+  unlink(g_path);
+  for (unsigned i = 1; i <= ONION_LOG_DEFAULT_ROTATE_COUNT + 1; ++i) {
+    snprintf(rotated, sizeof(rotated), "%s.%u", g_path, i);
+    unlink(rotated);
+  }
+  /* Clean up artifacts produced by the previous one-generation policy. */
+  snprintf(rotated, sizeof(rotated), "%s.old", g_path);
+  unlink(rotated);
+}
+
 static void begin(const char *tag) {
   snprintf(g_path, sizeof(g_path), "/tmp/onion-log-test-%d", (int)getpid());
-  unlink(g_path);
-  char old[80];
-  snprintf(old, sizeof(old), "%s.old", g_path);
-  unlink(old);
+  cleanup_log_files();
   onion_log_set_max_bytes(0); /* restore default cap */
   onion_log_set_level(ONION_LOG_TRACE);
   onion_log_configure(tag, g_path);
@@ -26,10 +35,7 @@ static void begin(const char *tag) {
 
 static void end(void) {
   onion_log_configure("OnionHEN", NULL);
-  char old[80];
-  snprintf(old, sizeof(old), "%s.old", g_path);
-  unlink(g_path);
-  unlink(old);
+  cleanup_log_files();
   onion_log_set_level(ONION_LOG_INFO);
   onion_log_set_max_bytes(0);
 }
@@ -67,13 +73,11 @@ static int test_log_file_sink(void) {
   return 0;
 }
 
-/* Starting a daemon with a fresh log must remove the previous run before the
- * file is opened, otherwise unlinking the live path leaves only an anonymous
- * inode behind and the user cannot retrieve the log. */
-static int test_fresh_config_keeps_log_path_visible(void) {
+/* A daemon restart must append to the previous run instead of truncating it. */
+static int test_configure_appends_existing_log(void) {
   char buf[512];
   snprintf(g_path, sizeof(g_path), "/tmp/onion-log-test-%d", (int)getpid());
-  unlink(g_path);
+  cleanup_log_files();
 
   FILE *stale = fopen(g_path, "w");
   TEST_ASSERT_TRUE(stale != NULL);
@@ -81,12 +85,12 @@ static int test_fresh_config_keeps_log_path_visible(void) {
   fclose(stale);
 
   onion_log_set_level(ONION_LOG_INFO);
-  onion_log_configure_fresh("Fresh", g_path);
+  onion_log_configure("Append", g_path);
   LOG_INFO("current-run");
 
   TEST_ASSERT_TRUE(file_size(g_path) >= 0);
   read_file(g_path, buf, sizeof(buf));
-  TEST_ASSERT_TRUE(strstr(buf, "previous-run") == NULL);
+  TEST_ASSERT_TRUE(strstr(buf, "previous-run") != NULL);
   TEST_ASSERT_TRUE(strstr(buf, "current-run") != NULL);
   end();
   return 0;
@@ -135,9 +139,9 @@ static int test_level_off_silences_everything(void) {
 }
 
 /* An unbounded log on a console the user cannot clean out is a real failure
- * mode, so the cap must actually rotate and keep one generation. */
+ * mode, so the cap must actually rotate and keep a numbered backup. */
 static int test_rotation_caps_size_and_keeps_backup(void) {
-  char old_path[80];
+  char rotated_path[80];
   char buf[2048];
 
   begin("Rot");
@@ -150,8 +154,8 @@ static int test_rotation_caps_size_and_keeps_backup(void) {
   TEST_ASSERT_TRUE(live >= 0);
   TEST_ASSERT_TRUE(live <= 512);
 
-  snprintf(old_path, sizeof(old_path), "%s.old", g_path);
-  TEST_ASSERT_TRUE(file_size(old_path) > 0);
+  snprintf(rotated_path, sizeof(rotated_path), "%s.1", g_path);
+  TEST_ASSERT_TRUE(file_size(rotated_path) > 0);
 
   /* Newest records live in the current file. */
   read_file(g_path, buf, sizeof(buf));
@@ -160,9 +164,9 @@ static int test_rotation_caps_size_and_keeps_backup(void) {
   return 0;
 }
 
-/* Rotation keeps exactly one backup; older generations are dropped. */
-static int test_rotation_keeps_only_one_backup(void) {
-  char old_path[80];
+/* Rotation keeps .1 as newest through .3 as the oldest retained backup. */
+static int test_rotation_keeps_three_backups(void) {
+  char rotated_path[80];
   char buf[2048];
 
   begin("Rot2");
@@ -170,14 +174,42 @@ static int test_rotation_keeps_only_one_backup(void) {
   for (int i = 0; i < 200; i++) {
     onion_log_write(ONION_LOG_ERROR, "spam-%03d-aaaaaaaaaaaaaaaaaaaa", i);
   }
-  snprintf(old_path, sizeof(old_path), "%s.old", g_path);
+  for (unsigned i = 1; i <= ONION_LOG_DEFAULT_ROTATE_COUNT; ++i) {
+    snprintf(rotated_path, sizeof(rotated_path), "%s.%u", g_path, i);
+    TEST_ASSERT_TRUE(file_size(rotated_path) > 0);
+  }
+  snprintf(rotated_path, sizeof(rotated_path), "%s.%u", g_path,
+           ONION_LOG_DEFAULT_ROTATE_COUNT + 1);
+  TEST_ASSERT_TRUE(file_size(rotated_path) < 0);
 
-  char older[96];
-  snprintf(older, sizeof(older), "%s.old.old", g_path);
-  TEST_ASSERT_TRUE(file_size(older) < 0); /* never created */
-
-  read_file(old_path, buf, sizeof(buf));
+  snprintf(rotated_path, sizeof(rotated_path), "%s.1", g_path);
+  read_file(rotated_path, buf, sizeof(buf));
   TEST_ASSERT_TRUE(strstr(buf, "spam-000") == NULL); /* oldest rotated away */
+  end();
+  return 0;
+}
+
+/* Rotation must use the file's real size, including bytes appended outside
+ * this logger instance after its descriptor was opened. */
+static int test_rotation_observes_external_append(void) {
+  char rotated_path[80];
+  char buf[1024];
+  char padding[480];
+
+  begin("External");
+  onion_log_set_max_bytes(512);
+  memset(padding, 'p', sizeof(padding));
+  FILE *external = fopen(g_path, "ab");
+  TEST_ASSERT_TRUE(external != NULL);
+  TEST_ASSERT_EQ_INT(sizeof(padding), fwrite(padding, 1, sizeof(padding), external));
+  fclose(external);
+
+  onion_log_write(ONION_LOG_ERROR, "after-external-append");
+
+  snprintf(rotated_path, sizeof(rotated_path), "%s.1", g_path);
+  TEST_ASSERT_TRUE(file_size(rotated_path) >= (long)sizeof(padding));
+  read_file(g_path, buf, sizeof(buf));
+  TEST_ASSERT_TRUE(strstr(buf, "after-external-append") != NULL);
   end();
   return 0;
 }
@@ -261,13 +293,15 @@ static int test_emergency_bypasses_level(void) {
 int test_platform_log_suite(void) {
   int failures = 0;
   failures += onion_test_run("log.file_sink", test_log_file_sink);
-  failures += onion_test_run("log.fresh_config_visible",
-                             test_fresh_config_keeps_log_path_visible);
+  failures += onion_test_run("log.configure_appends",
+                             test_configure_appends_existing_log);
   failures += onion_test_run("log.configure_tag_only", test_log_configure_tag_only);
   failures += onion_test_run("log.runtime_level_filters", test_runtime_level_filters);
   failures += onion_test_run("log.level_off", test_level_off_silences_everything);
   failures += onion_test_run("log.rotation_caps_size", test_rotation_caps_size_and_keeps_backup);
-  failures += onion_test_run("log.rotation_one_backup", test_rotation_keeps_only_one_backup);
+  failures += onion_test_run("log.rotation_three_backups", test_rotation_keeps_three_backups);
+  failures += onion_test_run("log.rotation_external_append",
+                             test_rotation_observes_external_append);
   failures += onion_test_run("log.single_newline", test_single_trailing_newline);
   failures += onion_test_run("log.oversized_truncates", test_oversized_record_truncates);
   failures += onion_test_run("log.level_name_roundtrip", test_level_name_roundtrip);

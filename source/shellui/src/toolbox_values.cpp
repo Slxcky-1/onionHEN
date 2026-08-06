@@ -56,6 +56,14 @@ const ExactValueEntry kExactValues[] = {
     {"id_cheats_shortcut",
      +[]() -> std::string { return int_str(g_settings.cheats_shortcut_opt); }},
     {"id_ui_lang", +[]() -> std::string { return int_str(g_settings.ui_lang); }},
+    {"id_log_level",
+     +[]() -> std::string {
+       const int effective =
+           g_settings.log_level > ONION_LOG_COMPILE_LEVEL
+               ? static_cast<int>(ONION_LOG_COMPILE_LEVEL)
+               : g_settings.log_level;
+       return int_str(effective);
+     }},
     {"id_debug_jb",
      +[]() -> std::string { return bool_str(g_settings.debug_app_jb_msg); }},
     {"id_custom_game_opts",

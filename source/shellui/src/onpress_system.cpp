@@ -4,6 +4,31 @@
 #include <onion/notify_i18n.h>
 #include <cstdlib>
 
+static OnPressResult id_log_level(OnPressContext &ctx) {
+  char *end = nullptr;
+  const long selected = std::strtol(ctx.value.c_str(), &end, 10);
+  if (end == ctx.value.c_str() || *end != '\0' ||
+      selected < onion::kLogLevelOff ||
+      selected > static_cast<long>(ONION_LOG_COMPILE_LEVEL)) {
+    LOG_WARN("Rejected unsupported log level: %s", ctx.value.c_str());
+    return OnPressResult::EarlyReturn;
+  }
+
+  const int level = static_cast<int>(selected);
+  if (level == g_settings.log_level) {
+    return OnPressResult::EarlyReturn;
+  }
+
+  LOG_INFO("Changing log level from %s to %s",
+           onion_log_level_name(
+               static_cast<onion_log_level>(g_settings.log_level)),
+           onion_log_level_name(static_cast<onion_log_level>(level)));
+  g_settings.log_level = level;
+  ctx.reload_main = true;
+  ctx.reload_util = true;
+  return OnPressResult::Handled;
+}
+
 static OnPressResult id_debug_jb(OnPressContext &ctx) {
   if (atoi(ctx.value.c_str()) == g_settings.debug_app_jb_msg) {
     LOG_WARN("Debug JB already %s",
@@ -120,6 +145,7 @@ static OnPressResult id_toolbox_shortcut(OnPressContext &ctx) {
 }
 
 static const OnPressExactEntry kExact[] = {
+    {"id_log_level", id_log_level},
     {"id_debug_jb", id_debug_jb},
     {"id_custom_game_opts", id_custom_game_opts},
     {"id_ui_lang", id_ui_lang},

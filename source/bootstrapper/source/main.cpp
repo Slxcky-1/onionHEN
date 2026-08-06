@@ -50,6 +50,7 @@ along with this program; see the file COPYING. If not, see
 #include <stdio.h>
 #include <onion/ready.h>
 #include <onion/settings.hpp>
+#include <onion/log_settings.hpp>
 #include <onion/platform.h>
 #include <onion/notify.h>
 #include <onion/obf_str.h>
@@ -868,6 +869,7 @@ int main(void) {
       sceNotificationSend));
   onion::Settings notification_settings{};
   (void)onion::settings_load(&notification_settings);
+  (void)onion::apply_log_settings(notification_settings);
   int system_language = 1;
   if (notification_settings.ui_lang == onion::kUiLanguageSystem)
     (void)sceSystemServiceParamGetInt(1, &system_language);

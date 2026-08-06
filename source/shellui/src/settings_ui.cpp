@@ -7,6 +7,7 @@
 #include "toolbox_i18n.hpp"
 #include <onion/platform.h>
 #include <onion/ready.h>
+#include <onion/log_settings.hpp>
 #include "ipc.hpp" // shellui_log + IPC_Client
 #include <onion/settings.hpp>
 
@@ -113,10 +114,17 @@ bool LoadSettings()
 {
   onion::Settings s{};
   /* false from settings_load means defaults only — not a hard failure. */
-  if (!onion::settings_load(&s)) {
+  const bool from_file = onion::settings_load(&s);
+  const onion_log_level effective = onion::apply_log_settings(s);
+  if (!from_file) {
     LOG_ERROR("config.ini missing; using defaults");
   } else {
     LOG_DEBUG("Loaded settings from %s", onion::settings_last_loaded_path());
+  }
+  if (effective != static_cast<onion_log_level>(s.log_level)) {
+    LOG_WARN("ShellUI log level '%s' unavailable in this build; using '%s'",
+             onion_log_level_name(static_cast<onion_log_level>(s.log_level)),
+             onion_log_level_name(effective));
   }
 
   // Process-local store (UI thread); twin disk paths via settings_load/save.
@@ -141,13 +149,18 @@ bool SaveSettings()
 
 void settings_commit(bool reload_main, bool reload_util)
 {
-  SaveSettings();
+  if (!SaveSettings()) {
+    return;
+  }
   if (reload_main) {
     IPC_Client::getInstance(false).Reload_Daemon_Settings();
   }
   if (reload_util) {
     IPC_Client::getInstance(true).Reload_Daemon_Settings();
   }
+  /* Apply last so failures while persisting/propagating remain visible even
+     when the newly selected level is off or more restrictive. */
+  (void)onion::apply_log_settings(g_settings);
 }
 
 void shellui_request_display_tids_home_reload(void) {

@@ -24,11 +24,12 @@ extern bool is_handler_enabled;
 extern std::atomic_bool g_stack_shutting_down;
 
 /**
- * Refresh g_settings from twin config paths when either is newer.
+ * Refresh g_settings from twin config paths when either is newer. Set force
+ * for an explicit IPC reload so same-second writes bypass the mtime cache.
  * Returns true if store is usable (including defaults / skip-if-current).
  * Missing config is not an error.
  */
-bool LoadSettings();
+bool LoadSettings(bool force = false);
 
 /** After settings_save from this process, refresh mtime gate so we don't thrash. */
 void SettingsNoteDiskWritten();
