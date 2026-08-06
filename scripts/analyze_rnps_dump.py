@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -11,6 +12,7 @@ from typing import Any
 
 
 HERMES_MAGIC = bytes([0xC6, 0x1F, 0xBC, 0x03, 0xC1, 0x03, 0x19, 0x1F])
+LEGACY_BUNDLE_MAGIC = bytes([0xE5, 0xD1, 0x0B, 0xFB])
 RNPS_MAGIC = b"RNPSHEDR"
 RNPS_PAYLOAD_OFFSET_FIELD = 0x1C
 RNPS_FALLBACK_PAYLOAD_OFFSET = 0xB20
@@ -21,6 +23,12 @@ HBC_FILE_LENGTH_OFFSET = 0x20
 
 
 KNOWN_HOMEUI_PROFILES = [
+    {
+        "name": "9.00 NPXS40002 HomeUI",
+        "hbc_version": 89,
+        "file_length": 0x1846E0,
+        "source_hash": "587635687e0a190e38425232c39092888da5adbe",
+    },
     {
         "name": "10.01 NPXS40002 HomeUI",
         "hbc_version": 89,
@@ -60,6 +68,18 @@ KNOWN_HOMEUI_PROFILES = [
         "hbc_version": 89,
         "file_length": 0x1B70E4,
         "source_hash": "d9aa3ec2fcf7cc0bb0a7fe6362079c494948cf5e",
+    },
+]
+
+
+KNOWN_LEGACY_HOMEUI_PROFILES = [
+    {
+        # 4.03, 4.50 and 4.51 NPXS40002 are byte-identical.
+        "name": "4.03/4.50/4.51 NPXS40002 legacy HomeUI",
+        "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
+        "payload_size": 0x152990,
+        "file_size": 0x1534B0,
+        "sha256": "6db944372cfe8b7d50328ed4bd47c8cae6917821fb30f20004e7f85c673fe00a",
     },
 ]
 
@@ -192,6 +212,43 @@ def locate_hbc(data: bytes) -> tuple[int, str] | tuple[None, str]:
     return None, "missing"
 
 
+def locate_legacy_bundle(data: bytes) -> tuple[int, str] | tuple[None, str]:
+    """Locate the pre-Hermes RNPS JavaScript payload used by 4.x HomeUI."""
+    if data.startswith(LEGACY_BUNDLE_MAGIC):
+        return 0, "direct-legacy"
+
+    if data.startswith(RNPS_MAGIC):
+        declared = read_u32le(data, RNPS_PAYLOAD_OFFSET_FIELD)
+        candidates = []
+        if declared is not None and 0 < declared < len(data):
+            candidates.append((declared, "rnps-declared-legacy"))
+        candidates.append((RNPS_FALLBACK_PAYLOAD_OFFSET, "rnps-fallback-legacy"))
+        for offset, location in candidates:
+            if (
+                data[offset : offset + len(LEGACY_BUNDLE_MAGIC)]
+                == LEGACY_BUNDLE_MAGIC
+            ):
+                return offset, location
+
+    return None, "missing"
+
+
+def match_legacy_profile(data: bytes, payload_offset: int) -> dict[str, Any] | None:
+    payload = data[payload_offset:]
+    digest = hashlib.sha256(data).hexdigest()
+    for profile in KNOWN_LEGACY_HOMEUI_PROFILES:
+        if len(data) != profile["file_size"]:
+            continue
+        if len(payload) != profile["payload_size"]:
+            continue
+        if payload[:4].hex() != profile["payload_magic"]:
+            continue
+        if digest != profile["sha256"]:
+            continue
+        return profile
+    return None
+
+
 def match_profile(
     profiles: list[dict[str, Any]],
     hbc_version: int | None,
@@ -228,6 +285,32 @@ def analyze_file(path: Path, app_id: str) -> dict[str, Any]:
         "hbc_offset": hbc_offset,
         "hbc_location": hbc_location,
     }
+
+    if app_id == "NPXS40002":
+        legacy_offset, legacy_location = locate_legacy_bundle(data)
+        if legacy_offset is not None:
+            payload = data[legacy_offset:]
+            profile = match_legacy_profile(data, legacy_offset)
+            result.update(
+                {
+                    "legacy_offset": legacy_offset,
+                    "legacy_location": legacy_location,
+                    "legacy_payload_size": len(payload),
+                    "legacy_magic": payload[:4].hex(),
+                    "legacy_sha256": hashlib.sha256(data).hexdigest(),
+                    "profile": profile["name"] if profile else None,
+                    "supported": profile is not None,
+                    "strings": {},
+                }
+            )
+            for needle in TRACKED_STRINGS:
+                offsets = find_all(payload, needle)
+                result["strings"][needle.decode("ascii")] = {
+                    "count": len(offsets),
+                    "first_offsets": [f"0x{offset:x}" for offset in offsets[:8]],
+                }
+            return result
+
     if hbc_offset is None:
         result["supported"] = False
         result["error"] = "HBC magic not found"
@@ -313,6 +396,27 @@ def print_text(report: dict[str, Any], errors: list[str]) -> None:
     for app in report["apps"]:
         print(f"\n{app['app_id']}: {app['path']}")
         print(f"  file_size: 0x{app['size']:x} ({app['size']})")
+        if app.get("legacy_offset") is not None:
+            print(
+                "  legacy RNPS bundle: "
+                f"offset=0x{app['legacy_offset']:x} "
+                f"location={app['legacy_location']} "
+                f"magic={app['legacy_magic']} "
+                f"payload_size=0x{app['legacy_payload_size']:x} "
+                f"sha256={app['legacy_sha256']}"
+            )
+            print(
+                "  profile: "
+                f"{app['profile'] if app['profile'] else 'unsupported'} "
+                f"(supported={'yes' if app['supported'] else 'no'})"
+            )
+            print("  strings:")
+            for name, detail in app["strings"].items():
+                if detail["count"] == 0:
+                    continue
+                offsets = ", ".join(detail["first_offsets"])
+                print(f"    {name}: count={detail['count']} first={offsets}")
+            continue
         if app.get("hbc_offset") is None:
             print(f"  hbc: missing ({app.get('error')})")
             continue

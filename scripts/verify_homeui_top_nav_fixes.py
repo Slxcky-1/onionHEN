@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Two-pass offline verifier: HomeUI top-nav Fix A (no crash) + Fix B (focus icon).
+"""Two-pass offline verifier for Hermes and legacy RNPS HomeUI top-nav patches.
 
 Reads original NPXS40002 dumps, matches C++ HomeUiPatchProfiles, simulates the
 runtime Hermes patches, and checks product invariants twice for consistency.
@@ -26,25 +26,34 @@ REPO = Path(__file__).resolve().parents[1]
 CPP = (REPO / "source/shellui/src/homeui_top_nav_patch.cpp").read_text()
 INC = (REPO / "source/shellui/src/homeui_top_nav_profiles.inc").read_text()
 HERMES = bytes([0xC6, 0x1F, 0xBC, 0x03, 0xC1, 0x03, 0x19, 0x1F])
+LEGACY = bytes([0xE5, 0xD1, 0x0B, 0xFB])
 
-# Exact dump list requested by user (paths resolved under sibling tree).
-DUMP_ROOT = Path("/Users/chenpy/Projects/Person/ps5-kylin")
+# Decrypted dump list covered by the C++ HomeUI profiles.
+DUMP_ROOT = Path("/Users/chenpy/Projects/Person/ps5-kylin/Sony Dumps")
 DUMPS = [
-    DUMP_ROOT / "12.7DUIMP",
-    DUMP_ROOT / "12.6DUMP",
-    DUMP_ROOT / "12.4DUMP",
-    DUMP_ROOT / "12.02DUMP",
-    DUMP_ROOT / "12.2DUMP",
-    DUMP_ROOT / "12.0DUMP",
-    DUMP_ROOT / "11.6DUMP",
-    DUMP_ROOT / "11.4DUMP",
-    DUMP_ROOT / "11.2DUMP",
-    DUMP_ROOT / "11.0DUMP",
-    DUMP_ROOT / "10.6DUMP",
-    DUMP_ROOT / "10.4DUMP",
-    DUMP_ROOT / "10.2DUMP",
-    DUMP_ROOT / "10.01DUMP",
+    DUMP_ROOT / version
+    for version in (
+        "4.03",
+        "4.50",
+        "4.51",
+        "9.00",
+        "10.01",
+        "10.2",
+        "10.4",
+        "10.6",
+        "11.0",
+        "11.2",
+        "11.4",
+        "11.6",
+        "12.0",
+        "12.02",
+        "12.2",
+        "12.4",
+        "12.6",
+        "12.7",
+    )
 ]
+
 
 def extract_array(name: str) -> bytes:
     """Read a firmware-independent constant from the patch .cpp."""
@@ -68,6 +77,28 @@ def extract_array(name: str) -> bytes:
         else:
             out.append(ord(c))
     return bytes(out)
+
+
+def extract_c_string(name: str) -> bytes:
+    m = re.search(
+        rf"static const char {re.escape(name)}\[\] =\s*"
+        r'"((?:\\.|[^"\\])*)";',
+        CPP,
+        re.S,
+    )
+    if not m:
+        raise SystemExit(f"missing C++ string {name}")
+    return bytes(m.group(1), "utf-8").decode("unicode_escape").encode("latin1")
+
+
+def extract_size(name: str) -> int:
+    m = re.search(
+        rf"constexpr size_t {re.escape(name)} = (0x[0-9a-fA-F]+|[0-9]+);",
+        CPP,
+    )
+    if not m:
+        raise SystemExit(f"missing C++ size {name}")
+    return int(m.group(1), 0)
 
 
 def _hex_bytes(text: str) -> bytes:
@@ -145,8 +176,23 @@ STOCK_DL = extract_array("kStockDownloadErrorString")
 BLANK_LINK = extract_array("kLegacyBlankTopNavLinkUri")
 PADDED_LINK = extract_array("kLegacyPaddedTopNavLinkUri")
 
+LEGACY_ORDER_OFFSET = extract_size("kLegacyIconOrderOffset")
+LEGACY_SOURCE_OFFSET = extract_size("kLegacyAppErrorSourceOffset")
+LEGACY_SOURCE_SIZE = extract_size("kLegacyAppErrorSourceSize")
+LEGACY_ALIAS_OFFSET = extract_size("kLegacyExportAliasOffset")
+LEGACY_OLD_ORDER = extract_array("kLegacyOldIconOrder")
+LEGACY_NEW_ORDER = extract_array("kLegacyNewIconOrder")
+LEGACY_OLD_ALIAS = extract_array("kLegacyOldExportAlias")
+LEGACY_NEW_ALIAS = extract_array("kLegacyNewExportAlias")
+LEGACY_OLD_SOURCE = extract_c_string("kLegacyOldAppErrorSource")
+LEGACY_NEW_SOURCE_PREFIX = extract_c_string("kLegacyNewAppErrorSourcePrefix")
+LEGACY_NEW_SOURCE = LEGACY_NEW_SOURCE_PREFIX.ljust(LEGACY_SOURCE_SIZE, b" ")
+
 assert NEW_ICON_URI == b"/system_ex/vsh_asset/onionhen.png", NEW_ICON_URI
 assert NEW_LINK == b"OnionHEN?NavUI=1", NEW_LINK
+assert len(LEGACY_OLD_ORDER) == len(LEGACY_NEW_ORDER) == 37
+assert len(LEGACY_OLD_ALIAS) == len(LEGACY_NEW_ALIAS) == 7
+assert len(LEGACY_OLD_SOURCE) == len(LEGACY_NEW_SOURCE) == LEGACY_SOURCE_SIZE
 
 
 def locate_hbc(data: bytes) -> bytearray | None:
@@ -160,6 +206,18 @@ def locate_hbc(data: bytes) -> bytearray | None:
             return bytearray(data[off:])
     i = data.find(HERMES)
     return bytearray(data[i:]) if i >= 0 else None
+
+
+def locate_legacy(data: bytes) -> bytearray | None:
+    if data.startswith(LEGACY):
+        return bytearray(data)
+    if data[:8] == b"RNPSHEDR":
+        off = struct.unpack_from("<I", data, 0x1C)[0]
+        if off == 0 or off >= len(data):
+            off = 0xB20
+        if data[off : off + 4] == LEGACY:
+            return bytearray(data[off:])
+    return None
 
 
 def match_profile(hbc: bytes) -> dict | None:
@@ -209,8 +267,21 @@ def apply_patch(hbc: bytearray, p: dict) -> list[str]:
         hbc,
         "icon_order",
         o["home_icon_order"],
-        [b["old_icon_order"], b["legacy_fps_slot_icon_order"], b["app_error_icon_order"]],
+        [
+            b["old_icon_order"],
+            b["legacy_fps_slot_icon_order"],
+            b["legacy_aliased_icon_order"],
+            b["app_error_icon_order"],
+        ],
         b["app_error_icon_order"],
+        notes,
+    )
+    ok &= patch_at(
+        hbc,
+        "fps_factory",
+        o["fps_factory"],
+        [b["original_fps_factory"], b["legacy_aliased_fps_factory"]],
+        b["original_fps_factory"],
         notes,
     )
     fps_alts = [b["onion_hen_button_body"], b["old_fps_body_prefix"]]
@@ -308,6 +379,9 @@ def verify(hbc: bytes, p: dict, tag: str) -> list[str]:
         )
     if app == b["stock_app_error_body"]:
         errs.append(f"{tag}: FixA FAIL — AppError still stock")
+    factory = bytes(hbc[o["fps_factory"] : o["fps_factory"] + 5])
+    if factory != b["original_fps_factory"]:
+        errs.append(f"{tag}: Fps factory alias not repaired ({factory.hex()})")
     if o["fps_body"] - o["app_error_body"] != 153:
         errs.append(
             f"{tag}: AppError→Fps gap {o['fps_body'] - o['app_error_body']} != 153"
@@ -348,27 +422,18 @@ def precheck(hbc: bytes, p: dict) -> list[str]:
     b = p["bytes"]
     o = p["offsets"]
     order = bytes(hbc[o["home_icon_order"] : o["home_icon_order"] + 9])
-    if order not in (b["old_icon_order"], b["legacy_fps_slot_icon_order"], b["app_error_icon_order"]):
+    if order not in (
+        b["old_icon_order"],
+        b["legacy_fps_slot_icon_order"],
+        b["legacy_aliased_icon_order"],
+        b["app_error_icon_order"],
+    ):
         errs.append(f"pre: unexpected order {order.hex()}")
     app = bytes(hbc[o["app_error_body"] : o["app_error_body"] + 77])
     if app not in (b["stock_app_error_body"], b["onion_hen_button_body"]) and not (
         p["legacy_button_body"] is not None and app == p["legacy_button_body"]
     ):
         errs.append(f"pre: AppError body unexpected ({app[:8].hex()})")
-    # Virgin dumps must match C++ stock AppError exactly.
-    if app != b["stock_app_error_body"] and app != b["onion_hen_button_body"]:
-        errs.append("pre: AppError neither stock nor already-onion")
-    if app == b["stock_app_error_body"] and app != b["stock_app_error_body"]:
-        pass
-    if bytes(hbc[o["app_error_body"] : o["app_error_body"] + 77]) != bs[
-        "stock_app_error"
-    ]:
-        # If dump is already patched onion, still OK for migration path.
-        if bytes(hbc[o["app_error_body"] : o["app_error_body"] + 77]) != b["onion_hen_button_body"]:
-            errs.append("pre: AppError body != C++ stock (and not onion)")
-    else:
-        # Exact match stock — good.
-        pass
     fps = bytes(hbc[o["fps_body"] : o["fps_body"] + 77])
     if fps not in (b["old_fps_body_prefix"], b["onion_hen_button_body"]) and not (
         p["legacy_button_body"] is not None and fps == p["legacy_button_body"]
@@ -380,16 +445,87 @@ def precheck(hbc: bytes, p: dict) -> list[str]:
         and app != b["stock_app_error_body"]
     ):
         errs.append("pre: virgin order but AppError not stock")
-    if app == b["stock_app_error_body"] and app != bytes(
-        hbc[o["app_error_body"] : o["app_error_body"] + 77]
-    ):
-        errs.append("pre: stock AppError compare bug")
     # Strong check: stock body bytes equal C++ table
     if order == b["old_icon_order"]:
         if app != b["stock_app_error_body"]:
             errs.append("pre: stock dump AppError != C++ StockAppErrorBody")
         if fps != b["old_fps_body_prefix"]:
             errs.append("pre: stock dump Fps prefix != C++ OldFpsBodyPrefix")
+    return errs
+
+
+def precheck_legacy(bundle: bytes) -> list[str]:
+    errs: list[str] = []
+    order = bytes(bundle[LEGACY_ORDER_OFFSET : LEGACY_ORDER_OFFSET + 37])
+    alias = bytes(bundle[LEGACY_ALIAS_OFFSET : LEGACY_ALIAS_OFFSET + 7])
+    source = bytes(
+        bundle[LEGACY_SOURCE_OFFSET : LEGACY_SOURCE_OFFSET + LEGACY_SOURCE_SIZE]
+    )
+    if order not in (LEGACY_OLD_ORDER, LEGACY_NEW_ORDER):
+        errs.append(f"pre: legacy order unexpected ({order!r})")
+    if alias not in (LEGACY_OLD_ALIAS, LEGACY_NEW_ALIAS):
+        errs.append(f"pre: legacy alias unexpected ({alias!r})")
+    if source not in (LEGACY_OLD_SOURCE, LEGACY_NEW_SOURCE):
+        errs.append(f"pre: legacy AppError source unexpected ({source[:32]!r})")
+    return errs
+
+
+def apply_legacy(bundle: bytearray) -> list[str]:
+    notes: list[str] = []
+    ok = True
+    ok &= patch_at(
+        bundle,
+        "legacy_order",
+        LEGACY_ORDER_OFFSET,
+        [LEGACY_OLD_ORDER, LEGACY_NEW_ORDER],
+        LEGACY_NEW_ORDER,
+        notes,
+    )
+    ok &= patch_at(
+        bundle,
+        "legacy_alias",
+        LEGACY_ALIAS_OFFSET,
+        [LEGACY_OLD_ALIAS, LEGACY_NEW_ALIAS],
+        LEGACY_NEW_ALIAS,
+        notes,
+    )
+    ok &= patch_at(
+        bundle,
+        "legacy_app_error",
+        LEGACY_SOURCE_OFFSET,
+        [LEGACY_OLD_SOURCE, LEGACY_NEW_SOURCE],
+        LEGACY_NEW_SOURCE,
+        notes,
+    )
+    if not ok:
+        notes.append("APPLY_FAILED")
+    return notes
+
+
+def verify_legacy(bundle: bytes, tag: str) -> list[str]:
+    errs: list[str] = []
+    order = bytes(bundle[LEGACY_ORDER_OFFSET : LEGACY_ORDER_OFFSET + 37])
+    alias = bytes(bundle[LEGACY_ALIAS_OFFSET : LEGACY_ALIAS_OFFSET + 7])
+    source = bytes(
+        bundle[LEGACY_SOURCE_OFFSET : LEGACY_SOURCE_OFFSET + LEGACY_SOURCE_SIZE]
+    )
+    if order != LEGACY_NEW_ORDER:
+        errs.append(f"{tag}: legacy order not Search|App|Settings|Profile")
+    if alias != LEGACY_NEW_ALIAS:
+        errs.append(f"{tag}: legacy App alias missing ({alias!r})")
+    if source != LEGACY_NEW_SOURCE:
+        errs.append(f"{tag}: legacy AppError source mismatch")
+    for marker in (
+        b"useInteractivePress",
+        b"OnionHEN?NavUI=1",
+        b"/system_ex/vsh_asset/onionhen.png",
+        b"onPress:e",
+        b'title:""',
+    ):
+        if marker not in source:
+            errs.append(f"{tag}: legacy source missing {marker!r}")
+    if b"sendClientApplicationErrorEvent" in source:
+        errs.append(f"{tag}: legacy AppError telemetry body still active")
     return errs
 
 
@@ -407,7 +543,39 @@ def run_pass(pass_id: int):
             print(f"[MISS] {name}: no NPXS40002.bin")
             rows.append((name, False, ["no NPXS40002.bin"]))
             continue
-        hbc = locate_hbc(path.read_bytes())
+        raw = path.read_bytes()
+        legacy = locate_legacy(raw)
+        if legacy is not None:
+            errs = precheck_legacy(legacy)
+            notes1 = apply_legacy(legacy)
+            errs += verify_legacy(legacy, "after-patch")
+            legacy2 = bytearray(legacy)
+            notes2 = apply_legacy(legacy2)
+            errs += verify_legacy(legacy2, "idempotent")
+            if legacy2 != legacy:
+                errs.append("idempotent: legacy second pass changed bytes")
+            if any(
+                "MISMATCH" in x or "APPLY_FAILED" in x
+                for x in notes1 + notes2
+            ):
+                errs.append(f"apply:{notes1}|{notes2}")
+            ok = not errs
+            print(
+                f"[{'OK' if ok else 'FAIL'}] {name:12} → "
+                "4.03/4.50/4.51 legacy HomeUI"
+            )
+            if ok:
+                print(
+                    "       Legacy OK: order=Search|App|Settings|Profile; "
+                    "App=useInteractivePress OnionHEN"
+                )
+            else:
+                for error in errs:
+                    print(f"       {error}")
+            rows.append((name, ok, errs))
+            continue
+
+        hbc = locate_hbc(raw)
         if hbc is None:
             print(f"[FAIL] {name}: no HBC")
             rows.append((name, False, ["no HBC"]))
@@ -434,6 +602,8 @@ def run_pass(pass_id: int):
         errs += verify(hbc2, p, "reread")
         notes2 = apply_patch(hbc2, p)
         errs += verify(hbc2, p, "idempotent")
+        if hbc2 != hbc:
+            errs.append("idempotent: Hermes second pass changed bytes")
         if any("MISMATCH" in x or "APPLY_FAILED" in x for x in notes1 + notes2):
             errs.append(f"apply:{notes1}|{notes2}")
 

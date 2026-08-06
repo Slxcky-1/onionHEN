@@ -35,6 +35,7 @@ namespace {
 
 constexpr unsigned char kHermesMagic[] = {0xc6, 0x1f, 0xbc, 0x03,
                                           0xc1, 0x03, 0x19, 0x1f};
+constexpr unsigned char kLegacyRnpsBundleMagic[] = {0xe5, 0xd1, 0x0b, 0xfb};
 constexpr unsigned char kRnpsMagic[] = {'R', 'N', 'P', 'S',
                                         'H', 'E', 'D', 'R'};
 
@@ -48,6 +49,39 @@ constexpr size_t kHbcFooterSha1Size = 20;
 constexpr const char *kOnionHenTopNavIconPath =
     "/system_ex/vsh_asset/onionhen.png";
 
+/* The 4.03/4.50/4.51 HomeUI is a pre-Hermes RNPS JavaScript bundle. */
+constexpr size_t kLegacyTitleIdOffset = 0x6ae31;
+constexpr size_t kLegacyAppErrorEventTriggerOffset = 0xa6bb1;
+constexpr size_t kLegacyNavigateToHomeOffset = 0x40386;
+constexpr size_t kLegacyIconOrderOffset = 0xa6aea;
+constexpr size_t kLegacyAppErrorSourceOffset = 0x1021c9;
+constexpr size_t kLegacyAppErrorSourceSize = 383;
+constexpr size_t kLegacyExportAliasOffset = 0x10249d;
+
+static const unsigned char kLegacyOldIconOrder[] = {
+    '[', '"', 'F', 'p', 's', '"', ',', '"', 'S', 'e', 'a', 'r', 'c', 'h',
+    '"', ',', '"', 'S', 'e', 't', 't', 'i', 'n', 'g', 's', '"', ',', '"',
+    'P', 'r', 'o', 'f', 'i', 'l', 'e', '"', ']'};
+static const unsigned char kLegacyNewIconOrder[] = {
+    '[', '"', 'S', 'e', 'a', 'r', 'c', 'h', '"', ',', '"', 'A', 'p', 'p',
+    '"', ',', '"', 'S', 'e', 't', 't', 'i', 'n', 'g', 's', '"', ',', '"',
+    'P', 'r', 'o', 'f', 'i', 'l', 'e', '"', ']'};
+static const unsigned char kLegacyOldExportAlias[] = {
+    't', '.', 'F', 'p', 's', '=', 'P'};
+static const unsigned char kLegacyNewExportAlias[] = {
+    't', '.', 'A', 'p', 'p', '=', 'h'};
+static const char kLegacyOldAppErrorSource[] =
+    "var h=(0,u().memo)((function(){var e=(0,m.default)().sendClientApplicationErrorEvent;return u().default.createElement(d.default,{iconId:\"download_error\",onPress:function(){var t=new Error(\"homeui ApplicationErrorEvent test\");e({errorMessage:t.message,stack:t.stack,severity:\"info\"})},title:\"Trigger AppError\",__source:{fileName:_,lineNumber:80}})}));t.ApplicationErrorEventTrigger=h;";
+static const char kLegacyNewAppErrorSourcePrefix[] =
+    "var h=(0,u().memo)((function(){var e=(0,f.useInteractivePress)({link:\"OnionHEN?NavUI=1\"});return u().default.createElement(d.default,{iconId:\"/system_ex/vsh_asset/onionhen.png\",onPress:e,title:\"\",__source:{fileName:_,lineNumber:80}})}));t.ApplicationErrorEventTrigger=h;";
+
+static_assert(sizeof(kLegacyOldIconOrder) == sizeof(kLegacyNewIconOrder));
+static_assert(sizeof(kLegacyOldExportAlias) == sizeof(kLegacyNewExportAlias));
+static_assert(sizeof(kLegacyOldAppErrorSource) - 1 ==
+              kLegacyAppErrorSourceSize);
+static_assert(sizeof(kLegacyNewAppErrorSourcePrefix) - 1 <=
+              kLegacyAppErrorSourceSize);
+
 std::atomic<bool> g_homeui_top_nav_reload_pending{false};
 #if SHELL_DEBUG == 1
 /* Latches so an unsupported HomeUI is reported once, not every reload. */
@@ -60,6 +94,12 @@ void (*g_react_button_set_inverted_icon_source)(MonoObject *instance,
                                                 MonoObject *source) = nullptr;
 
 struct HbcView {
+  unsigned char *data;
+  size_t size;
+  size_t base_offset;
+};
+
+struct LegacyBundleView {
   unsigned char *data;
   size_t size;
   size_t base_offset;
@@ -227,6 +267,114 @@ static bool locate_hbc(unsigned char *buffer, size_t visible_size,
   return false;
 }
 
+static bool legacy_bundle_at(unsigned char *buffer, size_t available,
+                             size_t offset, LegacyBundleView *out) {
+  if (!range_contains(available, offset,
+                      sizeof(kLegacyRnpsBundleMagic)) ||
+      !has_magic(buffer + offset, available - offset,
+                 kLegacyRnpsBundleMagic,
+                 sizeof(kLegacyRnpsBundleMagic))) {
+    return false;
+  }
+
+  out->data = buffer + offset;
+  out->size = available - offset;
+  out->base_offset = offset;
+  return true;
+}
+
+static bool locate_legacy_bundle(unsigned char *buffer, size_t visible_size,
+                                 size_t capacity, LegacyBundleView *out) {
+  const size_t available = capacity > visible_size ? capacity : visible_size;
+
+  if (legacy_bundle_at(buffer, available, 0, out)) {
+    return true;
+  }
+
+  if (!has_magic(buffer, available, kRnpsMagic, sizeof(kRnpsMagic))) {
+    return false;
+  }
+
+  size_t payload_offset = kRnpsFallbackPayloadOffset;
+  if (range_contains(available, kRnpsPayloadOffsetField, sizeof(uint32_t))) {
+    const uint32_t declared_offset =
+        read_u32le(buffer + kRnpsPayloadOffsetField);
+    if (declared_offset > 0 && declared_offset < available) {
+      payload_offset = declared_offset;
+    }
+  }
+
+  if (legacy_bundle_at(buffer, available, payload_offset, out)) {
+    return true;
+  }
+
+  return payload_offset != kRnpsFallbackPayloadOffset &&
+         legacy_bundle_at(buffer, available, kRnpsFallbackPayloadOffset, out);
+}
+
+static bool legacy_bytes_at(const LegacyBundleView &bundle, size_t offset,
+                            const unsigned char *expected, size_t len) {
+  return range_contains(bundle.size, offset, len) &&
+         bytes_equal(bundle.data + offset, expected, len);
+}
+
+static bool legacy_source_is_target(const LegacyBundleView &bundle) {
+  constexpr size_t prefix_size = sizeof(kLegacyNewAppErrorSourcePrefix) - 1;
+  if (!range_contains(bundle.size, kLegacyAppErrorSourceOffset,
+                      kLegacyAppErrorSourceSize) ||
+      !legacy_bytes_at(bundle, kLegacyAppErrorSourceOffset,
+                       reinterpret_cast<const unsigned char *>(
+                           kLegacyNewAppErrorSourcePrefix),
+                       prefix_size)) {
+    return false;
+  }
+
+  const unsigned char *padding =
+      bundle.data + kLegacyAppErrorSourceOffset + prefix_size;
+  for (size_t i = prefix_size; i < kLegacyAppErrorSourceSize; ++i) {
+    if (padding[i - prefix_size] != ' ') {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool validate_legacy_source(const LegacyBundleView &bundle,
+                                   bool *already_applied) {
+  if (!range_contains(bundle.size, kLegacyAppErrorSourceOffset,
+                      kLegacyAppErrorSourceSize)) {
+#if SHELL_DEBUG == 1
+    LOG_DEBUG("homeui_top_nav_patch: legacy AppError source out of range");
+#endif
+    return false;
+  }
+
+  if (legacy_source_is_target(bundle)) {
+    *already_applied = true;
+    return true;
+  }
+
+  if (!legacy_bytes_at(
+          bundle, kLegacyAppErrorSourceOffset,
+          reinterpret_cast<const unsigned char *>(kLegacyOldAppErrorSource),
+          kLegacyAppErrorSourceSize)) {
+#if SHELL_DEBUG == 1
+    LOG_WARN("homeui_top_nav_patch: legacy AppError source mismatch; skip");
+#endif
+    return false;
+  }
+
+  *already_applied = false;
+  return true;
+}
+
+static void apply_legacy_source(const LegacyBundleView &bundle) {
+  constexpr size_t prefix_size = sizeof(kLegacyNewAppErrorSourcePrefix) - 1;
+  unsigned char *target = bundle.data + kLegacyAppErrorSourceOffset;
+  memcpy(target, kLegacyNewAppErrorSourcePrefix, prefix_size);
+  memset(target + prefix_size, ' ', kLegacyAppErrorSourceSize - prefix_size);
+}
+
 static bool read_hbc_file_length(const HbcView &hbc, size_t *file_length) {
   if (!range_contains(hbc.size, kHbcFileLengthOffset, sizeof(uint32_t))) {
     return false;
@@ -371,6 +519,46 @@ static void apply_patch(const HbcView &hbc, const BytePatch &patch) {
   }
 }
 
+static bool validate_patch(const LegacyBundleView &bundle,
+                           const BytePatch &patch, bool *already_applied) {
+  if (!range_contains(bundle.size, patch.offset, patch.size)) {
+#if SHELL_DEBUG == 1
+    LOG_DEBUG("homeui_top_nav_patch: legacy %s out of range at payload+0x%llx",
+              patch.name, (unsigned long long)patch.offset);
+#endif
+    return false;
+  }
+
+  const unsigned char *current = bundle.data + patch.offset;
+  if (bytes_equal(current, patch.replacement, patch.size)) {
+    *already_applied = true;
+    return true;
+  }
+
+  if (bytes_equal(current, patch.expected, patch.size) ||
+      (patch.alternate_expected &&
+       bytes_equal(current, patch.alternate_expected, patch.size)) ||
+      (patch.second_alternate_expected &&
+       bytes_equal(current, patch.second_alternate_expected, patch.size))) {
+    *already_applied = false;
+    return true;
+  }
+
+#if SHELL_DEBUG == 1
+  LOG_WARN("homeui_top_nav_patch: legacy %s mismatch at payload+0x%llx; skip",
+           patch.name, (unsigned long long)patch.offset);
+#endif
+  return false;
+}
+
+static void apply_patch(const LegacyBundleView &bundle,
+                        const BytePatch &patch) {
+  const unsigned char *current = bundle.data + patch.offset;
+  if (!bytes_equal(current, patch.replacement, patch.size)) {
+    memcpy(bundle.data + patch.offset, patch.replacement, patch.size);
+  }
+}
+
 static void update_hbc_footer_sha1(HbcView &hbc, size_t file_length) {
   const size_t footer_offset = file_length - kHbcFooterSha1Size;
   SHA1_CTX ctx;
@@ -426,6 +614,70 @@ static void ReactButtonShadowNode_SetIconSource_Hook(MonoObject *instance,
 #endif
 }
 
+static bool patch_legacy_homeui_top_nav(const LegacyBundleView &bundle) {
+  if (!legacy_bytes_at(bundle, kLegacyTitleIdOffset,
+                       reinterpret_cast<const unsigned char *>("NPXS40002"),
+                       sizeof("NPXS40002") - 1) ||
+      !legacy_bytes_at(
+          bundle, kLegacyAppErrorEventTriggerOffset,
+          reinterpret_cast<const unsigned char *>(
+              "ApplicationErrorEventTrigger"),
+          sizeof("ApplicationErrorEventTrigger") - 1) ||
+      !legacy_bytes_at(
+          bundle, kLegacyNavigateToHomeOffset,
+          reinterpret_cast<const unsigned char *>("pshomeui:navigateToHome"),
+          sizeof("pshomeui:navigateToHome") - 1)) {
+#if SHELL_DEBUG == 1
+    LOG_WARN("homeui_top_nav_patch: skip unknown legacy RNPS HomeUI");
+#endif
+    return false;
+  }
+
+  const BytePatch kPatches[] = {
+      {"legacy home icon order", kLegacyIconOrderOffset,
+       kLegacyOldIconOrder, nullptr, nullptr, kLegacyNewIconOrder,
+       sizeof(kLegacyOldIconOrder)},
+      {"legacy App export alias", kLegacyExportAliasOffset,
+       kLegacyOldExportAlias, nullptr, nullptr, kLegacyNewExportAlias,
+       sizeof(kLegacyOldExportAlias)},
+  };
+
+  bool source_already_applied = false;
+  if (!validate_legacy_source(bundle, &source_already_applied)) {
+    return false;
+  }
+
+  bool any_change = !source_already_applied;
+  for (size_t i = 0; i < sizeof(kPatches) / sizeof(kPatches[0]); ++i) {
+    bool already_applied = false;
+    if (!validate_patch(bundle, kPatches[i], &already_applied)) {
+      return false;
+    }
+    any_change = any_change || !already_applied;
+  }
+
+  if (!any_change) {
+#if SHELL_DEBUG == 1
+    LOG_WARN("homeui_top_nav_patch: legacy HomeUI already applied "
+             "(rnps_base=0x%llx)",
+             (unsigned long long)bundle.base_offset);
+#endif
+    return true;
+  }
+
+  for (size_t i = 0; i < sizeof(kPatches) / sizeof(kPatches[0]); ++i) {
+    apply_patch(bundle, kPatches[i]);
+  }
+  apply_legacy_source(bundle);
+
+#if SHELL_DEBUG == 1
+  LOG_DEBUG("homeui_top_nav_patch: activated legacy 4.x HomeUI top-nav "
+            "profile (rnps_base=0x%llx)",
+            (unsigned long long)bundle.base_offset);
+#endif
+  return true;
+}
+
 } // namespace
 
 #endif /* SHELLUI_HOMEUI_TOP_NAV_PATCH == 1 */
@@ -478,6 +730,13 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
   const size_t visible_size = (size_t)*size_ptr;
   const size_t capacity =
       buffer_capacity > *size_ptr ? (size_t)buffer_capacity : visible_size;
+
+  LegacyBundleView legacy_bundle = {};
+  if (locate_legacy_bundle(buffer, visible_size, capacity, &legacy_bundle)) {
+    patch_legacy_homeui_top_nav(legacy_bundle);
+    return;
+  }
+
   if (!locate_hbc(buffer, visible_size, capacity, &hbc)) {
 #if SHELL_DEBUG == 1
     const unsigned char b0 = visible_size > 0 ? buffer[0] : 0;
