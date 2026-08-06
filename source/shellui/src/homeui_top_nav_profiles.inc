@@ -38,6 +38,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
             /* custom_title_value       */ 0xb5565,
             /* fps_body                 */ 0x149f33,
             /* app_error_body           */ 0x149e9a,
+            /* app_error_props_helper_body */ 0x149ee7,
         },
         /* bytes */ {
             /* old_icon_order */ {
@@ -104,6 +105,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
                 0x0d, 0x94, 0x15, 0x62, 0x04, 0x04, 0x9a, 0x18, 0x39, 0x00, 0x04,
                 0x01, 0xb9, 0x00, 0x52, 0x00, 0x02, 0x03, 0x01, 0x00, 0x5a, 0x00
             },
+            /* requires_image_source_object */ true,
         },
     },
     {
@@ -128,6 +130,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
             /* custom_title_value       */ 0xc012d,
             /* fps_body                 */ 0x175a00,
             /* app_error_body           */ 0x175967,
+            /* app_error_props_helper_body */ 0x0,
         },
         /* bytes */ {
             /* old_icon_order */ {
@@ -194,6 +197,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
                 0x10, 0x58, 0x19, 0x62, 0x04, 0x04, 0x8d, 0x1d, 0x39, 0x00, 0x04,
                 0x01, 0xb2, 0x00, 0x52, 0x00, 0x02, 0x03, 0x01, 0x00, 0x5a, 0x00
             },
+            /* requires_image_source_object */ false,
         },
     },
     {
@@ -219,6 +223,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
             /* custom_title_value       */ 0xc025d,
             /* fps_body                 */ 0x176079,
             /* app_error_body           */ 0x175fe0,
+            /* app_error_props_helper_body */ 0x0,
         },
         /* bytes */ {
             /* old_icon_order */ {
@@ -285,6 +290,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
                 0x10, 0x24, 0x19, 0x62, 0x04, 0x04, 0x8d, 0x1d, 0x39, 0x00, 0x04,
                 0x01, 0xb1, 0x00, 0x52, 0x00, 0x02, 0x03, 0x01, 0x00, 0x5a, 0x00
             },
+            /* requires_image_source_object */ false,
         },
     },
     {
@@ -309,6 +315,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
             /* custom_title_value       */ 0xc0536,
             /* fps_body                 */ 0x176998,
             /* app_error_body           */ 0x1768ff,
+            /* app_error_props_helper_body */ 0x0,
         },
         /* bytes */ {
             /* old_icon_order */ {
@@ -375,6 +382,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
                 0x10, 0x79, 0x19, 0x62, 0x04, 0x04, 0xb8, 0x1d, 0x39, 0x00, 0x04,
                 0x01, 0xb5, 0x00, 0x52, 0x00, 0x02, 0x03, 0x01, 0x00, 0x5a, 0x00
             },
+            /* requires_image_source_object */ false,
         },
     },
     {
@@ -400,6 +408,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
             /* custom_title_value       */ 0xc0455,
             /* fps_body                 */ 0x1760b3,
             /* app_error_body           */ 0x17601a,
+            /* app_error_props_helper_body */ 0x0,
         },
         /* bytes */ {
             /* old_icon_order */ {
@@ -466,6 +475,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
                 0x10, 0x70, 0x19, 0x62, 0x04, 0x04, 0xae, 0x1d, 0x39, 0x00, 0x04,
                 0x01, 0xb6, 0x00, 0x52, 0x00, 0x02, 0x03, 0x01, 0x00, 0x5a, 0x00
             },
+            /* requires_image_source_object */ false,
         },
     },
     {
@@ -491,6 +501,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
             /* custom_title_value       */ 0xc304d,
             /* fps_body                 */ 0x1797ad,
             /* app_error_body           */ 0x179714,
+            /* app_error_props_helper_body */ 0x0,
         },
         /* bytes */ {
             /* old_icon_order */ {
@@ -557,6 +568,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
                 0x12, 0x68, 0x1b, 0x62, 0x04, 0x04, 0xd5, 0x1d, 0x39, 0x00, 0x04,
                 0x01, 0xbb, 0x00, 0x52, 0x00, 0x02, 0x03, 0x01, 0x00, 0x5a, 0x00
             },
+            /* requires_image_source_object */ false,
         },
     },
     {
@@ -582,6 +594,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
             /* custom_title_value       */ 0xc2ffe,
             /* fps_body                 */ 0x1796a9,
             /* app_error_body           */ 0x179610,
+            /* app_error_props_helper_body */ 0x0,
         },
         /* bytes */ {
             /* old_icon_order */ {
@@ -648,6 +661,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
                 0x12, 0x69, 0x1b, 0x62, 0x04, 0x04, 0xd4, 0x1d, 0x39, 0x00, 0x04,
                 0x01, 0xbb, 0x00, 0x52, 0x00, 0x02, 0x03, 0x01, 0x00, 0x5a, 0x00
             },
+            /* requires_image_source_object */ false,
         },
     },
 };

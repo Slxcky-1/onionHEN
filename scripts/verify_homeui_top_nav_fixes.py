@@ -136,6 +136,13 @@ def load_profiles() -> list[dict]:
             .group(1)
             == "true"
         )
+        requires_image_source = (
+            re.search(
+                r"/\* requires_image_source_object \*/ (true|false)",
+                bytes_text,
+            ).group(1)
+            == "true"
+        )
         profiles.append({
             "name": re.search(r'/\* name\s+\*/ "([^"]+)"', entry).group(1),
             "file_length": int(
@@ -151,6 +158,7 @@ def load_profiles() -> list[dict]:
             "legacy_button_body": (
                 fields["legacy_onion_hen_button_body"] if has_legacy else None
             ),
+            "requires_image_source": requires_image_source,
         })
     if not profiles:
         raise SystemExit("no profiles parsed from homeui_top_nav_profiles.inc")
@@ -187,12 +195,20 @@ LEGACY_NEW_ALIAS = extract_array("kLegacyNewExportAlias")
 LEGACY_OLD_SOURCE = extract_c_string("kLegacyOldAppErrorSource")
 LEGACY_NEW_SOURCE_PREFIX = extract_c_string("kLegacyNewAppErrorSourcePrefix")
 LEGACY_NEW_SOURCE = LEGACY_NEW_SOURCE_PREFIX.ljust(LEGACY_SOURCE_SIZE, b" ")
+IMAGE_SOURCE_BUTTON_BODY = extract_array("kImageSourceOnionHenButtonBody")
+STOCK_APP_ERROR_ON_PRESS_BODY = extract_array("kStockAppErrorOnPressBody")
+IMAGE_SOURCE_PROPS_HELPER_BODY = extract_array(
+    "kImageSourceIconPropsHelperBody"
+)
 
 assert NEW_ICON_URI == b"/system_ex/vsh_asset/onionhen.png", NEW_ICON_URI
 assert NEW_LINK == b"OnionHEN?NavUI=1", NEW_LINK
 assert len(LEGACY_OLD_ORDER) == len(LEGACY_NEW_ORDER) == 37
 assert len(LEGACY_OLD_ALIAS) == len(LEGACY_NEW_ALIAS) == 7
 assert len(LEGACY_OLD_SOURCE) == len(LEGACY_NEW_SOURCE) == LEGACY_SOURCE_SIZE
+assert len(IMAGE_SOURCE_BUTTON_BODY) == 77
+assert len(STOCK_APP_ERROR_ON_PRESS_BODY) == 76
+assert len(IMAGE_SOURCE_PROPS_HELPER_BODY) == 76
 
 
 def locate_hbc(data: bytes) -> bytearray | None:
@@ -295,7 +311,16 @@ def apply_patch(hbc: bytearray, p: dict) -> list[str]:
         b["old_fps_body_prefix"],
         notes,
     )
-    app_alts = [b["stock_app_error_body"], b["onion_hen_button_body"]]
+    target_app_body = (
+        IMAGE_SOURCE_BUTTON_BODY
+        if p["requires_image_source"]
+        else b["onion_hen_button_body"]
+    )
+    app_alts = [
+        b["stock_app_error_body"],
+        b["onion_hen_button_body"],
+        target_app_body,
+    ]
     if p["legacy_button_body"] is not None:
         app_alts.append(p["legacy_button_body"])
     ok &= patch_at(
@@ -303,9 +328,18 @@ def apply_patch(hbc: bytearray, p: dict) -> list[str]:
         "app_error_onion",
         o["app_error_body"],
         app_alts,
-        b["onion_hen_button_body"],
+        target_app_body,
         notes,
     )
+    if p["requires_image_source"]:
+        ok &= patch_at(
+            hbc,
+            "app_error_image_source_helper",
+            o["app_error_props_helper_body"],
+            [STOCK_APP_ERROR_ON_PRESS_BODY, IMAGE_SOURCE_PROPS_HELPER_BODY],
+            IMAGE_SOURCE_PROPS_HELPER_BODY,
+            notes,
+        )
     ok &= patch_at(
         hbc,
         "icon_uri",
@@ -373,12 +407,22 @@ def verify(hbc: bytes, p: dict, tag: str) -> list[str]:
         errs.append(f"{tag}: FixA FAIL — Fps still OnionHEN (crash regression)")
     if fps != b["old_fps_body_prefix"]:
         errs.append(f"{tag}: FixA FAIL — Fps prefix not stock ({fps[:8].hex()})")
-    if app != b["onion_hen_button_body"]:
+    target_app_body = (
+        IMAGE_SOURCE_BUTTON_BODY
+        if p["requires_image_source"]
+        else b["onion_hen_button_body"]
+    )
+    if app != target_app_body:
         errs.append(
             f"{tag}: FixA FAIL — AppError not OnionHEN host ({app[:8].hex()})"
         )
     if app == b["stock_app_error_body"]:
         errs.append(f"{tag}: FixA FAIL — AppError still stock")
+    if p["requires_image_source"]:
+        helper_off = o["app_error_props_helper_body"]
+        helper = bytes(hbc[helper_off : helper_off + 76])
+        if helper != IMAGE_SOURCE_PROPS_HELPER_BODY:
+            errs.append(f"{tag}: FixB FAIL — ImageSource props helper missing")
     factory = bytes(hbc[o["fps_factory"] : o["fps_factory"] + 5])
     if factory != b["original_fps_factory"]:
         errs.append(f"{tag}: Fps factory alias not repaired ({factory.hex()})")
@@ -430,10 +474,21 @@ def precheck(hbc: bytes, p: dict) -> list[str]:
     ):
         errs.append(f"pre: unexpected order {order.hex()}")
     app = bytes(hbc[o["app_error_body"] : o["app_error_body"] + 77])
-    if app not in (b["stock_app_error_body"], b["onion_hen_button_body"]) and not (
+    accepted_app_bodies = [b["stock_app_error_body"], b["onion_hen_button_body"]]
+    if p["requires_image_source"]:
+        accepted_app_bodies.append(IMAGE_SOURCE_BUTTON_BODY)
+    if app not in accepted_app_bodies and not (
         p["legacy_button_body"] is not None and app == p["legacy_button_body"]
     ):
         errs.append(f"pre: AppError body unexpected ({app[:8].hex()})")
+    if p["requires_image_source"]:
+        helper_off = o["app_error_props_helper_body"]
+        helper = bytes(hbc[helper_off : helper_off + 76])
+        if helper not in (
+            STOCK_APP_ERROR_ON_PRESS_BODY,
+            IMAGE_SOURCE_PROPS_HELPER_BODY,
+        ):
+            errs.append(f"pre: AppError props helper unexpected ({helper[:8].hex()})")
     fps = bytes(hbc[o["fps_body"] : o["fps_body"] + 77])
     if fps not in (b["old_fps_body_prefix"], b["onion_hen_button_body"]) and not (
         p["legacy_button_body"] is not None and fps == p["legacy_button_body"]
@@ -518,7 +573,7 @@ def verify_legacy(bundle: bytes, tag: str) -> list[str]:
     for marker in (
         b"useInteractivePress",
         b"OnionHEN?NavUI=1",
-        b"/system_ex/vsh_asset/onionhen.png",
+        b'iconId:{uri:"/system_ex/vsh_asset/onionhen.png"}',
         b"onPress:e",
         b'title:""',
     ):

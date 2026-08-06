@@ -201,7 +201,9 @@ t.Fps=P
 
 同时把 AppError 的 383 字节源码块改成
 `useInteractivePress({link:"OnionHEN?NavUI=1"})` 按钮，设置
-`/system_ex/vsh_asset/onionhen.png`、空标题，并用空格填满剩余字节。
+`iconId:{uri:"/system_ex/vsh_asset/onionhen.png"}`、空标题，并用空格填满剩余
+字节。4.x 的 `SystemIcon` 会把 `iconId` 原样传给 `PUI Button.icon`，本地文件
+必须使用 ImageSource 对象，不能直接传路径字符串。
 旧 bundle 没有 Hermes footer SHA-1，不能调用 HBC footer 更新逻辑。
 
 ### 1. 提取 HBC
@@ -259,6 +261,7 @@ PY
 | `custom_title_value` | AppError object buffer 里 `Trigger AppError` string id 的 2-byte 值 |
 | `fps_body` | Fps function bytecode 起始 offset |
 | `app_error_body` | `ApplicationErrorEventTrigger` 的 77-byte function 起始 offset |
+| `app_error_props_helper_body` | 仅旧 PUI 需要；被替换后不再使用的 AppError `onPress` function offset，否则填 `0` |
 
 ### 3. 导出字符串 ID
 
@@ -370,6 +373,17 @@ replacement 必须和 stock AppError body 等长，目前各 profile 都是 77 b
 固定数组长度会由编译器校验。`old_fps_body_prefix` 只用于修复历史版本残留的
 Fps-body 劫持；新 profile 不能把 OnionHEN body 写到 `fps_body`。
 
+9.00 的 PUI 不会把传给 `Button.icon` 的绝对路径字符串自动转成 ImageSource。
+该 profile 设置 `requires_image_source_object=true`，并把原 AppError `onPress`
+函数（替换主函数后已无调用者）复用为 props factory，动态生成：
+
+```text
+{iconId: {uri: "/system_ex/vsh_asset/onionhen.png"}, onPress, title: ""}
+```
+
+主函数保持 77 bytes，helper 保持 76 bytes。其他固件没有实际验证出同样限制时，
+不要启用该标志。
+
 ### 7. 临时 patch 并反汇编验证
 
 写进源码前，先对 `.tmp/hbc/new_fw.hbc` 做临时 patch，更新 HBC footer SHA1，
@@ -382,6 +396,10 @@ rg -n "Array: \\['Search', 'ApplicationErrorEventTrigger', 'Settings', 'Profile'
 rg -n "Object: \\{'iconId': '/system_ex/vsh_asset/onionhen.png', 'onPress': null, 'title': ''\\}" .tmp/hbc/new_fw_patched.dis
 rg -n "String: 'OnionHEN\\?NavUI=1'" .tmp/hbc/new_fw_patched.dis
 ```
+
+对 `requires_image_source_object=true` 的 profile，第二条改为确认 helper 中依次
+出现 `NewObject`、`uri`、`iconId`、`onPress`、`title`，并确认
+`LoadConstString` 引用 `/system_ex/vsh_asset/onionhen.png`。
 
 如果反汇编失败，或者对象/路由没有按预期出现，不要把该 byte set 写进源码。
 

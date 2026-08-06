@@ -72,8 +72,9 @@ static const unsigned char kLegacyNewExportAlias[] = {
     't', '.', 'A', 'p', 'p', '=', 'h'};
 static const char kLegacyOldAppErrorSource[] =
     "var h=(0,u().memo)((function(){var e=(0,m.default)().sendClientApplicationErrorEvent;return u().default.createElement(d.default,{iconId:\"download_error\",onPress:function(){var t=new Error(\"homeui ApplicationErrorEvent test\");e({errorMessage:t.message,stack:t.stack,severity:\"info\"})},title:\"Trigger AppError\",__source:{fileName:_,lineNumber:80}})}));t.ApplicationErrorEventTrigger=h;";
+/* Module 231 forwards iconId directly to PUI Button.icon. */
 static const char kLegacyNewAppErrorSourcePrefix[] =
-    "var h=(0,u().memo)((function(){var e=(0,f.useInteractivePress)({link:\"OnionHEN?NavUI=1\"});return u().default.createElement(d.default,{iconId:\"/system_ex/vsh_asset/onionhen.png\",onPress:e,title:\"\",__source:{fileName:_,lineNumber:80}})}));t.ApplicationErrorEventTrigger=h;";
+    "var h=(0,u().memo)((function(){var e=(0,f.useInteractivePress)({link:\"OnionHEN?NavUI=1\"});return u().default.createElement(d.default,{iconId:{uri:\"/system_ex/vsh_asset/onionhen.png\"},onPress:e,title:\"\",__source:{fileName:_,lineNumber:80}})}));t.ApplicationErrorEventTrigger=h;";
 
 static_assert(sizeof(kLegacyOldIconOrder) == sizeof(kLegacyNewIconOrder));
 static_assert(sizeof(kLegacyOldExportAlias) == sizeof(kLegacyNewExportAlias));
@@ -124,6 +125,7 @@ constexpr size_t kIconOrderSize = 9;
 constexpr size_t kFpsFactorySize = 5;
 constexpr size_t kObjectTableValueSize = 2;
 constexpr size_t kButtonBodySize = 77;
+constexpr size_t kAppErrorHelperBodySize = 76;
 
 /* Per-firmware byte patterns. Field order matches the patch list below. */
 struct HomeUiPatchBytes {
@@ -144,6 +146,8 @@ struct HomeUiPatchBytes {
   unsigned char legacy_onion_hen_button_body[kButtonBodySize];
   unsigned char onion_hen_button_body[kButtonBodySize];
   unsigned char stock_app_error_body[kButtonBodySize];
+  /* Older PUI Button.icon requires {uri: path}, not a raw path string. */
+  bool requires_image_source_object;
 };
 
 struct HomeUiPatchOffsets {
@@ -160,6 +164,8 @@ struct HomeUiPatchOffsets {
   size_t fps_body;
   /* ApplicationErrorEventTrigger function start (77-byte button host). */
   size_t app_error_body;
+  /* Dead stock onPress function reused as a props factory when non-zero. */
+  size_t app_error_props_helper_body;
 };
 
 struct HomeUiPatchProfile {
@@ -197,6 +203,42 @@ static const unsigned char kNewTopNavLinkUri[] = {
     'O', 'n', 'i', 'o', 'n', 'H', 'E', 'N',
     '?', 'N', 'a', 'v', 'U', 'I', '=', '1'};
 static const unsigned char kNewCustomTitleValue[] = {0xff, 0x00};
+
+/*
+ * 9.00's PUI Button.icon does not resolve an absolute path passed as a plain
+ * string. The AppError onPress function becomes dead after the normal button
+ * rewrite, so reuse it to build {iconId: {uri: path}, onPress, title}. This
+ * keeps both Hermes function bodies exactly their stock sizes.
+ */
+static const unsigned char kImageSourceOnionHenButtonBody[] = {
+    0x29, 0x00, 0x00, 0x2e, 0x01, 0x00, 0x09, 0x34, 0x02, 0x01, 0x02,
+    0x9d, 0x2e, 0x01, 0x00, 0x08, 0x34, 0x01, 0x01, 0x01, 0x6f, 0x62,
+    0x04, 0x00, 0x9a, 0x18, 0x74, 0x03, 0x4f, 0x00, 0x04, 0x03, 0x52,
+    0x00, 0x02, 0x03, 0x01, 0x00, 0x5a, 0x00, 0x60, 0x74, 0x00, 0x74,
+    0x00, 0x74, 0x00, 0x74, 0x00, 0x74, 0x00, 0x74, 0x00, 0x74, 0x00,
+    0x74, 0x00, 0x74, 0x00, 0x74, 0x00, 0x74, 0x00, 0x74, 0x00, 0x74,
+    0x00, 0x74, 0x00, 0x74, 0x00, 0x74, 0x00, 0x74, 0x00, 0x74, 0x00};
+static const unsigned char kStockAppErrorOnPressBody[] = {
+    0x30, 0x00, 0x37, 0x02, 0x00, 0x01, 0x11, 0x00, 0x34, 0x00, 0x02,
+    0x02, 0xc8, 0x68, 0x01, 0x00, 0x02, 0x71, 0x04, 0x43, 0x0d, 0x08,
+    0x05, 0x01, 0x4e, 0x00, 0x02, 0x02, 0x69, 0x00, 0x01, 0x00, 0x29,
+    0x01, 0x00, 0x2e, 0x02, 0x01, 0x00, 0x34, 0x03, 0x00, 0x03, 0x2d,
+    0x34, 0x00, 0x00, 0x04, 0xde, 0x03, 0x01, 0x3d, 0x01, 0x03, 0x03,
+    0x3d, 0x01, 0x00, 0xde, 0x71, 0x00, 0x9d, 0x12, 0x3d, 0x01, 0x00,
+    0xd9, 0x74, 0x00, 0x51, 0x01, 0x02, 0x00, 0x01, 0x5a, 0x00};
+static const unsigned char kImageSourceIconPropsHelperBody[] = {
+    0x29, 0x00, 0x00, 0x2e, 0x01, 0x00, 0x05, 0x35, 0x04, 0x01, 0x01,
+    0x88, 0x1d, 0x03, 0x01, 0x71, 0x02, 0x7c, 0x09, 0x3e, 0x01, 0x02,
+    0xdf, 0x14, 0x74, 0x03, 0x51, 0x05, 0x04, 0x03, 0x01, 0x03, 0x01,
+    0x03, 0x02, 0x71, 0x03, 0x43, 0x0d, 0x3d, 0x02, 0x03, 0xf1, 0x3d,
+    0x01, 0x02, 0x95, 0x3d, 0x01, 0x05, 0xb9, 0x71, 0x02, 0xff, 0x00,
+    0x3d, 0x01, 0x02, 0x2b, 0x5a, 0x01, 0x60, 0x74, 0x00, 0x74, 0x00,
+    0x74, 0x00, 0x74, 0x00, 0x74, 0x00, 0x74, 0x00, 0x74, 0x00};
+
+static_assert(sizeof(kImageSourceOnionHenButtonBody) == kButtonBodySize);
+static_assert(sizeof(kStockAppErrorOnPressBody) == kAppErrorHelperBodySize);
+static_assert(sizeof(kImageSourceIconPropsHelperBody) ==
+              kAppErrorHelperBodySize);
 
 #include "homeui_top_nav_profiles.inc"
 
@@ -832,6 +874,9 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
   const unsigned char *legacy_button_body =
       bytes.has_legacy_button_body ? bytes.legacy_onion_hen_button_body
                                    : nullptr;
+  const unsigned char *onion_hen_button_body =
+      bytes.requires_image_source_object ? kImageSourceOnionHenButtonBody
+                                         : bytes.onion_hen_button_body;
 
   const BytePatch kPatches[] = {
       /*
@@ -872,8 +917,18 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
        */
       {"AppError OnionHEN body", profile->offsets.app_error_body,
        bytes.stock_app_error_body, bytes.onion_hen_button_body,
-       legacy_button_body, bytes.onion_hen_button_body,
+       legacy_button_body, onion_hen_button_body,
        kButtonBodySize},
+  };
+
+  const BytePatch kImageSourceHelperPatch = {
+      "AppError ImageSource props helper",
+      profile->offsets.app_error_props_helper_body,
+      kStockAppErrorOnPressBody,
+      nullptr,
+      nullptr,
+      kImageSourceIconPropsHelperBody,
+      kAppErrorHelperBodySize,
   };
 
   bool any_change = false;
@@ -883,6 +938,16 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
       return;
     }
     any_change = any_change || !already_applied;
+  }
+
+  if (bytes.requires_image_source_object) {
+    bool helper_already_applied = false;
+    if (profile->offsets.app_error_props_helper_body == 0 ||
+        !validate_patch(hbc, kImageSourceHelperPatch,
+                        &helper_already_applied)) {
+      return;
+    }
+    any_change = any_change || !helper_already_applied;
   }
 
   if (!any_change) {
@@ -896,6 +961,9 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
 
   for (size_t i = 0; i < sizeof(kPatches) / sizeof(kPatches[0]); ++i) {
     apply_patch(hbc, kPatches[i]);
+  }
+  if (bytes.requires_image_source_object) {
+    apply_patch(hbc, kImageSourceHelperPatch);
   }
   update_hbc_footer_sha1(hbc, hbc_file_length);
 
