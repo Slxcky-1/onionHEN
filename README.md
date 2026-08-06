@@ -274,6 +274,7 @@ annotated default based on [`config.ini.example`](config.ini.example).
 | `app_jailbreak.title_id_prefixes` | `LAPY` | comma-separated uppercase prefixes, or `none` |
 | `cooling.fan_control` | `automatic` | `automatic`, `temperature_threshold` |
 | `cooling.temperature_threshold_celsius` | `77` | `0` through `100` |
+| `overlay.enabled` | `true` | `true`, `false` |
 | `overlay.edge` | `top` | `top`, `bottom` |
 | `overlay.show_cpu` / `overlay.show_gpu` / `overlay.show_memory` | `true` | `true`, `false` |
 | `overlay.cpu_usage_mode` | `average` | `average`, `per_core` |

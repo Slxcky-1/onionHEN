@@ -38,6 +38,7 @@ static int test_defaults_and_serialize_keys(void) {
                    std::string::npos);
   TEST_ASSERT_TRUE(text.find("close_running_game_on_entry") ==
                    std::string::npos);
+  TEST_ASSERT_TRUE(text.find("enabled=true") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("edge=top") != std::string::npos);
   TEST_ASSERT_TRUE(
       text.find("exact_title_ids=ITEM00001,NPXS39041,PKGI13337,PKGI12345,"
@@ -96,6 +97,7 @@ static int test_full_schema_roundtrip(void) {
   in.onionhen_game_opts = false;
   in.enable_fan_speed = true;
   in.fan_threshold = 90;
+  in.overlay_enabled = false;
   in.overlay_ram = false;
   in.overlay_cpu = false;
   in.overlay_gpu = false;
@@ -124,6 +126,7 @@ static int test_full_schema_roundtrip(void) {
   TEST_ASSERT_TRUE(out.onionhen_game_opts == in.onionhen_game_opts);
   TEST_ASSERT_TRUE(out.enable_fan_speed == in.enable_fan_speed);
   TEST_ASSERT_EQ_INT(in.fan_threshold, out.fan_threshold);
+  TEST_ASSERT_TRUE(out.overlay_enabled == in.overlay_enabled);
   TEST_ASSERT_TRUE(out.overlay_ram == in.overlay_ram);
   TEST_ASSERT_TRUE(out.overlay_cpu == in.overlay_cpu);
   TEST_ASSERT_TRUE(out.overlay_gpu == in.overlay_gpu);
@@ -165,6 +168,7 @@ static int test_partial_ini_keeps_defaults(void) {
   /* Removed keys are ignored; unspecified keys stay at defaults. */
   TEST_ASSERT_EQ_U64(10, out.rest_mode_delay_seconds);
   TEST_ASSERT_EQ_INT(77, out.fan_threshold);
+  TEST_ASSERT_TRUE(out.overlay_enabled);
   TEST_ASSERT_EQ_U64(5, out.app_jailbreak_allowlist.exact_title_id_count);
   TEST_ASSERT_STREQ("ITEM00001",
                     out.app_jailbreak_allowlist.exact_title_ids[0].c_str());
@@ -178,11 +182,13 @@ static int test_partial_ini_keeps_defaults(void) {
 
 static int test_serialize_contains_overlay_keys(void) {
   onion::Settings s{};
+  s.overlay_enabled = false;
   s.overlay_ip = true;
   s.all_cpu_usage = true;
   s.overlay_pos = 2;
   std::string text = onion::settings_serialize(s);
   TEST_ASSERT_TRUE(text.find("overlay_fps=") == std::string::npos);
+  TEST_ASSERT_TRUE(text.find("enabled=false") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("show_ip_address=true") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("cpu_usage_mode=per_core") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("edge=bottom") != std::string::npos);

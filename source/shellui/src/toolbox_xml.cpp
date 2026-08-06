@@ -576,15 +576,18 @@ void append_toolbox_display_group(ps5ui::Group& g) {
   g.group(
        "id_overlay_opts", toolbox_i18n::tr("overlay.group"),
        [](ps5ui::Group& o) {
-         o.list("id_overlay_change_pos", toolbox_i18n::tr("overlay.pos"),
-                [](ps5ui::ListBuilder& L) {
-                  L.item("id_overlay_pos_1",
-                         toolbox_i18n::tr("overlay.pos.top"), "0")
-                      .item("id_overlay_pos_3",
-                            toolbox_i18n::tr("overlay.pos.bottom"), "2");
-                },
-                toolbox_i18n::tr("overlay.pos.sub"),
-                toolbox_val("id_overlay_change_pos"))
+         o.toggle("id_overlay_enabled", toolbox_i18n::tr("overlay.enabled"),
+                  toolbox_on("id_overlay_enabled"), std::nullopt,
+                  toolbox_i18n::tr("overlay.enabled.desc"))
+             .list("id_overlay_change_pos", toolbox_i18n::tr("overlay.pos"),
+                   [](ps5ui::ListBuilder& L) {
+                     L.item("id_overlay_pos_1",
+                            toolbox_i18n::tr("overlay.pos.top"), "0")
+                         .item("id_overlay_pos_3",
+                               toolbox_i18n::tr("overlay.pos.bottom"), "2");
+                   },
+                   toolbox_i18n::tr("overlay.pos.sub"),
+                   toolbox_val("id_overlay_change_pos"))
              .toggle("id_overlay_gpu", toolbox_i18n::tr("overlay.gpu"),
                      toolbox_on("id_overlay_gpu"), std::nullopt,
                      toolbox_i18n::tr("overlay.gpu.desc"))
@@ -602,7 +605,7 @@ void append_toolbox_display_group(ps5ui::Group& g) {
                      toolbox_i18n::tr("overlay.ip.desc"));
        },
        toolbox_i18n::tr("overlay.group.sub"), kIconOverlay,
-       "id_overlay_change_pos")
+       "id_overlay_enabled")
       .toggle("id_disp_titleids", toolbox_i18n::tr("disp_tids"),
               toolbox_on("id_disp_titleids"), toolbox_i18n::tr("disp_tids.sub"),
               std::nullopt, kIconTitleId)

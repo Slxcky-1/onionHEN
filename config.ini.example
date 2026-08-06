@@ -62,6 +62,9 @@ fan_control=automatic
 temperature_threshold_celsius=77
 
 [overlay]
+# enabled shows or hides the complete game monitor bar.
+# Available values: true, false
+enabled=true
 # edge chooses the screen edge used by the monitor bar.
 # Available values: top, bottom
 edge=top

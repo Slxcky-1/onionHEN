@@ -97,6 +97,8 @@ struct Settings {
   int fan_threshold = 77;
 
   // [overlay]
+  /** Master visibility switch for the complete ShellUI game monitor bar. */
+  bool overlay_enabled = true;
   bool overlay_ram = true;
   bool overlay_cpu = true;
   bool overlay_gpu = true;

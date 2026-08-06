@@ -43,6 +43,8 @@
     "game_opts.toggle.sub": "Show OnionHEN entries (such as cheats) in the game options menu",
     "overlay.group": "Game Overlay",
     "overlay.group.sub": "Edge-to-edge bar + translucent black",
+    "overlay.enabled": "Game monitor bar",
+    "overlay.enabled.desc": "Show the complete in-game monitor bar",
     "overlay.pos": "Monitor bar position",
     "overlay.pos.sub": "Full width at screen edge; metrics centered: CPU · GPU · RAM · IP",
     "overlay.pos.top": "Top edge",

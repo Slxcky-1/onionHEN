@@ -202,8 +202,9 @@ void ensure_bg_panel(MonoObject *root) {
 
   /* Hide strip when nothing is enabled (bar_h still set; content empty). */
   const bool any =
-      g_settings.overlay_cpu || g_settings.all_cpu_usage || g_settings.overlay_gpu ||
-      g_settings.overlay_ram || g_settings.overlay_ip;
+      g_settings.overlay_enabled &&
+      (g_settings.overlay_cpu || g_settings.all_cpu_usage ||
+       g_settings.overlay_gpu || g_settings.overlay_ram || g_settings.overlay_ip);
   if (!any)
     return;
 
@@ -285,6 +286,9 @@ void RemoveGameWidget(RemoveWidget widget) {
 }
 
 void CreateGameWidget(CreateWidget widget) {
+  if (!g_settings.overlay_enabled)
+    return;
+
   MonoObject *bar_font = CreateUIFont(kFontSize, kFontStyle, kFontWeight);
   MonoObject *root = find_root_widget();
   if (!root)

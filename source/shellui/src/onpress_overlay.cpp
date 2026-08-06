@@ -10,6 +10,8 @@ void CreateGameWidget(CreateWidget widget);
 static void rebuild_overlay_bar() {
   RemoveGameWidget(REMOVE_ALL_OVERLAYS);
   apply_overlay_layout();
+  if (!g_settings.overlay_enabled)
+    return;
   if (g_settings.overlay_cpu || g_settings.all_cpu_usage)
     CreateGameWidget(CREATE_CPU_OVERLAY);
   if (g_settings.overlay_gpu)
@@ -27,6 +29,10 @@ static OnPressResult toggle_overlay_flag(OnPressContext &ctx, bool &flag) {
   flag = !flag;
   rebuild_overlay_bar();
   return OnPressResult::Handled;
+}
+
+static OnPressResult id_overlay_enabled(OnPressContext &ctx) {
+  return toggle_overlay_flag(ctx, g_settings.overlay_enabled);
 }
 
 static OnPressResult id_overlay_gpu(OnPressContext &ctx) {
@@ -78,6 +84,7 @@ static OnPressResult id_overlay_change_pos(OnPressContext &ctx) {
 }
 
 static const OnPressExactEntry kExact[] = {
+    {"id_overlay_enabled", id_overlay_enabled},
     {"id_overlay_gpu", id_overlay_gpu},
     {"id_overlay_cpu", id_overlay_cpu},
     {"id_overlay_ram", id_overlay_ram},

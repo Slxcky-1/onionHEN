@@ -268,6 +268,7 @@ OnionHEN 通过以下两个运行时视图创建并共享同一套配置 schema�
 | `app_jailbreak.title_id_prefixes` | `LAPY` | 逗号分隔的大写前缀，或 `none` |
 | `cooling.fan_control` | `automatic` | `automatic`, `temperature_threshold` |
 | `cooling.temperature_threshold_celsius` | `77` | `0` 到 `100` |
+| `overlay.enabled` | `true` | `true`, `false` |
 | `overlay.edge` | `top` | `top`, `bottom` |
 | `overlay.show_cpu` / `overlay.show_gpu` / `overlay.show_memory` | `true` | `true`, `false` |
 | `overlay.cpu_usage_mode` | `average` | `average`, `per_core` |

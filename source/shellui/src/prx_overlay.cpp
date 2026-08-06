@@ -364,6 +364,8 @@ void init_overlay_once(unsigned int idle_tid[kCpuCores]) {
   font = CreateUIFont(kOverlayFontSize, 1, 900);
 
   apply_overlay_layout();
+  if (!g_settings.overlay_enabled)
+    return;
   if (g_settings.overlay_cpu || g_settings.all_cpu_usage)
     CreateGameWidget(CREATE_CPU_OVERLAY);
   if (g_settings.overlay_gpu)
@@ -431,6 +433,9 @@ bool sample_cpu_usage(unsigned int idle_tid[kCpuCores], int& current_bank,
 }
 
 void update_overlay_metrics(unsigned int idle_tid[kCpuCores], int& current_bank) {
+  if (!g_settings.overlay_enabled)
+    return;
+
   char gpu_temp[32] = {};
   char gpu_usage[32] = {};
   char cpu_temp[32] = {};

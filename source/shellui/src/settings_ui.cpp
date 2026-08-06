@@ -50,10 +50,11 @@ void apply_overlay_layout() {
   constexpr float kGap = 28.0f; /* roomy group gap (not packed) */
   constexpr float kOffscreen = -4096.0f;
 
-  const bool show_cpu = g_settings.overlay_cpu || g_settings.all_cpu_usage;
-  const bool show_gpu = g_settings.overlay_gpu;
-  const bool show_ram = g_settings.overlay_ram;
-  const bool show_ip = g_settings.overlay_ip;
+  const bool show_cpu = g_settings.overlay_enabled &&
+                        (g_settings.overlay_cpu || g_settings.all_cpu_usage);
+  const bool show_gpu = g_settings.overlay_enabled && g_settings.overlay_gpu;
+  const bool show_ram = g_settings.overlay_enabled && g_settings.overlay_ram;
+  const bool show_ip = g_settings.overlay_enabled && g_settings.overlay_ip;
   const float w_cpu = g_settings.all_cpu_usage ? w_cpu_all : w_cpu_avg;
 
   float content_w = 0.0f;
