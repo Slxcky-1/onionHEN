@@ -84,7 +84,34 @@ KNOWN_LEGACY_HOMEUI_PROFILES = [
 ]
 
 
+KNOWN_LEGACY_SETTINGS_PROFILES = [
+    {
+        "name": "4.03 NPXS40008 Settings",
+        "route": "standard",
+        "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
+        "payload_size": 0x483280,
+        "file_size": 0x483DB0,
+        "sha256": "3b8f1725ec1c0afe87cc72ecebc29b6f7239d03bd7397a621b7a314455d12bb7",
+    },
+    {
+        # 4.50 and 4.51 NPXS40008 are byte-identical.
+        "name": "4.50/4.51 NPXS40008 Settings",
+        "route": "standard",
+        "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
+        "payload_size": 0x483FC0,
+        "file_size": 0x484AF0,
+        "sha256": "8e016beed7584283c9719c49662fb5e1071083dc1e3dd8988e1b9fe9fd45b032",
+    },
+]
+
+
 KNOWN_SETTINGS_PROFILES = [
+    {
+        "name": "9.00 NPXS40008 Settings",
+        "route": "standard",
+        "file_length": 0x4B1934,
+        "source_hash": "72188b52b12bad6af90c90a848b7fd76e5af102d",
+    },
     {
         "name": "10.01 NPXS40008 Settings",
         "route": "standard",
@@ -233,10 +260,14 @@ def locate_legacy_bundle(data: bytes) -> tuple[int, str] | tuple[None, str]:
     return None, "missing"
 
 
-def match_legacy_profile(data: bytes, payload_offset: int) -> dict[str, Any] | None:
+def match_legacy_profile(
+    data: bytes,
+    payload_offset: int,
+    profiles: list[dict[str, Any]] = KNOWN_LEGACY_HOMEUI_PROFILES,
+) -> dict[str, Any] | None:
     payload = data[payload_offset:]
     digest = hashlib.sha256(data).hexdigest()
-    for profile in KNOWN_LEGACY_HOMEUI_PROFILES:
+    for profile in profiles:
         if len(data) != profile["file_size"]:
             continue
         if len(payload) != profile["payload_size"]:
@@ -286,11 +317,16 @@ def analyze_file(path: Path, app_id: str) -> dict[str, Any]:
         "hbc_location": hbc_location,
     }
 
-    if app_id == "NPXS40002":
+    if app_id in ("NPXS40002", "NPXS40008"):
         legacy_offset, legacy_location = locate_legacy_bundle(data)
         if legacy_offset is not None:
             payload = data[legacy_offset:]
-            profile = match_legacy_profile(data, legacy_offset)
+            legacy_profiles = (
+                KNOWN_LEGACY_HOMEUI_PROFILES
+                if app_id == "NPXS40002"
+                else KNOWN_LEGACY_SETTINGS_PROFILES
+            )
+            profile = match_legacy_profile(data, legacy_offset, legacy_profiles)
             result.update(
                 {
                     "legacy_offset": legacy_offset,
@@ -303,6 +339,13 @@ def analyze_file(path: Path, app_id: str) -> dict[str, Any]:
                     "strings": {},
                 }
             )
+            if app_id == "NPXS40008":
+                route = infer_settings_route(payload)
+                result["settings_route"] = route
+                result["profile_route"] = profile.get("route") if profile else None
+                result["route_matches_profile"] = bool(
+                    profile and profile.get("route") == route
+                )
             for needle in TRACKED_STRINGS:
                 offsets = find_all(payload, needle)
                 result["strings"][needle.decode("ascii")] = {
@@ -410,6 +453,12 @@ def print_text(report: dict[str, Any], errors: list[str]) -> None:
                 f"{app['profile'] if app['profile'] else 'unsupported'} "
                 f"(supported={'yes' if app['supported'] else 'no'})"
             )
+            if app["app_id"] == "NPXS40008":
+                print(
+                    "  settings_route: "
+                    f"{app.get('settings_route')} "
+                    f"(profile={app.get('profile_route')})"
+                )
             print("  strings:")
             for name, detail in app["strings"].items():
                 if detail["count"] == 0:

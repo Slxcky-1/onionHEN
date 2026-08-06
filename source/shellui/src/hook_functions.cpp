@@ -227,6 +227,138 @@ static bool locate_hermes_payload(const unsigned char *buffer, size_t size,
   return false;
 }
 
+/* 4.03/4.50/4.51 NPXS40008 use the pre-Hermes RNPS JavaScript bundle. */
+static constexpr unsigned char kLegacySettingsBundleMagic[] = {
+    0xe5, 0xd1, 0x0b, 0xfb};
+static constexpr size_t kLegacySettingsPayloadOffsetFallback = 0xb20;
+static constexpr size_t kLegacySettingsPayloadOffset = 0xb30;
+
+struct LegacySettingsBundleProfile {
+  const char *name;
+  size_t payload_size;
+  size_t label_offset;
+  size_t icon_offset;
+};
+
+static constexpr LegacySettingsBundleProfile kLegacySettingsProfiles[] = {
+    {"4.03 NPXS40008 Settings", 0x483280, 0x234a17, 0x24db26},
+    /* 4.50 and 4.51 NPXS40008 are byte-identical. */
+    {"4.50/4.51 NPXS40008 Settings", 0x483fc0, 0x234f2d, 0x24e03c},
+};
+
+static constexpr unsigned char kLegacySettingsOldLabel[] = {
+    0xe2, 0x98, 0x85, 'D', 'e', 'b', 'u', 'g', ' ', 'S', 'e', 't', 't', 'i',
+    'n', 'g', 's'};
+static constexpr unsigned char kLegacySettingsNewLabel[] = {
+    0xe2, 0x98, 0x85, 'O', 'n', 'i', 'o', 'n', 'H', 'E', 'N', ' ', 'T', 'o',
+    'o', 'l', 's'};
+static constexpr unsigned char kLegacySettingsOldIcon[] = {
+    'i', 'c', 'o', 'n', '_', 's', 'e', 't', 't', 'i', 'n', 'g'};
+static constexpr unsigned char kLegacySettingsNewIcon[] = {
+    'o', 'n', 'i', 'o', 'n', 'h', '_', 's', 'i', 'c', 'o', 'n'};
+
+static_assert(sizeof(kLegacySettingsOldLabel) ==
+              sizeof(kLegacySettingsNewLabel));
+static_assert(sizeof(kLegacySettingsOldIcon) ==
+              sizeof(kLegacySettingsNewIcon));
+
+static bool settings_bytes_at(const unsigned char *buffer, size_t size,
+                              size_t offset, const unsigned char *expected,
+                              size_t expected_size) {
+  return buffer && offset <= size && expected_size <= size - offset &&
+         memcmp(buffer + offset, expected, expected_size) == 0;
+}
+
+static const LegacySettingsBundleProfile *
+locate_legacy_settings_profile(const unsigned char *buffer, size_t size,
+                               const unsigned char **payload,
+                               size_t *payload_size) {
+  if (!buffer || size < 0x20 ||
+      memcmp(buffer, "RNPSHEDR", sizeof("RNPSHEDR") - 1) != 0) {
+    return nullptr;
+  }
+
+  size_t offset = patch_read_u32le(buffer + 0x1c);
+  if (offset == 0 || offset >= size) {
+    offset = kLegacySettingsPayloadOffsetFallback;
+  }
+  if (offset + sizeof(kLegacySettingsBundleMagic) > size ||
+      memcmp(buffer + offset, kLegacySettingsBundleMagic,
+             sizeof(kLegacySettingsBundleMagic)) != 0) {
+    if (offset == kLegacySettingsPayloadOffsetFallback ||
+        kLegacySettingsPayloadOffset + sizeof(kLegacySettingsBundleMagic) >
+            size ||
+        memcmp(buffer + kLegacySettingsPayloadOffset,
+               kLegacySettingsBundleMagic,
+               sizeof(kLegacySettingsBundleMagic)) != 0) {
+      return nullptr;
+    }
+    offset = kLegacySettingsPayloadOffset;
+  }
+
+  const size_t available = size - offset;
+  for (const LegacySettingsBundleProfile &profile : kLegacySettingsProfiles) {
+    if (available != profile.payload_size) {
+      continue;
+    }
+    const unsigned char *data = buffer + offset;
+    const bool label_known =
+        settings_bytes_at(data, available, profile.label_offset,
+                          kLegacySettingsOldLabel,
+                          sizeof(kLegacySettingsOldLabel)) ||
+        settings_bytes_at(data, available, profile.label_offset,
+                          kLegacySettingsNewLabel,
+                          sizeof(kLegacySettingsNewLabel));
+    const bool icon_known =
+        settings_bytes_at(data, available, profile.icon_offset,
+                          kLegacySettingsOldIcon,
+                          sizeof(kLegacySettingsOldIcon)) ||
+        settings_bytes_at(data, available, profile.icon_offset,
+                          kLegacySettingsNewIcon,
+                          sizeof(kLegacySettingsNewIcon));
+    if (label_known && icon_known) {
+      *payload = data;
+      *payload_size = available;
+      return &profile;
+    }
+  }
+  return nullptr;
+}
+
+static int patch_settings_bytes_once(unsigned char *buffer, size_t size,
+                                     size_t offset,
+                                     const unsigned char *old_bytes,
+                                     const unsigned char *new_bytes,
+                                     size_t byte_count) {
+  if (!settings_bytes_at(buffer, size, offset, old_bytes, byte_count)) {
+    return 0;
+  }
+  memcpy(buffer + offset, new_bytes, byte_count);
+  return 1;
+}
+
+static bool patch_legacy_settings_bundle(unsigned char *buffer, size_t size,
+                                         int *label_count, int *icon_count) {
+  const unsigned char *payload = nullptr;
+  size_t payload_size = 0;
+  const LegacySettingsBundleProfile *profile =
+      locate_legacy_settings_profile(buffer, size, &payload, &payload_size);
+  if (!profile) {
+    return false;
+  }
+
+  unsigned char *writable_payload = buffer + (payload - buffer);
+  *label_count = patch_settings_bytes_once(
+      writable_payload, payload_size, profile->label_offset,
+      kLegacySettingsOldLabel, kLegacySettingsNewLabel,
+      sizeof(kLegacySettingsOldLabel));
+  *icon_count = patch_settings_bytes_once(
+      writable_payload, payload_size, profile->icon_offset,
+      kLegacySettingsOldIcon, kLegacySettingsNewIcon,
+      sizeof(kLegacySettingsOldIcon));
+  return true;
+}
+
 static bool is_supported_settings_bundle(const unsigned char *buffer,
                                          int size) {
   static const size_t kHbcFileLengthOffset = 0x20;
@@ -279,7 +411,17 @@ void patch_bundle_strings(unsigned char* buffer, int* size_ptr, int buffer_capac
   static_assert(sizeof(kOldDbgLabel) == sizeof(kNewDbgLabel),
                 "UTF-16 Debug Settings label must be equal length");
 
-  if (is_supported_settings_bundle(buffer, size)) {
+  int legacy_label_count = 0;
+  int legacy_icon_count = 0;
+  const bool is_legacy_settings = patch_legacy_settings_bundle(
+      buffer, (size_t)size, &legacy_label_count, &legacy_icon_count);
+  if (is_legacy_settings) {
+#if SHELL_DEBUG == 1
+    LOG_DEBUG("patch_bundle_strings: legacy NPXS40008 settings patch "
+              "label=%d icon=%d",
+              legacy_label_count, legacy_icon_count);
+#endif
+  } else if (is_supported_settings_bundle(buffer, size)) {
     int label_count = patch_utf16le_once(
         buffer, size, kOldDbgLabel, sizeof(kOldDbgLabel), kNewDbgLabel,
         sizeof(kNewDbgLabel));

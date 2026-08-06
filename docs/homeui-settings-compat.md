@@ -36,6 +36,11 @@
 - `9.00` 的 `NPXS40002` 使用 Hermes v89，`hbc_file_length=0x1846e0`、
   `source_hash=587635687e0a190e38425232c39092888da5adbe`，使用独立 HomeUI
   profile。
+- `4.03` 的 `NPXS40008` 使用 legacy bundle，payload size 为 `0x483280`；
+  `4.50`、`4.51` 对应文件完全一致，payload size 为 `0x483fc0`。三者均
+  使用 standard route，并通过已知 payload size 和目标字节共同识别。
+- `9.00` 的 `NPXS40008` 使用 Hermes bundle，`hbc_file_length=0x4b1934`、
+  `source_hash=72188b52b12bad6af90c90a848b7fd76e5af102d`，route 为 standard。
 - `10.2DUMP` 的 `NPXS40002`、`NPXS40008` 分别与 10.4 对应文件整文件
   完全一致，直接复用 `10.4/10.6` HomeUI profile 和 10.4 Settings
   fingerprint；Settings route 为 standard。
@@ -72,8 +77,9 @@ Hermes bundle 会输出：
 - 关键字符串 offset
 - Settings route 推断：`standard` / `old`
 
-4.x legacy HomeUI 会改为输出：payload offset、旧 bundle magic、payload
-size、整文件 SHA-256、匹配的 legacy profile 和关键源码字符串 offset。
+4.x legacy HomeUI / Settings 会改为输出：payload offset、旧 bundle magic、
+payload size、整文件 SHA-256、匹配的 legacy profile 和关键源码字符串
+offset；Settings 还会输出 profile 对应的 route。
 
 如果只想给其他工具消费：
 
@@ -106,10 +112,25 @@ HomeUI profile 完全一致，直接复用；`NPXS40008` 也使用同一份 bund
 
 | 固件范围 | route | URI |
 |----------|-------|-----|
-| `10.x` 到 `10.6` | `standard` | `function=debug_settings` |
+| `4.03`、`4.50`、`4.51` | `standard` | `function=debug_settings` |
+| `9.00` 到 `10.6` | `standard` | `function=debug_settings` |
 | `11.x` 及以上 | `old` | `function=debug_settings_old` |
 
-新增 Settings 兼容时，不只看 `hbc_file_length`。必须同时匹配：
+`9.00` 及以上的 Hermes Settings bundle 使用 `hbc_file_length` 和
+`source_hash` 指纹。`4.x` Settings 是 pre-Hermes RNPS JavaScript bundle，
+不能加入 Hermes 指纹表；它由 `hook_functions.cpp` 的 legacy profile 按
+payload size 和目标 offset 原字节识别，只执行以下等长替换：
+
+```text
+★Debug Settings -> ★OnionHEN Tools
+icon_setting     -> onionh_sicon
+```
+
+legacy 标签在 bundle 内有多个文本命中，必须只修改 categoriesList 菜单项
+profile 指定的 offset，不能全局替换错误提示中的同名文本。重复执行 patch
+时，新字节也应被 profile 接受，但不得再次修改 bundle。
+
+新增 Hermes Settings 兼容时，不只看 `hbc_file_length`。必须同时匹配：
 
 - `hbc_file_length`
 - HBC `source_hash`
