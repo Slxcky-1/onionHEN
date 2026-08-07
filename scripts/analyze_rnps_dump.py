@@ -83,6 +83,14 @@ KNOWN_LEGACY_HOMEUI_PROFILES = [
         "sha256": "6db944372cfe8b7d50328ed4bd47c8cae6917821fb30f20004e7f85c673fe00a",
     },
     {
+        # 6.00 and 6.02 NPXS40002 are byte-identical.
+        "name": "6.00/6.02 NPXS40002 legacy HomeUI",
+        "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
+        "payload_size": 0x185D00,
+        "file_size": 0x186820,
+        "sha256": "b376f7ead9140636beac99354a7d958fc18ea4da40580dda590927be936e0a18",
+    },
+    {
         "name": "7.61 NPXS40002 legacy HomeUI",
         "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
         "payload_size": 0x19DC10,
@@ -125,6 +133,15 @@ KNOWN_LEGACY_SETTINGS_PROFILES = [
         "payload_size": 0x483FC0,
         "file_size": 0x484AF0,
         "sha256": "8e016beed7584283c9719c49662fb5e1071083dc1e3dd8988e1b9fe9fd45b032",
+    },
+    {
+        # 6.00 and 6.02 NPXS40008 are byte-identical.
+        "name": "6.00/6.02 NPXS40008 Settings",
+        "route": "standard",
+        "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
+        "payload_size": 0x5524A0,
+        "file_size": 0x552FD0,
+        "sha256": "2acc1cfc8421c6cb24c25ad29b8433040f79043a068dd941cbf29e2e7daabc0d",
     },
     {
         "name": "7.61 NPXS40008 Settings",
