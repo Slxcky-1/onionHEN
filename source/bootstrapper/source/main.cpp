@@ -340,8 +340,9 @@ static void cleanup(void);
      * Always overwrite branding icons so asset updates take effect on re-HEN.
      * (Previously gated on !if_exists — first deploy stuck forever.)
      *
-     * NPXS40008 = RN Settings (debug settings list). ShellUI also rewrites
-     * texture ids to the short name onionh_sicon (CxmlUri / GetString path).
+     * NPXS40008 = RN Settings (debug settings list). Hermes string entries
+     * share backing storage, so keep the stock icon_setting id and replace
+     * its image on disk instead of rewriting the HBC string table.
      */
     const bool startup_icon_ready = write_blob_file(
         "/data/OnionHEN/onionhen.png", &sicon_start, sicon_size);
@@ -360,9 +361,13 @@ static void cleanup(void);
 
     static const char *const kSettingsSiconPaths[] = {
         "/system_ex/rnps/apps/NPXS40008/assets/src/modules/categoriesList/assets/"
+        "texture/icon_setting.png",
+        "/system_ex/rnps/apps/NPXS40008/assets/src/modules/categoriesList/assets/"
         "texture/onionhen_sicon.png",
         "/system_ex/rnps/apps/NPXS40008/assets/src/modules/categoriesList/assets/"
         "texture/onionh_sicon.png",
+        "/mnt/rnps/apps/NPXS40008/assets/src/modules/categoriesList/assets/"
+        "texture/icon_setting.png",
         "/mnt/rnps/apps/NPXS40008/assets/src/modules/categoriesList/assets/"
         "texture/onionhen_sicon.png",
         "/mnt/rnps/apps/NPXS40008/assets/src/modules/categoriesList/assets/"

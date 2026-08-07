@@ -205,10 +205,9 @@ static const unsigned char kNewTopNavLinkUri[] = {
 static const unsigned char kNewCustomTitleValue[] = {0xff, 0x00};
 
 /*
- * 9.00's PUI Button.icon does not resolve an absolute path passed as a plain
- * string. The AppError onPress function becomes dead after the normal button
- * rewrite, so reuse it to build {iconId: {uri: path}, onPress, title}. This
- * keeps both Hermes function bodies exactly their stock sizes.
+ * Reserved fallback for a firmware whose PUI requires {uri: path} instead of
+ * a raw icon path. Reusing the adjacent AppError onPress function changes a
+ * second executable function and must only be enabled after device validation.
  */
 static const unsigned char kImageSourceOnionHenButtonBody[] = {
     0x29, 0x00, 0x00, 0x2e, 0x01, 0x00, 0x09, 0x34, 0x02, 0x01, 0x02,

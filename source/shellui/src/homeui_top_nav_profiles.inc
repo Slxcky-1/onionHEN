@@ -38,7 +38,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
             /* custom_title_value       */ 0xb5565,
             /* fps_body                 */ 0x149f33,
             /* app_error_body           */ 0x149e9a,
-            /* app_error_props_helper_body */ 0x149ee7,
+            /* app_error_props_helper_body */ 0x0,
         },
         /* bytes */ {
             /* old_icon_order */ {
@@ -105,7 +105,7 @@ static const HomeUiPatchProfile kHomeUiPatchProfiles[] = {
                 0x0d, 0x94, 0x15, 0x62, 0x04, 0x04, 0x9a, 0x18, 0x39, 0x00, 0x04,
                 0x01, 0xb9, 0x00, 0x52, 0x00, 0x02, 0x03, 0x01, 0x00, 0x5a, 0x00
             },
-            /* requires_image_source_object */ true,
+            /* requires_image_source_object */ false,
         },
     },
     {

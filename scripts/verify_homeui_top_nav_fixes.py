@@ -175,6 +175,17 @@ for _p in PROFILES:
         == 77
     ), _p["name"]
 
+_profile_by_name = {_p["name"]: _p for _p in PROFILES}
+_p900 = _profile_by_name["9.00 NPXS40002 HomeUI"]
+_p116 = _profile_by_name["11.4/11.6 NPXS40002 HomeUI"]
+assert not _p900["requires_image_source"], (
+    "9.00 must use the 11.6 single-function AppError shape"
+)
+assert _p900["offsets"]["app_error_props_helper_body"] == 0
+assert (
+    _p900["requires_image_source"] == _p116["requires_image_source"]
+)
+
 NEW_ICON_URI = extract_array("kNewCustomIconUri")
 OLD_ICON_URI = extract_array("kOldCustomIconUri")
 NEW_LINK = extract_array("kNewTopNavLinkUri")
@@ -200,6 +211,7 @@ STOCK_APP_ERROR_ON_PRESS_BODY = extract_array("kStockAppErrorOnPressBody")
 IMAGE_SOURCE_PROPS_HELPER_BODY = extract_array(
     "kImageSourceIconPropsHelperBody"
 )
+NINE_HISTORICAL_HELPER_OFFSET = 0x149EE7
 
 assert NEW_ICON_URI == b"/system_ex/vsh_asset/onionhen.png", NEW_ICON_URI
 assert NEW_LINK == b"OnionHEN?NavUI=1", NEW_LINK
@@ -423,6 +435,15 @@ def verify(hbc: bytes, p: dict, tag: str) -> list[str]:
         helper = bytes(hbc[helper_off : helper_off + 76])
         if helper != IMAGE_SOURCE_PROPS_HELPER_BODY:
             errs.append(f"{tag}: FixB FAIL — ImageSource props helper missing")
+    elif p["name"] == "9.00 NPXS40002 HomeUI":
+        helper = bytes(
+            hbc[
+                NINE_HISTORICAL_HELPER_OFFSET :
+                NINE_HISTORICAL_HELPER_OFFSET + 76
+            ]
+        )
+        if helper != STOCK_APP_ERROR_ON_PRESS_BODY:
+            errs.append(f"{tag}: 9.00 Function #6298 was modified")
     factory = bytes(hbc[o["fps_factory"] : o["fps_factory"] + 5])
     if factory != b["original_fps_factory"]:
         errs.append(f"{tag}: Fps factory alias not repaired ({factory.hex()})")
@@ -489,6 +510,15 @@ def precheck(hbc: bytes, p: dict) -> list[str]:
             IMAGE_SOURCE_PROPS_HELPER_BODY,
         ):
             errs.append(f"pre: AppError props helper unexpected ({helper[:8].hex()})")
+    elif p["name"] == "9.00 NPXS40002 HomeUI":
+        helper = bytes(
+            hbc[
+                NINE_HISTORICAL_HELPER_OFFSET :
+                NINE_HISTORICAL_HELPER_OFFSET + 76
+            ]
+        )
+        if helper != STOCK_APP_ERROR_ON_PRESS_BODY:
+            errs.append("pre: 9.00 Function #6298 is not stock")
     fps = bytes(hbc[o["fps_body"] : o["fps_body"] + 77])
     if fps not in (b["old_fps_body_prefix"], b["onion_hen_button_body"]) and not (
         p["legacy_button_body"] is not None and fps == p["legacy_button_body"]

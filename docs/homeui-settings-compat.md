@@ -117,9 +117,14 @@ HomeUI profile 完全一致，直接复用；`NPXS40008` 也使用同一份 bund
 | `11.x` 及以上 | `old` | `function=debug_settings_old` |
 
 `9.00` 及以上的 Hermes Settings bundle 使用 `hbc_file_length` 和
-`source_hash` 指纹。`4.x` Settings 是 pre-Hermes RNPS JavaScript bundle，
-不能加入 Hermes 指纹表；它由 `hook_functions.cpp` 的 legacy profile 按
-payload size 和目标 offset 原字节识别，只执行以下等长替换：
+`source_hash` 指纹。Hermes 字符串 entry 会共享底层存储区，不能对
+`icon_setting` 做裸字节全局替换，否则会同时破坏 `_settingInstance` 和相邻
+asset path。Hermes 分支只执行标签等长替换，随后重算 HBC footer SHA-1；图标
+由 bootstrapper 直接写到现有 `texture/icon_setting.png` 路径。
+
+`4.x` Settings 是 pre-Hermes RNPS JavaScript bundle，不能加入 Hermes 指纹表；
+它由 `hook_functions.cpp` 的 legacy profile 按 payload size 和目标 offset 原字节
+识别，执行以下定点等长替换：
 
 ```text
 ★Debug Settings -> ★OnionHEN Tools
@@ -373,15 +378,19 @@ replacement 必须和 stock AppError body 等长，目前各 profile 都是 77 b
 固定数组长度会由编译器校验。`old_fps_body_prefix` 只用于修复历史版本残留的
 Fps-body 劫持；新 profile 不能把 OnionHEN body 写到 `fps_body`。
 
-9.00 的 PUI 不会把传给 `Button.icon` 的绝对路径字符串自动转成 ImageSource。
-该 profile 设置 `requires_image_source_object=true`，并把原 AppError `onPress`
-函数（替换主函数后已无调用者）复用为 props factory，动态生成：
+`11.4/11.6` 使用经过验证的单函数形态：AppError 主函数直接调用
+`useInteractivePress`，图标值保持 raw path，不改写相邻 `onPress` helper。
+9.00 同样使用这个形态，避免 reload 后执行第二个手写 Hermes 函数造成回归。
+
+`requires_image_source_object=true` 仅保留为未来固件的受控 fallback。它会把原
+AppError `onPress` 函数（替换主函数后已无调用者）复用为 props factory，动态
+生成：
 
 ```text
 {iconId: {uri: "/system_ex/vsh_asset/onionhen.png"}, onPress, title: ""}
 ```
 
-主函数保持 77 bytes，helper 保持 76 bytes。其他固件没有实际验证出同样限制时，
+主函数保持 77 bytes，helper 保持 76 bytes。没有真机验证和完整反汇编证据时，
 不要启用该标志。
 
 ### 7. 临时 patch 并反汇编验证
@@ -424,13 +433,17 @@ python3 scripts/analyze_rnps_dump.py /path/to/new/DUMP --allow-unsupported
 python3 scripts/analyze_rnps_dump.py /path/to/known/10.01DUMP
 python3 scripts/analyze_rnps_dump.py /path/to/known/10.6DUMP
 python3 scripts/analyze_rnps_dump.py /path/to/known/11.6DUMP
-python3 scripts/analyze_rnps_dump.py /path/to/known/12.7DUMP
+python3 scripts/verify_settings_bundle_patch.py
 python3 scripts/verify_homeui_top_nav_fixes.py
+python3 scripts/analyze_rnps_dump.py /path/to/known/12.7DUMP
 
-python3 -m py_compile scripts/analyze_rnps_dump.py
+python3 -m py_compile scripts/analyze_rnps_dump.py \
+  scripts/verify_settings_bundle_patch.py \
+  scripts/verify_homeui_top_nav_fixes.py
 git diff --check
 make -C source/util/tests test
 cmake --build build --target shellui -j 8
+cmake --build build --target bootstrapper -j 8
 cmake --build build --target daemon -j 8
 ```
 

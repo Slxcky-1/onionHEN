@@ -35,6 +35,7 @@ along with this program; see the file COPYING. If not, see
 #include <arpa/inet.h>
 #include <signal.h>
 #include <stdint.h>
+#include <sha1.hpp>
 extern "C"{
 #include <ps5/kernel.h>
 }
@@ -227,6 +228,32 @@ static bool locate_hermes_payload(const unsigned char *buffer, size_t size,
   return false;
 }
 
+static bool update_hermes_footer_sha1(unsigned char *buffer, size_t size) {
+  static constexpr size_t kHbcFileLengthOffset = 0x20;
+  static constexpr size_t kHbcFooterSha1Size = 20;
+
+  const unsigned char *located_hbc = nullptr;
+  size_t hbc_size = 0;
+  if (!locate_hermes_payload(buffer, size, &located_hbc, &hbc_size) ||
+      hbc_size < kHbcFileLengthOffset + sizeof(uint32_t)) {
+    return false;
+  }
+
+  const uint32_t file_length =
+      patch_read_u32le(located_hbc + kHbcFileLengthOffset);
+  if (file_length < kHbcFooterSha1Size || file_length > hbc_size) {
+    return false;
+  }
+
+  unsigned char *hbc = buffer + (located_hbc - buffer);
+  const size_t footer_offset = file_length - kHbcFooterSha1Size;
+  SHA1_CTX ctx;
+  SHA1Init(&ctx);
+  SHA1Update(&ctx, hbc, static_cast<uint32_t>(footer_offset));
+  SHA1Final(hbc + footer_offset, &ctx);
+  return true;
+}
+
 /* 4.03/4.50/4.51 NPXS40008 use the pre-Hermes RNPS JavaScript bundle. */
 static constexpr unsigned char kLegacySettingsBundleMagic[] = {
     0xe5, 0xd1, 0x0b, 0xfb};
@@ -363,6 +390,7 @@ static bool is_supported_settings_bundle(const unsigned char *buffer,
                                          int size) {
   static const size_t kHbcFileLengthOffset = 0x20;
   static const size_t kHbcSourceHashOffset = 0x0c;
+  static const size_t kHbcFooterSha1Size = 20;
   static const char kSettingsUriPrefix[] = "pssettings:play";
   static const char kDebugSettingsFunction[] = "debug_settings";
 
@@ -377,6 +405,9 @@ static bool is_supported_settings_bundle(const unsigned char *buffer,
   }
 
   const uint32_t hbc_file_length = patch_read_u32le(hbc + kHbcFileLengthOffset);
+  if (hbc_file_length < kHbcFooterSha1Size || hbc_file_length > hbc_size) {
+    return false;
+  }
   const uint8_t *source_hash = hbc + kHbcSourceHashOffset;
   if (!onion::debug_settings_route::settings_bundle_is_supported(
           hbc_file_length, source_hash)) {
@@ -425,15 +456,18 @@ void patch_bundle_strings(unsigned char* buffer, int* size_ptr, int buffer_capac
     int label_count = patch_utf16le_once(
         buffer, size, kOldDbgLabel, sizeof(kOldDbgLabel), kNewDbgLabel,
         sizeof(kNewDbgLabel));
-    int icon_count =
-        replace_all(buffer, size_ptr, buffer_capacity, "icon_setting",
-                    "onionh_sicon");
+    const bool footer_updated =
+        label_count == 0 || update_hermes_footer_sha1(buffer, (size_t)size);
 #if SHELL_DEBUG == 1
-    LOG_DEBUG("patch_bundle_strings: NPXS40008 settings patch label=%d icon=%d",
-                label_count, icon_count);
+    if (!footer_updated) {
+      LOG_ERROR("patch_bundle_strings: NPXS40008 footer SHA-1 update failed");
+    }
+    LOG_DEBUG("patch_bundle_strings: NPXS40008 settings patch label=%d "
+              "footer=%s (stock icon id preserved)",
+              label_count, footer_updated ? "ok" : "failed");
 #else
     (void)label_count;
-    (void)icon_count;
+    (void)footer_updated;
 #endif
   }
 
