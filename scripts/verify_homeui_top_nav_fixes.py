@@ -39,6 +39,7 @@ DUMPS = [
         "4.51",
         "6.0",
         "6.02",
+        "7.4",
         "7.61",
         "8.0",
         "8.4",
@@ -276,7 +277,7 @@ LEGACY_PROFILES = (
         "new_source_prefix": LEGACY_6X_7X_NEW_SOURCE_PREFIX,
     },
     {
-        "name": "7.61 NPXS40002 legacy HomeUI",
+        "name": "7.40/7.61 NPXS40002 legacy HomeUI",
         "payload_size": extract_size("kLegacy761PayloadSize"),
         "title_id_offset": extract_size("kLegacy761TitleIdOffset"),
         "app_error_event_trigger_offset": extract_size(

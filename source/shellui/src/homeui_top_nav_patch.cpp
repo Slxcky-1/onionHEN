@@ -52,7 +52,7 @@ constexpr size_t kHbcFooterSha1Size = 20;
 constexpr const char *kOnionHenTopNavIconPath =
     "/system_ex/vsh_asset/onionhen.png";
 
-/* The 4.x, 6.x and 7.61 HomeUI builds are pre-Hermes RNPS JavaScript bundles. */
+/* 4.x, 6.x, 7.40 and 7.61 HomeUI use pre-Hermes RNPS JavaScript bundles. */
 constexpr size_t kLegacyPayloadSize = 0x152990;
 constexpr size_t kLegacyTitleIdOffset = 0x6ae31;
 constexpr size_t kLegacyAppErrorEventTriggerOffset = 0xa6bb1;
@@ -95,7 +95,7 @@ static const char kLegacyOldAppErrorSource[] =
 /* Module 231 forwards iconId directly to PUI Button.icon. */
 static const char kLegacyNewAppErrorSourcePrefix[] =
     "var h=(0,u().memo)((function(){var e=(0,f.useInteractivePress)({link:\"OnionHEN?NavUI=1\"});return u().default.createElement(d.default,{iconId:{uri:\"/system_ex/vsh_asset/onionhen.png\"},onPress:e,title:\"\",__source:{fileName:_,lineNumber:80}})}));t.ApplicationErrorEventTrigger=h;";
-/* 6.00/6.02 and 7.61 share this minified SystemIcon module shape. */
+/* 6.00/6.02, 7.40 and 7.61 share this minified SystemIcon module shape. */
 static const unsigned char kLegacy6x7xOldExportAlias[] = {
     't', '.', 'F', 'p', 's', '=', 'h'};
 static const unsigned char kLegacy6x7xNewExportAlias[] = {
@@ -168,7 +168,7 @@ static const LegacyHomeUiProfile kLegacyHomeUiProfiles[] = {
      kLegacy6x7xOldAppErrorSource,
      kLegacy6x7xNewAppErrorSourcePrefix,
      sizeof(kLegacy6x7xNewAppErrorSourcePrefix) - 1},
-    {"7.61 NPXS40002 legacy HomeUI",
+    {"7.40/7.61 NPXS40002 legacy HomeUI",
      kLegacy761PayloadSize,
      kLegacy761TitleIdOffset,
      kLegacy761AppErrorEventTriggerOffset,

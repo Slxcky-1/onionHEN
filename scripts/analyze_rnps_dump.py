@@ -91,7 +91,8 @@ KNOWN_LEGACY_HOMEUI_PROFILES = [
         "sha256": "b376f7ead9140636beac99354a7d958fc18ea4da40580dda590927be936e0a18",
     },
     {
-        "name": "7.61 NPXS40002 legacy HomeUI",
+        # 7.40 and 7.61 NPXS40002 are byte-identical.
+        "name": "7.40/7.61 NPXS40002 legacy HomeUI",
         "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
         "payload_size": 0x19DC10,
         "file_size": 0x19E730,
@@ -144,7 +145,8 @@ KNOWN_LEGACY_SETTINGS_PROFILES = [
         "sha256": "2acc1cfc8421c6cb24c25ad29b8433040f79043a068dd941cbf29e2e7daabc0d",
     },
     {
-        "name": "7.61 NPXS40008 Settings",
+        # 7.40 and 7.61 NPXS40008 are byte-identical.
+        "name": "7.40/7.61 NPXS40008 Settings",
         "route": "standard",
         "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
         "payload_size": 0x5E9D20,
