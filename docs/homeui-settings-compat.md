@@ -136,6 +136,7 @@ HomeUI profile 完全一致，直接复用；`NPXS40008` 也使用同一份 bund
 相关文件：
 
 - `source/include/onion/debug_settings_route_policy.hpp`
+- `source/shellui/src/settings_bundle_patch.cpp`
 - `source/util/tests/test_debug_settings_route_policy.cpp`
 - `scripts/analyze_rnps_dump.py`
 
@@ -158,7 +159,7 @@ asset path。Hermes 分支只执行标签等长替换，随后重算 HBC footer 
 由 bootstrapper 直接写到现有 `texture/icon_setting.png` 路径。
 
 `4.x/5.x/6.x/7.x/8.x` Settings 是 pre-Hermes RNPS JavaScript bundle，不能加入 Hermes 指纹表；
-它由 `hook_functions.cpp` 的 legacy profile 按 payload size 和目标 offset 原字节
+它由 `settings_bundle_patch.cpp` 的 legacy profile 按 payload size 和目标 offset 原字节
 识别，执行以下定点等长替换：
 
 ```text

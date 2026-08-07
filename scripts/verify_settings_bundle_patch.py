@@ -18,7 +18,9 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 DUMP_ROOT = Path("/Users/chenpy/Projects/Person/ps5-kylin/Sony Dumps")
-HOOK = (REPO / "source/shellui/src/hook_functions.cpp").read_text()
+SETTINGS_CPP = (
+    REPO / "source/shellui/src/settings_bundle_patch.cpp"
+).read_text()
 HERMES_VERSIONS = ("9.00", "11.6")
 LEGACY_VERSIONS = (
     "4.03",
@@ -55,7 +57,7 @@ VERSION_PROTECTED_STRINGS = {
 
 def load_legacy_profiles() -> list[dict]:
     table = re.search(
-        r"kLegacySettingsProfiles\[\] = \{(.*?)\n\};", HOOK, re.S
+        r"kLegacySettingsProfiles\[\] = \{(.*?)\n\};", SETTINGS_CPP, re.S
     )
     if not table:
         raise SystemExit("legacy Settings profile table not found")
@@ -329,7 +331,10 @@ def verify_legacy_version(version: str) -> list[str]:
 def verify_source_contract() -> list[str]:
     errors: list[str] = []
     bootstrapper = (REPO / "source/bootstrapper/source/main.cpp").read_text()
-    if 'replace_all(buffer, size_ptr, buffer_capacity, "icon_setting"' in HOOK:
+    if (
+        'replace_all(buffer, size_ptr, buffer_capacity, "icon_setting"'
+        in SETTINGS_CPP
+    ):
         errors.append("Hermes icon_setting replacement is still present")
     if "texture/icon_setting.png" not in bootstrapper:
         errors.append("bootstrapper does not deploy the stock Settings icon path")

@@ -99,16 +99,6 @@ def extract_c_string(name: str) -> bytes:
     return bytes(m.group(1), "utf-8").decode("unicode_escape").encode("latin1")
 
 
-def extract_size(name: str) -> int:
-    m = re.search(
-        rf"constexpr size_t {re.escape(name)} = (0x[0-9a-fA-F]+|[0-9]+);",
-        CPP,
-    )
-    if not m:
-        raise SystemExit(f"missing C++ size {name}")
-    return int(m.group(1), 0)
-
-
 def _hex_bytes(text: str) -> bytes:
     return bytes(int(x, 16) for x in re.findall(r"0x([0-9a-fA-F]{2})", text))
 
@@ -173,34 +163,75 @@ def load_profiles() -> list[dict]:
     return profiles
 
 
-def load_plain_js_profile() -> dict:
-    match = re.search(
-        r'kPlainJsHomeUiProfiles\[\] = \{\s*\{\s*"([^"]+)",\s*'
-        r'(0x[0-9a-fA-F]+),\s*(0x[0-9a-fA-F]+),\s*'
-        r'(0x[0-9a-fA-F]+),\s*(0x[0-9a-fA-F]+),\s*'
-        r'(0x[0-9a-fA-F]+),\s*(0x[0-9a-fA-F]+),\s*'
-        r'([0-9]+),\s*(0x[0-9a-fA-F]+)\s*\},\s*\};',
-        CPP,
+def load_source_strategies() -> dict[str, dict]:
+    strategies = {}
+    pattern = re.compile(
+        r"static const SourcePatchStrategy (\w+) = \{\s*"
+        r"(\w+),\s*(\w+),\s*sizeof\(\w+\),\s*"
+        r"(\w+),\s*(\w+),\s*sizeof\(\w+\) - 1,\s*"
+        r"sizeof\(\w+\) - 1,\s*\};",
         re.S,
     )
-    if not match:
-        raise SystemExit("no plain-JS HomeUI profile parsed")
-    values = [int(value, 0) for value in match.groups()[1:]]
-    keys = (
-        "payload_size",
-        "title_id_offset",
-        "app_error_event_trigger_offset",
-        "navigate_to_home_offset",
-        "icon_order_offset",
-        "app_error_source_offset",
-        "app_error_source_size",
-        "export_alias_offset",
+    for name, old_alias, new_alias, old_source, new_source in pattern.findall(CPP):
+        old_source_bytes = extract_c_string(old_source)
+        new_source_prefix = extract_c_string(new_source)
+        strategies[name] = {
+            "old_alias": extract_array(old_alias),
+            "new_alias": extract_array(new_alias),
+            "old_source": old_source_bytes,
+            "new_source_prefix": new_source_prefix,
+            "app_error_source_size": len(old_source_bytes),
+            "new_source": new_source_prefix.ljust(len(old_source_bytes), b" "),
+        }
+    if not strategies:
+        raise SystemExit("no source HomeUI strategies parsed")
+    return strategies
+
+
+def load_source_profiles(strategies: dict[str, dict]) -> list[dict]:
+    table = re.search(
+        r"kSourceHomeUiProfiles\[\] = \{(.*?)\n\};", CPP, re.S
     )
-    return {"name": match.group(1), **dict(zip(keys, values))}
+    if not table:
+        raise SystemExit("source HomeUI profile table not found")
+
+    profiles = []
+    for entry in re.findall(r"\n    \{\n(.*?)\n    \},", table.group(1), re.S):
+        offsets_text = re.search(
+            r"/\* offsets \*/ \{(.*?)\n        \}", entry, re.S
+        ).group(1)
+        offsets = {
+            match.group(1): int(match.group(2), 16)
+            for match in re.finditer(
+                r"/\* (\w+) \*/ (0x[0-9a-fA-F]+),", offsets_text
+            )
+        }
+        strategy_name = re.search(
+            r"/\* strategy \*/ &(\w+)", entry
+        ).group(1)
+        strategy = strategies[strategy_name]
+        profiles.append(
+            {
+                "name": re.search(r'/\* name \*/ "([^"]+)"', entry).group(1),
+                "kind": re.search(
+                    r"/\* kind \*/ SourceBundleKind::(\w+)", entry
+                ).group(1),
+                "payload_size": int(
+                    re.search(
+                        r"/\* payload_size \*/ (0x[0-9a-fA-F]+)", entry
+                    ).group(1),
+                    16,
+                ),
+                **{f"{name}_offset": value for name, value in offsets.items()},
+                **strategy,
+            }
+        )
+    if not profiles:
+        raise SystemExit("no source HomeUI profiles parsed")
+    return profiles
 
 
 PROFILES = load_profiles()
-PLAIN_JS_PROFILE = load_plain_js_profile()
 for _p in PROFILES:
     _b = _p["bytes"]
     assert (
@@ -232,104 +263,13 @@ PADDED_LINK = extract_array("kLegacyPaddedTopNavLinkUri")
 
 LEGACY_OLD_ORDER = extract_array("kLegacyOldIconOrder")
 LEGACY_NEW_ORDER = extract_array("kLegacyNewIconOrder")
-LEGACY_OLD_ALIAS = extract_array("kLegacyOldExportAlias")
-LEGACY_NEW_ALIAS = extract_array("kLegacyNewExportAlias")
-LEGACY_OLD_SOURCE = extract_c_string("kLegacyOldAppErrorSource")
-LEGACY_NEW_SOURCE_PREFIX = extract_c_string("kLegacyNewAppErrorSourcePrefix")
-LEGACY_5X_7X_OLD_ALIAS = extract_array("kLegacy5x7xOldExportAlias")
-LEGACY_5X_7X_NEW_ALIAS = extract_array("kLegacy5x7xNewExportAlias")
-LEGACY_5X_7X_OLD_SOURCE = extract_c_string("kLegacy5x7xOldAppErrorSource")
-LEGACY_5X_7X_NEW_SOURCE_PREFIX = extract_c_string(
-    "kLegacy5x7xNewAppErrorSourcePrefix"
+SOURCE_STRATEGIES = load_source_strategies()
+SOURCE_PROFILES = load_source_profiles(SOURCE_STRATEGIES)
+LEGACY_PROFILES = tuple(
+    profile for profile in SOURCE_PROFILES if profile["kind"] == "LegacyRnps"
 )
-LEGACY_PROFILES = (
-    {
-        "name": "4.03/4.50/4.51 NPXS40002 legacy HomeUI",
-        "payload_size": extract_size("kLegacyPayloadSize"),
-        "title_id_offset": extract_size("kLegacyTitleIdOffset"),
-        "app_error_event_trigger_offset": extract_size(
-            "kLegacyAppErrorEventTriggerOffset"
-        ),
-        "navigate_to_home_offset": extract_size("kLegacyNavigateToHomeOffset"),
-        "icon_order_offset": extract_size("kLegacyIconOrderOffset"),
-        "app_error_source_offset": extract_size("kLegacyAppErrorSourceOffset"),
-        "app_error_source_size": extract_size("kLegacyAppErrorSourceSize"),
-        "export_alias_offset": extract_size("kLegacyExportAliasOffset"),
-        "old_alias": LEGACY_OLD_ALIAS,
-        "new_alias": LEGACY_NEW_ALIAS,
-        "old_source": LEGACY_OLD_SOURCE,
-        "new_source_prefix": LEGACY_NEW_SOURCE_PREFIX,
-    },
-    {
-        "name": "5.10 NPXS40002 legacy HomeUI",
-        "payload_size": extract_size("kLegacy510PayloadSize"),
-        "title_id_offset": extract_size("kLegacy510TitleIdOffset"),
-        "app_error_event_trigger_offset": extract_size(
-            "kLegacy510AppErrorEventTriggerOffset"
-        ),
-        "navigate_to_home_offset": extract_size(
-            "kLegacy510NavigateToHomeOffset"
-        ),
-        "icon_order_offset": extract_size("kLegacy510IconOrderOffset"),
-        "app_error_source_offset": extract_size(
-            "kLegacy510AppErrorSourceOffset"
-        ),
-        "app_error_source_size": extract_size("kLegacy510AppErrorSourceSize"),
-        "export_alias_offset": extract_size("kLegacy510ExportAliasOffset"),
-        "old_alias": LEGACY_5X_7X_OLD_ALIAS,
-        "new_alias": LEGACY_5X_7X_NEW_ALIAS,
-        "old_source": LEGACY_5X_7X_OLD_SOURCE,
-        "new_source_prefix": LEGACY_5X_7X_NEW_SOURCE_PREFIX,
-    },
-    {
-        "name": "6.00/6.02 NPXS40002 legacy HomeUI",
-        "payload_size": extract_size("kLegacy6PayloadSize"),
-        "title_id_offset": extract_size("kLegacy6TitleIdOffset"),
-        "app_error_event_trigger_offset": extract_size(
-            "kLegacy6AppErrorEventTriggerOffset"
-        ),
-        "navigate_to_home_offset": extract_size("kLegacy6NavigateToHomeOffset"),
-        "icon_order_offset": extract_size("kLegacy6IconOrderOffset"),
-        "app_error_source_offset": extract_size("kLegacy6AppErrorSourceOffset"),
-        "app_error_source_size": extract_size("kLegacy6AppErrorSourceSize"),
-        "export_alias_offset": extract_size("kLegacy6ExportAliasOffset"),
-        "old_alias": LEGACY_5X_7X_OLD_ALIAS,
-        "new_alias": LEGACY_5X_7X_NEW_ALIAS,
-        "old_source": LEGACY_5X_7X_OLD_SOURCE,
-        "new_source_prefix": LEGACY_5X_7X_NEW_SOURCE_PREFIX,
-    },
-    {
-        "name": "7.40/7.61 NPXS40002 legacy HomeUI",
-        "payload_size": extract_size("kLegacy761PayloadSize"),
-        "title_id_offset": extract_size("kLegacy761TitleIdOffset"),
-        "app_error_event_trigger_offset": extract_size(
-            "kLegacy761AppErrorEventTriggerOffset"
-        ),
-        "navigate_to_home_offset": extract_size(
-            "kLegacy761NavigateToHomeOffset"
-        ),
-        "icon_order_offset": extract_size("kLegacy761IconOrderOffset"),
-        "app_error_source_offset": extract_size(
-            "kLegacy761AppErrorSourceOffset"
-        ),
-        "app_error_source_size": extract_size("kLegacy761AppErrorSourceSize"),
-        "export_alias_offset": extract_size("kLegacy761ExportAliasOffset"),
-        "old_alias": LEGACY_5X_7X_OLD_ALIAS,
-        "new_alias": LEGACY_5X_7X_NEW_ALIAS,
-        "old_source": LEGACY_5X_7X_OLD_SOURCE,
-        "new_source_prefix": LEGACY_5X_7X_NEW_SOURCE_PREFIX,
-    },
-)
-for _legacy_profile in LEGACY_PROFILES:
-    _legacy_profile["new_source"] = _legacy_profile["new_source_prefix"].ljust(
-        _legacy_profile["app_error_source_size"], b" "
-    )
-PLAIN_JS_OLD_ALIAS = extract_array("kPlainJsOldExportAlias")
-PLAIN_JS_NEW_ALIAS = extract_array("kPlainJsNewExportAlias")
-PLAIN_JS_OLD_SOURCE = extract_c_string("kPlainJsOldAppErrorSource")
-PLAIN_JS_NEW_SOURCE_PREFIX = extract_c_string("kPlainJsNewAppErrorSourcePrefix")
-PLAIN_JS_NEW_SOURCE = PLAIN_JS_NEW_SOURCE_PREFIX.ljust(
-    PLAIN_JS_PROFILE["app_error_source_size"], b" "
+PLAIN_JS_PROFILE = next(
+    profile for profile in SOURCE_PROFILES if profile["kind"] == "PlainJs"
 )
 IMAGE_SOURCE_BUTTON_BODY = extract_array("kImageSourceOnionHenButtonBody")
 STOCK_APP_ERROR_ON_PRESS_BODY = extract_array("kStockAppErrorOnPressBody")
@@ -341,20 +281,13 @@ NINE_HISTORICAL_HELPER_OFFSET = 0x149EE7
 assert NEW_ICON_URI == b"/system_ex/vsh_asset/onionhen.png", NEW_ICON_URI
 assert NEW_LINK == b"OnionHEN?NavUI=1", NEW_LINK
 assert len(LEGACY_OLD_ORDER) == len(LEGACY_NEW_ORDER) == 37
-assert len(LEGACY_OLD_ALIAS) == len(LEGACY_NEW_ALIAS) == 7
-for _legacy_profile in LEGACY_PROFILES:
-    assert len(_legacy_profile["old_alias"]) == len(_legacy_profile["new_alias"]) == 7
+for _source_profile in SOURCE_PROFILES:
+    assert len(_source_profile["old_alias"]) == len(_source_profile["new_alias"]) == 7
     assert (
-        len(_legacy_profile["old_source"])
-        == len(_legacy_profile["new_source"])
-        == _legacy_profile["app_error_source_size"]
+        len(_source_profile["old_source"])
+        == len(_source_profile["new_source"])
+        == _source_profile["app_error_source_size"]
     )
-assert len(PLAIN_JS_OLD_ALIAS) == len(PLAIN_JS_NEW_ALIAS) == 7
-assert (
-    len(PLAIN_JS_OLD_SOURCE)
-    == len(PLAIN_JS_NEW_SOURCE)
-    == PLAIN_JS_PROFILE["app_error_source_size"]
-)
 assert len(IMAGE_SOURCE_BUTTON_BODY) == 77
 assert len(STOCK_APP_ERROR_ON_PRESS_BODY) == 76
 assert len(IMAGE_SOURCE_PROPS_HELPER_BODY) == 76
@@ -812,13 +745,13 @@ def precheck_plain_js(bundle: bytes, p: dict) -> list[str]:
     source_offset = p["app_error_source_offset"]
     source_size = p["app_error_source_size"]
     order = bytes(bundle[order_offset : order_offset + len(LEGACY_OLD_ORDER)])
-    alias = bytes(bundle[alias_offset : alias_offset + len(PLAIN_JS_OLD_ALIAS)])
+    alias = bytes(bundle[alias_offset : alias_offset + len(p["old_alias"])])
     source = bytes(bundle[source_offset : source_offset + source_size])
     if order not in (LEGACY_OLD_ORDER, LEGACY_NEW_ORDER):
         errs.append(f"pre: plain-JS order unexpected ({order!r})")
-    if alias not in (PLAIN_JS_OLD_ALIAS, PLAIN_JS_NEW_ALIAS):
+    if alias not in (p["old_alias"], p["new_alias"]):
         errs.append(f"pre: plain-JS alias unexpected ({alias!r})")
-    if source not in (PLAIN_JS_OLD_SOURCE, PLAIN_JS_NEW_SOURCE):
+    if source not in (p["old_source"], p["new_source"]):
         errs.append(f"pre: plain-JS AppError source unexpected ({source[:32]!r})")
     return errs
 
@@ -838,16 +771,16 @@ def apply_plain_js(bundle: bytearray, p: dict) -> list[str]:
         bundle,
         "plain_js_alias",
         p["export_alias_offset"],
-        [PLAIN_JS_OLD_ALIAS, PLAIN_JS_NEW_ALIAS],
-        PLAIN_JS_NEW_ALIAS,
+        [p["old_alias"], p["new_alias"]],
+        p["new_alias"],
         notes,
     )
     ok &= patch_at(
         bundle,
         "plain_js_app_error",
         p["app_error_source_offset"],
-        [PLAIN_JS_OLD_SOURCE, PLAIN_JS_NEW_SOURCE],
-        PLAIN_JS_NEW_SOURCE,
+        [p["old_source"], p["new_source"]],
+        p["new_source"],
         notes,
     )
     if not ok:
@@ -865,13 +798,13 @@ def verify_plain_js(
     source_size = p["app_error_source_size"]
     source_end = source_offset + source_size
     order = bytes(bundle[order_offset : order_offset + len(LEGACY_NEW_ORDER)])
-    alias = bytes(bundle[alias_offset : alias_offset + len(PLAIN_JS_NEW_ALIAS)])
+    alias = bytes(bundle[alias_offset : alias_offset + len(p["new_alias"])])
     source = bytes(bundle[source_offset:source_end])
     if order != LEGACY_NEW_ORDER:
         errs.append(f"{tag}: plain-JS order not Search|App|Settings|Profile")
-    if alias != PLAIN_JS_NEW_ALIAS:
+    if alias != p["new_alias"]:
         errs.append(f"{tag}: plain-JS App alias missing ({alias!r})")
-    if source != PLAIN_JS_NEW_SOURCE:
+    if source != p["new_source"]:
         errs.append(f"{tag}: plain-JS AppError source mismatch")
     if bytes(bundle[source_end:alias_offset]) != original_fps_body:
         errs.append(f"{tag}: plain-JS Fps implementation changed")
@@ -1015,7 +948,7 @@ def run_pass(pass_id: int):
             allowed.update(
                 range(
                     p["export_alias_offset"],
-                    p["export_alias_offset"] + len(PLAIN_JS_NEW_ALIAS),
+                    p["export_alias_offset"] + len(p["new_alias"]),
                 )
             )
             unexpected = [

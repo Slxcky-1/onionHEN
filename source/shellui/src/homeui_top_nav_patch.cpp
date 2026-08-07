@@ -52,40 +52,6 @@ constexpr size_t kHbcFooterSha1Size = 20;
 constexpr const char *kOnionHenTopNavIconPath =
     "/system_ex/vsh_asset/onionhen.png";
 
-/* 4.x through 7.x HomeUI use pre-Hermes RNPS JavaScript bundles. */
-constexpr size_t kLegacyPayloadSize = 0x152990;
-constexpr size_t kLegacyTitleIdOffset = 0x6ae31;
-constexpr size_t kLegacyAppErrorEventTriggerOffset = 0xa6bb1;
-constexpr size_t kLegacyNavigateToHomeOffset = 0x40386;
-constexpr size_t kLegacyIconOrderOffset = 0xa6aea;
-constexpr size_t kLegacyAppErrorSourceOffset = 0x1021c9;
-constexpr size_t kLegacyAppErrorSourceSize = 383;
-constexpr size_t kLegacyExportAliasOffset = 0x10249d;
-constexpr size_t kLegacy510PayloadSize = 0x185c30;
-constexpr size_t kLegacy510TitleIdOffset = 0x6e217;
-constexpr size_t kLegacy510AppErrorEventTriggerOffset = 0xb12de;
-constexpr size_t kLegacy510NavigateToHomeOffset = 0x3da05;
-constexpr size_t kLegacy510IconOrderOffset = 0xb1217;
-constexpr size_t kLegacy510AppErrorSourceOffset = 0x124d28;
-constexpr size_t kLegacy510AppErrorSourceSize = 399;
-constexpr size_t kLegacy510ExportAliasOffset = 0x12501c;
-constexpr size_t kLegacy6PayloadSize = 0x185d00;
-constexpr size_t kLegacy6TitleIdOffset = 0x6c51d;
-constexpr size_t kLegacy6AppErrorEventTriggerOffset = 0xaece9;
-constexpr size_t kLegacy6NavigateToHomeOffset = 0x385a9;
-constexpr size_t kLegacy6IconOrderOffset = 0xaec22;
-constexpr size_t kLegacy6AppErrorSourceOffset = 0x11ec20;
-constexpr size_t kLegacy6AppErrorSourceSize = 399;
-constexpr size_t kLegacy6ExportAliasOffset = 0x11ef14;
-constexpr size_t kLegacy761PayloadSize = 0x19dc10;
-constexpr size_t kLegacy761TitleIdOffset = 0x75314;
-constexpr size_t kLegacy761AppErrorEventTriggerOffset = 0xbf1a4;
-constexpr size_t kLegacy761NavigateToHomeOffset = 0x3d8ed;
-constexpr size_t kLegacy761IconOrderOffset = 0xbf0dd;
-constexpr size_t kLegacy761AppErrorSourceOffset = 0x135ed5;
-constexpr size_t kLegacy761AppErrorSourceSize = 399;
-constexpr size_t kLegacy761ExportAliasOffset = 0x1361c9;
-
 static const unsigned char kLegacyOldIconOrder[] = {
     '[', '"', 'F', 'p', 's', '"', ',', '"', 'S', 'e', 'a', 'r', 'c', 'h',
     '"', ',', '"', 'S', 'e', 't', 't', 'i', 'n', 'g', 's', '"', ',', '"',
@@ -113,121 +79,6 @@ static const char kLegacy5x7xOldAppErrorSource[] =
 static const char kLegacy5x7xNewAppErrorSourcePrefix[] =
     "var b=(0,u().memo)((function(){var e=(0,c.useInteractivePress)({link:\"OnionHEN?NavUI=1\"});return u().default.createElement(p.default,{iconId:{uri:\"/system_ex/vsh_asset/onionhen.png\"},onPress:e,title:\"\",__source:{fileName:v,lineNumber:80,columnNumber:10}})}));t.ApplicationErrorEventTrigger=b;";
 
-static_assert(sizeof(kLegacyOldIconOrder) == sizeof(kLegacyNewIconOrder));
-static_assert(sizeof(kLegacyOldExportAlias) == sizeof(kLegacyNewExportAlias));
-static_assert(sizeof(kLegacyOldAppErrorSource) - 1 ==
-              kLegacyAppErrorSourceSize);
-static_assert(sizeof(kLegacyNewAppErrorSourcePrefix) - 1 <=
-              kLegacyAppErrorSourceSize);
-static_assert(sizeof(kLegacy5x7xOldExportAlias) ==
-              sizeof(kLegacy5x7xNewExportAlias));
-static_assert(sizeof(kLegacy5x7xOldAppErrorSource) - 1 ==
-              kLegacy510AppErrorSourceSize);
-static_assert(sizeof(kLegacy5x7xOldAppErrorSource) - 1 ==
-              kLegacy6AppErrorSourceSize);
-static_assert(sizeof(kLegacy5x7xOldAppErrorSource) - 1 ==
-              kLegacy761AppErrorSourceSize);
-static_assert(sizeof(kLegacy5x7xNewAppErrorSourcePrefix) - 1 <=
-              kLegacy510AppErrorSourceSize);
-static_assert(sizeof(kLegacy5x7xNewAppErrorSourcePrefix) - 1 <=
-              kLegacy6AppErrorSourceSize);
-static_assert(sizeof(kLegacy5x7xNewAppErrorSourcePrefix) - 1 <=
-              kLegacy761AppErrorSourceSize);
-
-struct LegacyHomeUiProfile {
-  const char *name;
-  size_t payload_size;
-  size_t title_id_offset;
-  size_t app_error_event_trigger_offset;
-  size_t navigate_to_home_offset;
-  size_t icon_order_offset;
-  size_t app_error_source_offset;
-  size_t app_error_source_size;
-  size_t export_alias_offset;
-  const unsigned char *old_export_alias;
-  const unsigned char *new_export_alias;
-  const char *old_app_error_source;
-  const char *new_app_error_source_prefix;
-  size_t new_app_error_source_prefix_size;
-};
-
-static const LegacyHomeUiProfile kLegacyHomeUiProfiles[] = {
-    {"4.03/4.50/4.51 NPXS40002 legacy HomeUI",
-     kLegacyPayloadSize,
-     kLegacyTitleIdOffset,
-     kLegacyAppErrorEventTriggerOffset,
-     kLegacyNavigateToHomeOffset,
-     kLegacyIconOrderOffset,
-     kLegacyAppErrorSourceOffset,
-     kLegacyAppErrorSourceSize,
-     kLegacyExportAliasOffset,
-     kLegacyOldExportAlias,
-     kLegacyNewExportAlias,
-     kLegacyOldAppErrorSource,
-     kLegacyNewAppErrorSourcePrefix,
-     sizeof(kLegacyNewAppErrorSourcePrefix) - 1},
-    {"5.10 NPXS40002 legacy HomeUI",
-     kLegacy510PayloadSize,
-     kLegacy510TitleIdOffset,
-     kLegacy510AppErrorEventTriggerOffset,
-     kLegacy510NavigateToHomeOffset,
-     kLegacy510IconOrderOffset,
-     kLegacy510AppErrorSourceOffset,
-     kLegacy510AppErrorSourceSize,
-     kLegacy510ExportAliasOffset,
-     kLegacy5x7xOldExportAlias,
-     kLegacy5x7xNewExportAlias,
-     kLegacy5x7xOldAppErrorSource,
-     kLegacy5x7xNewAppErrorSourcePrefix,
-     sizeof(kLegacy5x7xNewAppErrorSourcePrefix) - 1},
-    {"6.00/6.02 NPXS40002 legacy HomeUI",
-     kLegacy6PayloadSize,
-     kLegacy6TitleIdOffset,
-     kLegacy6AppErrorEventTriggerOffset,
-     kLegacy6NavigateToHomeOffset,
-     kLegacy6IconOrderOffset,
-     kLegacy6AppErrorSourceOffset,
-     kLegacy6AppErrorSourceSize,
-     kLegacy6ExportAliasOffset,
-     kLegacy5x7xOldExportAlias,
-     kLegacy5x7xNewExportAlias,
-     kLegacy5x7xOldAppErrorSource,
-     kLegacy5x7xNewAppErrorSourcePrefix,
-     sizeof(kLegacy5x7xNewAppErrorSourcePrefix) - 1},
-    {"7.40/7.61 NPXS40002 legacy HomeUI",
-     kLegacy761PayloadSize,
-     kLegacy761TitleIdOffset,
-     kLegacy761AppErrorEventTriggerOffset,
-     kLegacy761NavigateToHomeOffset,
-     kLegacy761IconOrderOffset,
-     kLegacy761AppErrorSourceOffset,
-     kLegacy761AppErrorSourceSize,
-     kLegacy761ExportAliasOffset,
-     kLegacy5x7xOldExportAlias,
-     kLegacy5x7xNewExportAlias,
-     kLegacy5x7xOldAppErrorSource,
-     kLegacy5x7xNewAppErrorSourcePrefix,
-     sizeof(kLegacy5x7xNewAppErrorSourcePrefix) - 1},
-};
-
-/* 8.00/8.40 HomeUI stores minified JavaScript directly in the RNPS payload. */
-struct PlainJsHomeUiProfile {
-  const char *name;
-  size_t payload_size;
-  size_t title_id_offset;
-  size_t app_error_event_trigger_offset;
-  size_t navigate_to_home_offset;
-  size_t icon_order_offset;
-  size_t app_error_source_offset;
-  size_t app_error_source_size;
-  size_t export_alias_offset;
-};
-
-static constexpr PlainJsHomeUiProfile kPlainJsHomeUiProfiles[] = {
-    {"8.00/8.40 NPXS40002 plain-JS HomeUI", 0x158070, 0x5a8b3, 0x9e910,
-     0x325d1, 0x9e84b, 0x100183, 328, 0x1003e4},
-};
-
 static const unsigned char kPlainJsOldExportAlias[] = {
     't', '.', 'F', 'p', 's', '=', 'I'};
 static const unsigned char kPlainJsNewExportAlias[] = {
@@ -237,10 +88,158 @@ static const char kPlainJsOldAppErrorSource[] =
 static const char kPlainJsNewAppErrorSourcePrefix[] =
     "var b=(0,a.memo)((function(){var e=(0,d.useInteractivePress)({link:\"OnionHEN?NavUI=1\"});return(0,f.jsx)(m.default,{iconId:{uri:\"/system_ex/vsh_asset/onionhen.png\"},onPress:e,title:\"\"})}));t.ApplicationErrorEventTrigger=b;";
 
+enum class SourceBundleKind {
+  LegacyRnps,
+  PlainJs,
+};
+
+struct SourcePatchStrategy {
+  const unsigned char *old_export_alias;
+  const unsigned char *new_export_alias;
+  size_t export_alias_size;
+  const char *old_app_error_source;
+  const char *new_app_error_source_prefix;
+  size_t source_block_size;
+  size_t new_source_prefix_size;
+};
+
+struct SourceHomeUiOffsets {
+  size_t title_id;
+  size_t app_error_event_trigger;
+  size_t navigate_to_home;
+  size_t icon_order;
+  size_t app_error_source;
+  size_t export_alias;
+};
+
+struct SourceHomeUiProfile {
+  const char *name;
+  SourceBundleKind kind;
+  size_t payload_size;
+  SourceHomeUiOffsets offsets;
+  const SourcePatchStrategy *strategy;
+};
+
+static const SourcePatchStrategy kLegacy4xSourceStrategy = {
+    kLegacyOldExportAlias,
+    kLegacyNewExportAlias,
+    sizeof(kLegacyOldExportAlias),
+    kLegacyOldAppErrorSource,
+    kLegacyNewAppErrorSourcePrefix,
+    sizeof(kLegacyOldAppErrorSource) - 1,
+    sizeof(kLegacyNewAppErrorSourcePrefix) - 1,
+};
+
+static const SourcePatchStrategy kLegacy5x7xSourceStrategy = {
+    kLegacy5x7xOldExportAlias,
+    kLegacy5x7xNewExportAlias,
+    sizeof(kLegacy5x7xOldExportAlias),
+    kLegacy5x7xOldAppErrorSource,
+    kLegacy5x7xNewAppErrorSourcePrefix,
+    sizeof(kLegacy5x7xOldAppErrorSource) - 1,
+    sizeof(kLegacy5x7xNewAppErrorSourcePrefix) - 1,
+};
+
+static const SourcePatchStrategy kPlainJsSourceStrategy = {
+    kPlainJsOldExportAlias,
+    kPlainJsNewExportAlias,
+    sizeof(kPlainJsOldExportAlias),
+    kPlainJsOldAppErrorSource,
+    kPlainJsNewAppErrorSourcePrefix,
+    sizeof(kPlainJsOldAppErrorSource) - 1,
+    sizeof(kPlainJsNewAppErrorSourcePrefix) - 1,
+};
+
+/*
+ * 4.x-7.x contain a pre-Hermes RNPS bundle. 8.x contains plain minified JS.
+ * The patch operation is identical; only the bundle prefix and source shape
+ * differ. Keep offsets together so adding a firmware is a single table edit.
+ */
+static const SourceHomeUiProfile kSourceHomeUiProfiles[] = {
+    {
+        /* name */ "4.03/4.50/4.51 NPXS40002 legacy HomeUI",
+        /* kind */ SourceBundleKind::LegacyRnps,
+        /* payload_size */ 0x152990,
+        /* offsets */ {
+            /* title_id */ 0x6ae31,
+            /* app_error_event_trigger */ 0xa6bb1,
+            /* navigate_to_home */ 0x40386,
+            /* icon_order */ 0xa6aea,
+            /* app_error_source */ 0x1021c9,
+            /* export_alias */ 0x10249d,
+        },
+        /* strategy */ &kLegacy4xSourceStrategy,
+    },
+    {
+        /* name */ "5.10 NPXS40002 legacy HomeUI",
+        /* kind */ SourceBundleKind::LegacyRnps,
+        /* payload_size */ 0x185c30,
+        /* offsets */ {
+            /* title_id */ 0x6e217,
+            /* app_error_event_trigger */ 0xb12de,
+            /* navigate_to_home */ 0x3da05,
+            /* icon_order */ 0xb1217,
+            /* app_error_source */ 0x124d28,
+            /* export_alias */ 0x12501c,
+        },
+        /* strategy */ &kLegacy5x7xSourceStrategy,
+    },
+    {
+        /* name */ "6.00/6.02 NPXS40002 legacy HomeUI",
+        /* kind */ SourceBundleKind::LegacyRnps,
+        /* payload_size */ 0x185d00,
+        /* offsets */ {
+            /* title_id */ 0x6c51d,
+            /* app_error_event_trigger */ 0xaece9,
+            /* navigate_to_home */ 0x385a9,
+            /* icon_order */ 0xaec22,
+            /* app_error_source */ 0x11ec20,
+            /* export_alias */ 0x11ef14,
+        },
+        /* strategy */ &kLegacy5x7xSourceStrategy,
+    },
+    {
+        /* name */ "7.40/7.61 NPXS40002 legacy HomeUI",
+        /* kind */ SourceBundleKind::LegacyRnps,
+        /* payload_size */ 0x19dc10,
+        /* offsets */ {
+            /* title_id */ 0x75314,
+            /* app_error_event_trigger */ 0xbf1a4,
+            /* navigate_to_home */ 0x3d8ed,
+            /* icon_order */ 0xbf0dd,
+            /* app_error_source */ 0x135ed5,
+            /* export_alias */ 0x1361c9,
+        },
+        /* strategy */ &kLegacy5x7xSourceStrategy,
+    },
+    {
+        /* name */ "8.00/8.40 NPXS40002 plain-JS HomeUI",
+        /* kind */ SourceBundleKind::PlainJs,
+        /* payload_size */ 0x158070,
+        /* offsets */ {
+            /* title_id */ 0x5a8b3,
+            /* app_error_event_trigger */ 0x9e910,
+            /* navigate_to_home */ 0x325d1,
+            /* icon_order */ 0x9e84b,
+            /* app_error_source */ 0x100183,
+            /* export_alias */ 0x1003e4,
+        },
+        /* strategy */ &kPlainJsSourceStrategy,
+    },
+};
+
+static_assert(sizeof(kLegacyOldIconOrder) == sizeof(kLegacyNewIconOrder));
+static_assert(sizeof(kLegacyOldExportAlias) == sizeof(kLegacyNewExportAlias));
+static_assert(sizeof(kLegacy5x7xOldExportAlias) ==
+              sizeof(kLegacy5x7xNewExportAlias));
 static_assert(sizeof(kPlainJsOldExportAlias) ==
               sizeof(kPlainJsNewExportAlias));
-static_assert(sizeof(kPlainJsOldAppErrorSource) - 1 == 328);
-static_assert(sizeof(kPlainJsNewAppErrorSourcePrefix) - 1 <= 328);
+static_assert(sizeof(kLegacyNewAppErrorSourcePrefix) <=
+              sizeof(kLegacyOldAppErrorSource));
+static_assert(sizeof(kLegacy5x7xNewAppErrorSourcePrefix) <=
+              sizeof(kLegacy5x7xOldAppErrorSource));
+static_assert(sizeof(kPlainJsNewAppErrorSourcePrefix) <=
+              sizeof(kPlainJsOldAppErrorSource));
 
 std::atomic<bool> g_homeui_top_nav_reload_pending{false};
 #if SHELL_DEBUG == 1
@@ -259,10 +258,23 @@ struct HbcView {
   size_t base_offset;
 };
 
-struct LegacyBundleView {
+struct SourceBundleView {
   unsigned char *data;
   size_t size;
   size_t base_offset;
+};
+
+struct SourceBundleFormat {
+  SourceBundleKind kind;
+  const unsigned char *prefix;
+  size_t prefix_size;
+};
+
+static const SourceBundleFormat kSourceBundleFormats[] = {
+    {SourceBundleKind::LegacyRnps, kLegacyRnpsBundleMagic,
+     sizeof(kLegacyRnpsBundleMagic)},
+    {SourceBundleKind::PlainJs, kPlainJsBundlePrefix,
+     sizeof(kPlainJsBundlePrefix)},
 };
 
 struct BytePatch {
@@ -467,13 +479,12 @@ static bool locate_hbc(unsigned char *buffer, size_t visible_size,
   return false;
 }
 
-static bool legacy_bundle_at(unsigned char *buffer, size_t available,
-                             size_t offset, LegacyBundleView *out) {
-  if (!range_contains(available, offset,
-                      sizeof(kLegacyRnpsBundleMagic)) ||
-      !has_magic(buffer + offset, available - offset,
-                 kLegacyRnpsBundleMagic,
-                 sizeof(kLegacyRnpsBundleMagic))) {
+static bool source_bundle_at(unsigned char *buffer, size_t available,
+                             size_t offset, const SourceBundleFormat &format,
+                             SourceBundleView *out) {
+  if (!range_contains(available, offset, format.prefix_size) ||
+      !has_magic(buffer + offset, available - offset, format.prefix,
+                 format.prefix_size)) {
     return false;
   }
 
@@ -483,14 +494,14 @@ static bool legacy_bundle_at(unsigned char *buffer, size_t available,
   return true;
 }
 
-static bool locate_legacy_bundle(unsigned char *buffer, size_t visible_size,
-                                 size_t capacity, LegacyBundleView *out) {
+static bool locate_source_bundle(unsigned char *buffer, size_t visible_size,
+                                 size_t capacity,
+                                 const SourceBundleFormat &format,
+                                 SourceBundleView *out) {
   const size_t available = capacity > visible_size ? capacity : visible_size;
-
-  if (legacy_bundle_at(buffer, available, 0, out)) {
+  if (source_bundle_at(buffer, available, 0, format, out)) {
     return true;
   }
-
   if (!has_magic(buffer, available, kRnpsMagic, sizeof(kRnpsMagic))) {
     return false;
   }
@@ -504,78 +515,37 @@ static bool locate_legacy_bundle(unsigned char *buffer, size_t visible_size,
     }
   }
 
-  if (legacy_bundle_at(buffer, available, payload_offset, out)) {
+  if (source_bundle_at(buffer, available, payload_offset, format, out)) {
     return true;
   }
-
   return payload_offset != kRnpsFallbackPayloadOffset &&
-         legacy_bundle_at(buffer, available, kRnpsFallbackPayloadOffset, out);
+         source_bundle_at(buffer, available, kRnpsFallbackPayloadOffset, format,
+                          out);
 }
 
-static bool plain_js_bundle_at(unsigned char *buffer, size_t available,
-                               size_t offset, LegacyBundleView *out) {
-  if (!range_contains(available, offset, sizeof(kPlainJsBundlePrefix)) ||
-      !has_magic(buffer + offset, available - offset, kPlainJsBundlePrefix,
-                 sizeof(kPlainJsBundlePrefix))) {
-    return false;
-  }
-
-  out->data = buffer + offset;
-  out->size = available - offset;
-  out->base_offset = offset;
-  return true;
-}
-
-static bool locate_plain_js_bundle(unsigned char *buffer, size_t visible_size,
-                                   size_t capacity, LegacyBundleView *out) {
-  const size_t available = capacity > visible_size ? capacity : visible_size;
-
-  if (plain_js_bundle_at(buffer, available, 0, out)) {
-    return true;
-  }
-
-  if (!has_magic(buffer, available, kRnpsMagic, sizeof(kRnpsMagic))) {
-    return false;
-  }
-
-  size_t payload_offset = kRnpsFallbackPayloadOffset;
-  if (range_contains(available, kRnpsPayloadOffsetField, sizeof(uint32_t))) {
-    const uint32_t declared_offset =
-        read_u32le(buffer + kRnpsPayloadOffsetField);
-    if (declared_offset > 0 && declared_offset < available) {
-      payload_offset = declared_offset;
-    }
-  }
-
-  if (plain_js_bundle_at(buffer, available, payload_offset, out)) {
-    return true;
-  }
-
-  return payload_offset != kRnpsFallbackPayloadOffset &&
-         plain_js_bundle_at(buffer, available, kRnpsFallbackPayloadOffset, out);
-}
-
-static bool legacy_bytes_at(const LegacyBundleView &bundle, size_t offset,
+static bool source_bytes_at(const SourceBundleView &bundle, size_t offset,
                             const unsigned char *expected, size_t len) {
   return range_contains(bundle.size, offset, len) &&
          bytes_equal(bundle.data + offset, expected, len);
 }
 
-static bool legacy_source_is_target(const LegacyBundleView &bundle,
-                                    const LegacyHomeUiProfile &profile) {
-  if (!range_contains(bundle.size, profile.app_error_source_offset,
-                      profile.app_error_source_size) ||
-      !legacy_bytes_at(
-          bundle, profile.app_error_source_offset,
+static bool source_is_target(const SourceBundleView &bundle,
+                             const SourceHomeUiProfile &profile) {
+  const SourcePatchStrategy &strategy = *profile.strategy;
+  const size_t source_offset = profile.offsets.app_error_source;
+  if (!range_contains(bundle.size, source_offset,
+                      strategy.source_block_size) ||
+      !source_bytes_at(
+          bundle, source_offset,
           reinterpret_cast<const unsigned char *>(
-              profile.new_app_error_source_prefix),
-          profile.new_app_error_source_prefix_size)) {
+              strategy.new_app_error_source_prefix),
+          strategy.new_source_prefix_size)) {
     return false;
   }
 
-  const unsigned char *source = bundle.data + profile.app_error_source_offset;
-  for (size_t i = profile.new_app_error_source_prefix_size;
-       i < profile.app_error_source_size; ++i) {
+  const unsigned char *source = bundle.data + source_offset;
+  for (size_t i = strategy.new_source_prefix_size;
+       i < strategy.source_block_size; ++i) {
     if (source[i] != ' ') {
       return false;
     }
@@ -583,28 +553,30 @@ static bool legacy_source_is_target(const LegacyBundleView &bundle,
   return true;
 }
 
-static bool validate_legacy_source(const LegacyBundleView &bundle,
-                                   const LegacyHomeUiProfile &profile,
-                                   bool *already_applied) {
-  if (!range_contains(bundle.size, profile.app_error_source_offset,
-                      profile.app_error_source_size)) {
+static bool validate_source(const SourceBundleView &bundle,
+                            const SourceHomeUiProfile &profile,
+                            bool *already_applied) {
+  const SourcePatchStrategy &strategy = *profile.strategy;
+  const size_t source_offset = profile.offsets.app_error_source;
+  if (!range_contains(bundle.size, source_offset,
+                      strategy.source_block_size)) {
 #if SHELL_DEBUG == 1
-    LOG_DEBUG("homeui_top_nav_patch: legacy AppError source out of range");
+    LOG_DEBUG("homeui_top_nav_patch: source AppError block out of range");
 #endif
     return false;
   }
 
-  if (legacy_source_is_target(bundle, profile)) {
+  if (source_is_target(bundle, profile)) {
     *already_applied = true;
     return true;
   }
 
-  if (!legacy_bytes_at(
-          bundle, profile.app_error_source_offset,
-          reinterpret_cast<const unsigned char *>(profile.old_app_error_source),
-          profile.app_error_source_size)) {
+  if (!source_bytes_at(
+          bundle, source_offset,
+          reinterpret_cast<const unsigned char *>(strategy.old_app_error_source),
+          strategy.source_block_size)) {
 #if SHELL_DEBUG == 1
-    LOG_WARN("homeui_top_nav_patch: legacy AppError source mismatch for '%s'; "
+    LOG_WARN("homeui_top_nav_patch: source AppError mismatch for '%s'; "
              "skip",
              profile.name);
 #endif
@@ -615,68 +587,14 @@ static bool validate_legacy_source(const LegacyBundleView &bundle,
   return true;
 }
 
-static void apply_legacy_source(const LegacyBundleView &bundle,
-                                const LegacyHomeUiProfile &profile) {
-  unsigned char *target = bundle.data + profile.app_error_source_offset;
-  memcpy(target, profile.new_app_error_source_prefix,
-         profile.new_app_error_source_prefix_size);
-  memset(target + profile.new_app_error_source_prefix_size, ' ',
-         profile.app_error_source_size -
-             profile.new_app_error_source_prefix_size);
-}
-
-static bool plain_js_source_is_target(
-    const LegacyBundleView &bundle, const PlainJsHomeUiProfile &profile) {
-  constexpr size_t prefix_size = sizeof(kPlainJsNewAppErrorSourcePrefix) - 1;
-  if (!range_contains(bundle.size, profile.app_error_source_offset,
-                      profile.app_error_source_size) ||
-      !legacy_bytes_at(
-          bundle, profile.app_error_source_offset,
-          reinterpret_cast<const unsigned char *>(
-              kPlainJsNewAppErrorSourcePrefix),
-          prefix_size)) {
-    return false;
-  }
-
-  const unsigned char *source = bundle.data + profile.app_error_source_offset;
-  for (size_t i = prefix_size; i < profile.app_error_source_size; ++i) {
-    if (source[i] != ' ') {
-      return false;
-    }
-  }
-  return true;
-}
-
-static bool validate_plain_js_source(
-    const LegacyBundleView &bundle, const PlainJsHomeUiProfile &profile,
-    bool *already_applied) {
-  if (plain_js_source_is_target(bundle, profile)) {
-    *already_applied = true;
-    return true;
-  }
-
-  if (profile.app_error_source_size !=
-          sizeof(kPlainJsOldAppErrorSource) - 1 ||
-      !legacy_bytes_at(
-          bundle, profile.app_error_source_offset,
-          reinterpret_cast<const unsigned char *>(kPlainJsOldAppErrorSource),
-          sizeof(kPlainJsOldAppErrorSource) - 1)) {
-#if SHELL_DEBUG == 1
-    LOG_WARN("homeui_top_nav_patch: plain-JS AppError source mismatch; skip");
-#endif
-    return false;
-  }
-
-  *already_applied = false;
-  return true;
-}
-
-static void apply_plain_js_source(const LegacyBundleView &bundle,
-                                  const PlainJsHomeUiProfile &profile) {
-  constexpr size_t prefix_size = sizeof(kPlainJsNewAppErrorSourcePrefix) - 1;
-  unsigned char *target = bundle.data + profile.app_error_source_offset;
-  memcpy(target, kPlainJsNewAppErrorSourcePrefix, prefix_size);
-  memset(target + prefix_size, ' ', profile.app_error_source_size - prefix_size);
+static void apply_source(const SourceBundleView &bundle,
+                         const SourceHomeUiProfile &profile) {
+  const SourcePatchStrategy &strategy = *profile.strategy;
+  unsigned char *target = bundle.data + profile.offsets.app_error_source;
+  memcpy(target, strategy.new_app_error_source_prefix,
+         strategy.new_source_prefix_size);
+  memset(target + strategy.new_source_prefix_size, ' ',
+         strategy.source_block_size - strategy.new_source_prefix_size);
 }
 
 static bool read_hbc_file_length(const HbcView &hbc, size_t *file_length) {
@@ -823,11 +741,11 @@ static void apply_patch(const HbcView &hbc, const BytePatch &patch) {
   }
 }
 
-static bool validate_patch(const LegacyBundleView &bundle,
+static bool validate_patch(const SourceBundleView &bundle,
                            const BytePatch &patch, bool *already_applied) {
   if (!range_contains(bundle.size, patch.offset, patch.size)) {
 #if SHELL_DEBUG == 1
-    LOG_DEBUG("homeui_top_nav_patch: legacy %s out of range at payload+0x%llx",
+    LOG_DEBUG("homeui_top_nav_patch: source %s out of range at payload+0x%llx",
               patch.name, (unsigned long long)patch.offset);
 #endif
     return false;
@@ -849,13 +767,13 @@ static bool validate_patch(const LegacyBundleView &bundle,
   }
 
 #if SHELL_DEBUG == 1
-  LOG_WARN("homeui_top_nav_patch: legacy %s mismatch at payload+0x%llx; skip",
+  LOG_WARN("homeui_top_nav_patch: source %s mismatch at payload+0x%llx; skip",
            patch.name, (unsigned long long)patch.offset);
 #endif
   return false;
 }
 
-static void apply_patch(const LegacyBundleView &bundle,
+static void apply_patch(const SourceBundleView &bundle,
                         const BytePatch &patch) {
   const unsigned char *current = bundle.data + patch.offset;
   if (!bytes_equal(current, patch.replacement, patch.size)) {
@@ -918,21 +836,23 @@ static void ReactButtonShadowNode_SetIconSource_Hook(MonoObject *instance,
 #endif
 }
 
-static const LegacyHomeUiProfile *
-find_legacy_homeui_profile(const LegacyBundleView &bundle) {
-  for (const LegacyHomeUiProfile &profile : kLegacyHomeUiProfiles) {
-    if (bundle.size != profile.payload_size ||
-        !legacy_bytes_at(
-            bundle, profile.title_id_offset,
+static const SourceHomeUiProfile *
+find_source_homeui_profile(const SourceBundleView &bundle,
+                           SourceBundleKind kind) {
+  for (const SourceHomeUiProfile &profile : kSourceHomeUiProfiles) {
+    const SourceHomeUiOffsets &offsets = profile.offsets;
+    if (profile.kind != kind || bundle.size != profile.payload_size ||
+        !source_bytes_at(
+            bundle, offsets.title_id,
             reinterpret_cast<const unsigned char *>("NPXS40002"),
             sizeof("NPXS40002") - 1) ||
-        !legacy_bytes_at(
-            bundle, profile.app_error_event_trigger_offset,
+        !source_bytes_at(
+            bundle, offsets.app_error_event_trigger,
             reinterpret_cast<const unsigned char *>(
                 "ApplicationErrorEventTrigger"),
             sizeof("ApplicationErrorEventTrigger") - 1) ||
-        !legacy_bytes_at(
-            bundle, profile.navigate_to_home_offset,
+        !source_bytes_at(
+            bundle, offsets.navigate_to_home,
             reinterpret_cast<const unsigned char *>("pshomeui:navigateToHome"),
             sizeof("pshomeui:navigateToHome") - 1)) {
       continue;
@@ -942,26 +862,29 @@ find_legacy_homeui_profile(const LegacyBundleView &bundle) {
   return nullptr;
 }
 
-static bool patch_legacy_homeui_top_nav(const LegacyBundleView &bundle) {
-  const LegacyHomeUiProfile *profile = find_legacy_homeui_profile(bundle);
+static bool patch_source_homeui_top_nav(const SourceBundleView &bundle,
+                                        SourceBundleKind kind) {
+  const SourceHomeUiProfile *profile =
+      find_source_homeui_profile(bundle, kind);
   if (!profile) {
 #if SHELL_DEBUG == 1
-    LOG_WARN("homeui_top_nav_patch: skip unknown legacy RNPS HomeUI");
+    LOG_WARN("homeui_top_nav_patch: skip unknown source HomeUI");
 #endif
     return false;
   }
 
+  const SourcePatchStrategy &strategy = *profile->strategy;
   const BytePatch patches[] = {
-      {"legacy home icon order", profile->icon_order_offset,
+      {"source home icon order", profile->offsets.icon_order,
        kLegacyOldIconOrder, nullptr, nullptr, kLegacyNewIconOrder,
        sizeof(kLegacyOldIconOrder)},
-      {"legacy App export alias", profile->export_alias_offset,
-       profile->old_export_alias, nullptr, nullptr, profile->new_export_alias,
-       sizeof(kLegacyOldExportAlias)},
+      {"source App export alias", profile->offsets.export_alias,
+       strategy.old_export_alias, nullptr, nullptr, strategy.new_export_alias,
+       strategy.export_alias_size},
   };
 
   bool source_already_applied = false;
-  if (!validate_legacy_source(bundle, *profile, &source_already_applied)) {
+  if (!validate_source(bundle, *profile, &source_already_applied)) {
     return false;
   }
 
@@ -976,7 +899,7 @@ static bool patch_legacy_homeui_top_nav(const LegacyBundleView &bundle) {
 
   if (!any_change) {
 #if SHELL_DEBUG == 1
-    LOG_WARN("homeui_top_nav_patch: legacy HomeUI already applied "
+    LOG_WARN("homeui_top_nav_patch: source HomeUI already applied "
              "(rnps_base=0x%llx)",
              (unsigned long long)bundle.base_offset);
 #endif
@@ -986,84 +909,7 @@ static bool patch_legacy_homeui_top_nav(const LegacyBundleView &bundle) {
   for (const BytePatch &patch : patches) {
     apply_patch(bundle, patch);
   }
-  apply_legacy_source(bundle, *profile);
-
-#if SHELL_DEBUG == 1
-  LOG_DEBUG("homeui_top_nav_patch: activated '%s' (rnps_base=0x%llx)",
-            profile->name, (unsigned long long)bundle.base_offset);
-#endif
-  return true;
-}
-
-static const PlainJsHomeUiProfile *
-find_plain_js_homeui_profile(const LegacyBundleView &bundle) {
-  for (const PlainJsHomeUiProfile &profile : kPlainJsHomeUiProfiles) {
-    if (bundle.size != profile.payload_size ||
-        !legacy_bytes_at(
-            bundle, profile.title_id_offset,
-            reinterpret_cast<const unsigned char *>("NPXS40002"),
-            sizeof("NPXS40002") - 1) ||
-        !legacy_bytes_at(
-            bundle, profile.app_error_event_trigger_offset,
-            reinterpret_cast<const unsigned char *>(
-                "ApplicationErrorEventTrigger"),
-            sizeof("ApplicationErrorEventTrigger") - 1) ||
-        !legacy_bytes_at(
-            bundle, profile.navigate_to_home_offset,
-            reinterpret_cast<const unsigned char *>("pshomeui:navigateToHome"),
-            sizeof("pshomeui:navigateToHome") - 1)) {
-      continue;
-    }
-    return &profile;
-  }
-  return nullptr;
-}
-
-static bool patch_plain_js_homeui_top_nav(const LegacyBundleView &bundle) {
-  const PlainJsHomeUiProfile *profile = find_plain_js_homeui_profile(bundle);
-  if (!profile) {
-#if SHELL_DEBUG == 1
-    LOG_WARN("homeui_top_nav_patch: skip unknown plain-JS RNPS HomeUI");
-#endif
-    return false;
-  }
-
-  const BytePatch patches[] = {
-      {"plain-JS home icon order", profile->icon_order_offset,
-       kLegacyOldIconOrder, nullptr, nullptr, kLegacyNewIconOrder,
-       sizeof(kLegacyOldIconOrder)},
-      {"plain-JS App export alias", profile->export_alias_offset,
-       kPlainJsOldExportAlias, nullptr, nullptr, kPlainJsNewExportAlias,
-       sizeof(kPlainJsOldExportAlias)},
-  };
-
-  bool source_already_applied = false;
-  if (!validate_plain_js_source(bundle, *profile, &source_already_applied)) {
-    return false;
-  }
-
-  bool any_change = !source_already_applied;
-  for (const BytePatch &patch : patches) {
-    bool already_applied = false;
-    if (!validate_patch(bundle, patch, &already_applied)) {
-      return false;
-    }
-    any_change = any_change || !already_applied;
-  }
-
-  if (!any_change) {
-#if SHELL_DEBUG == 1
-    LOG_WARN("homeui_top_nav_patch: plain-JS HomeUI already applied "
-             "(rnps_base=0x%llx)",
-             (unsigned long long)bundle.base_offset);
-#endif
-    return true;
-  }
-
-  for (const BytePatch &patch : patches) {
-    apply_patch(bundle, patch);
-  }
-  apply_plain_js_source(bundle, *profile);
+  apply_source(bundle, *profile);
 
 #if SHELL_DEBUG == 1
   LOG_DEBUG("homeui_top_nav_patch: activated '%s' (rnps_base=0x%llx)",
@@ -1125,16 +971,13 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
   const size_t capacity =
       buffer_capacity > *size_ptr ? (size_t)buffer_capacity : visible_size;
 
-  LegacyBundleView legacy_bundle = {};
-  if (locate_legacy_bundle(buffer, visible_size, capacity, &legacy_bundle)) {
-    patch_legacy_homeui_top_nav(legacy_bundle);
-    return;
-  }
-
-  LegacyBundleView plain_js_bundle = {};
-  if (locate_plain_js_bundle(buffer, visible_size, capacity, &plain_js_bundle)) {
-    patch_plain_js_homeui_top_nav(plain_js_bundle);
-    return;
+  for (const SourceBundleFormat &format : kSourceBundleFormats) {
+    SourceBundleView source_bundle = {};
+    if (locate_source_bundle(buffer, visible_size, capacity, format,
+                             &source_bundle)) {
+      patch_source_homeui_top_nav(source_bundle, format.kind);
+      return;
+    }
   }
 
   if (!locate_hbc(buffer, visible_size, capacity, &hbc)) {
