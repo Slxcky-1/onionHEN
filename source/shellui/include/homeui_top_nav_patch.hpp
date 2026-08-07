@@ -19,7 +19,7 @@ along with this program; see the file COPYING. If not, see
 struct MonoImage;
 
 /*
- * HomeUI Hermes top-nav patch:
+ * HomeUI RNPS/Hermes top-nav patch:
  * inserts the OnionHEN icon-button slot between Search and Settings by reusing
  * a hidden system entry.
  *

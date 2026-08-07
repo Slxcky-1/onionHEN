@@ -254,7 +254,7 @@ static bool update_hermes_footer_sha1(unsigned char *buffer, size_t size) {
   return true;
 }
 
-/* 4.03/4.50/4.51 NPXS40008 use the pre-Hermes RNPS JavaScript bundle. */
+/* 4.x and 8.x NPXS40008 use the pre-Hermes RNPS JavaScript bundle. */
 static constexpr unsigned char kLegacySettingsBundleMagic[] = {
     0xe5, 0xd1, 0x0b, 0xfb};
 static constexpr size_t kLegacySettingsPayloadOffsetFallback = 0xb20;
@@ -271,6 +271,8 @@ static constexpr LegacySettingsBundleProfile kLegacySettingsProfiles[] = {
     {"4.03 NPXS40008 Settings", 0x483280, 0x234a17, 0x24db26},
     /* 4.50 and 4.51 NPXS40008 are byte-identical. */
     {"4.50/4.51 NPXS40008 Settings", 0x483fc0, 0x234f2d, 0x24e03c},
+    {"8.00 NPXS40008 Settings", 0x64bb80, 0x2e75c9, 0x302a6f},
+    {"8.40 NPXS40008 Settings", 0x654af0, 0x2e62fd, 0x3017a3},
 };
 
 static constexpr unsigned char kLegacySettingsOldLabel[] = {
@@ -300,27 +302,35 @@ static const LegacySettingsBundleProfile *
 locate_legacy_settings_profile(const unsigned char *buffer, size_t size,
                                const unsigned char **payload,
                                size_t *payload_size) {
-  if (!buffer || size < 0x20 ||
-      memcmp(buffer, "RNPSHEDR", sizeof("RNPSHEDR") - 1) != 0) {
+  if (!buffer || size < sizeof(kLegacySettingsBundleMagic)) {
     return nullptr;
   }
 
-  size_t offset = patch_read_u32le(buffer + 0x1c);
-  if (offset == 0 || offset >= size) {
-    offset = kLegacySettingsPayloadOffsetFallback;
-  }
-  if (offset + sizeof(kLegacySettingsBundleMagic) > size ||
-      memcmp(buffer + offset, kLegacySettingsBundleMagic,
+  size_t offset = 0;
+  if (memcmp(buffer, kLegacySettingsBundleMagic,
              sizeof(kLegacySettingsBundleMagic)) != 0) {
-    if (offset == kLegacySettingsPayloadOffsetFallback ||
-        kLegacySettingsPayloadOffset + sizeof(kLegacySettingsBundleMagic) >
-            size ||
-        memcmp(buffer + kLegacySettingsPayloadOffset,
-               kLegacySettingsBundleMagic,
-               sizeof(kLegacySettingsBundleMagic)) != 0) {
+    if (size < 0x20 ||
+        memcmp(buffer, "RNPSHEDR", sizeof("RNPSHEDR") - 1) != 0) {
       return nullptr;
     }
-    offset = kLegacySettingsPayloadOffset;
+
+    offset = patch_read_u32le(buffer + 0x1c);
+    if (offset == 0 || offset >= size) {
+      offset = kLegacySettingsPayloadOffsetFallback;
+    }
+    if (offset + sizeof(kLegacySettingsBundleMagic) > size ||
+        memcmp(buffer + offset, kLegacySettingsBundleMagic,
+               sizeof(kLegacySettingsBundleMagic)) != 0) {
+      if (offset == kLegacySettingsPayloadOffsetFallback ||
+          kLegacySettingsPayloadOffset + sizeof(kLegacySettingsBundleMagic) >
+              size ||
+          memcmp(buffer + kLegacySettingsPayloadOffset,
+                 kLegacySettingsBundleMagic,
+                 sizeof(kLegacySettingsBundleMagic)) != 0) {
+        return nullptr;
+      }
+      offset = kLegacySettingsPayloadOffset;
+    }
   }
 
   const size_t available = size - offset;

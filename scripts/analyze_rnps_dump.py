@@ -13,6 +13,7 @@ from typing import Any
 
 HERMES_MAGIC = bytes([0xC6, 0x1F, 0xBC, 0x03, 0xC1, 0x03, 0x19, 0x1F])
 LEGACY_BUNDLE_MAGIC = bytes([0xE5, 0xD1, 0x0B, 0xFB])
+PLAIN_JS_PREFIX = b"/*! For license information"
 RNPS_MAGIC = b"RNPSHEDR"
 RNPS_PAYLOAD_OFFSET_FIELD = 0x1C
 RNPS_FALLBACK_PAYLOAD_OFFSET = 0xB20
@@ -84,6 +85,22 @@ KNOWN_LEGACY_HOMEUI_PROFILES = [
 ]
 
 
+KNOWN_PLAIN_JS_HOMEUI_PROFILES = [
+    {
+        "name": "8.00 NPXS40002 plain-JS HomeUI",
+        "payload_size": 0x158070,
+        "file_size": 0x158B90,
+        "sha256": "00ac38a2d7b7e11a3910865d206b6256593e0ff94f8d7c9d233ab983b25dac89",
+    },
+    {
+        "name": "8.40 NPXS40002 plain-JS HomeUI",
+        "payload_size": 0x158070,
+        "file_size": 0x158B90,
+        "sha256": "a57611dbd0e56ca80747d2862f5a9f651a4b3c1504dca9b8799cfeda718e22e2",
+    },
+]
+
+
 KNOWN_LEGACY_SETTINGS_PROFILES = [
     {
         "name": "4.03 NPXS40008 Settings",
@@ -101,6 +118,22 @@ KNOWN_LEGACY_SETTINGS_PROFILES = [
         "payload_size": 0x483FC0,
         "file_size": 0x484AF0,
         "sha256": "8e016beed7584283c9719c49662fb5e1071083dc1e3dd8988e1b9fe9fd45b032",
+    },
+    {
+        "name": "8.00 NPXS40008 Settings",
+        "route": "standard",
+        "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
+        "payload_size": 0x64BB80,
+        "file_size": 0x64C6B0,
+        "sha256": "a3c76ecf8e3e29cd373fb831f73498c7864d55c5adb6d8f7fc2f48032d58d6ee",
+    },
+    {
+        "name": "8.40 NPXS40008 Settings",
+        "route": "standard",
+        "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
+        "payload_size": 0x654AF0,
+        "file_size": 0x655620,
+        "sha256": "5fe90813275c75b280e424cc9c10139b380a9b223fe8c5712b7df86329553711",
     },
 ]
 
@@ -260,6 +293,23 @@ def locate_legacy_bundle(data: bytes) -> tuple[int, str] | tuple[None, str]:
     return None, "missing"
 
 
+def locate_plain_js_bundle(data: bytes) -> tuple[int, str] | tuple[None, str]:
+    if data.startswith(PLAIN_JS_PREFIX):
+        return 0, "direct-plain-js"
+
+    if data.startswith(RNPS_MAGIC):
+        declared = read_u32le(data, RNPS_PAYLOAD_OFFSET_FIELD)
+        candidates = []
+        if declared is not None and 0 < declared < len(data):
+            candidates.append((declared, "rnps-declared-plain-js"))
+        candidates.append((RNPS_FALLBACK_PAYLOAD_OFFSET, "rnps-fallback-plain-js"))
+        for offset, location in candidates:
+            if data[offset : offset + len(PLAIN_JS_PREFIX)] == PLAIN_JS_PREFIX:
+                return offset, location
+
+    return None, "missing"
+
+
 def match_legacy_profile(
     data: bytes,
     payload_offset: int,
@@ -273,6 +323,22 @@ def match_legacy_profile(
         if len(payload) != profile["payload_size"]:
             continue
         if payload[:4].hex() != profile["payload_magic"]:
+            continue
+        if digest != profile["sha256"]:
+            continue
+        return profile
+    return None
+
+
+def match_plain_js_profile(data: bytes, payload_offset: int) -> dict[str, Any] | None:
+    payload = data[payload_offset:]
+    digest = hashlib.sha256(data).hexdigest()
+    for profile in KNOWN_PLAIN_JS_HOMEUI_PROFILES:
+        if len(data) != profile["file_size"]:
+            continue
+        if len(payload) != profile["payload_size"]:
+            continue
+        if not payload.startswith(PLAIN_JS_PREFIX):
             continue
         if digest != profile["sha256"]:
             continue
@@ -346,6 +412,30 @@ def analyze_file(path: Path, app_id: str) -> dict[str, Any]:
                 result["route_matches_profile"] = bool(
                     profile and profile.get("route") == route
                 )
+            for needle in TRACKED_STRINGS:
+                offsets = find_all(payload, needle)
+                result["strings"][needle.decode("ascii")] = {
+                    "count": len(offsets),
+                    "first_offsets": [f"0x{offset:x}" for offset in offsets[:8]],
+                }
+            return result
+
+    if app_id == "NPXS40002":
+        plain_js_offset, plain_js_location = locate_plain_js_bundle(data)
+        if plain_js_offset is not None:
+            payload = data[plain_js_offset:]
+            profile = match_plain_js_profile(data, plain_js_offset)
+            result.update(
+                {
+                    "plain_js_offset": plain_js_offset,
+                    "plain_js_location": plain_js_location,
+                    "plain_js_payload_size": len(payload),
+                    "plain_js_sha256": hashlib.sha256(data).hexdigest(),
+                    "profile": profile["name"] if profile else None,
+                    "supported": profile is not None,
+                    "strings": {},
+                }
+            )
             for needle in TRACKED_STRINGS:
                 offsets = find_all(payload, needle)
                 result["strings"][needle.decode("ascii")] = {
@@ -459,6 +549,26 @@ def print_text(report: dict[str, Any], errors: list[str]) -> None:
                     f"{app.get('settings_route')} "
                     f"(profile={app.get('profile_route')})"
                 )
+            print("  strings:")
+            for name, detail in app["strings"].items():
+                if detail["count"] == 0:
+                    continue
+                offsets = ", ".join(detail["first_offsets"])
+                print(f"    {name}: count={detail['count']} first={offsets}")
+            continue
+        if app.get("plain_js_offset") is not None:
+            print(
+                "  plain-JS RNPS bundle: "
+                f"offset=0x{app['plain_js_offset']:x} "
+                f"location={app['plain_js_location']} "
+                f"payload_size=0x{app['plain_js_payload_size']:x} "
+                f"sha256={app['plain_js_sha256']}"
+            )
+            print(
+                "  profile: "
+                f"{app['profile'] if app['profile'] else 'unsupported'} "
+                f"(supported={'yes' if app['supported'] else 'no'})"
+            )
             print("  strings:")
             for name, detail in app["strings"].items():
                 if detail["count"] == 0:

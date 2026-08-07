@@ -36,6 +36,9 @@ namespace {
 constexpr unsigned char kHermesMagic[] = {0xc6, 0x1f, 0xbc, 0x03,
                                           0xc1, 0x03, 0x19, 0x1f};
 constexpr unsigned char kLegacyRnpsBundleMagic[] = {0xe5, 0xd1, 0x0b, 0xfb};
+constexpr unsigned char kPlainJsBundlePrefix[] = {
+    '/', '*', '!', ' ', 'F', 'o', 'r', ' ', 'l', 'i', 'c', 'e', 'n', 's', 'e',
+    ' ', 'i', 'n', 'f', 'o', 'r', 'm', 'a', 't', 'i', 'o', 'n'};
 constexpr unsigned char kRnpsMagic[] = {'R', 'N', 'P', 'S',
                                         'H', 'E', 'D', 'R'};
 
@@ -82,6 +85,38 @@ static_assert(sizeof(kLegacyOldAppErrorSource) - 1 ==
               kLegacyAppErrorSourceSize);
 static_assert(sizeof(kLegacyNewAppErrorSourcePrefix) - 1 <=
               kLegacyAppErrorSourceSize);
+
+/* 8.00/8.40 HomeUI stores minified JavaScript directly in the RNPS payload. */
+struct PlainJsHomeUiProfile {
+  const char *name;
+  size_t payload_size;
+  size_t title_id_offset;
+  size_t app_error_event_trigger_offset;
+  size_t navigate_to_home_offset;
+  size_t icon_order_offset;
+  size_t app_error_source_offset;
+  size_t app_error_source_size;
+  size_t export_alias_offset;
+};
+
+static constexpr PlainJsHomeUiProfile kPlainJsHomeUiProfiles[] = {
+    {"8.00/8.40 NPXS40002 plain-JS HomeUI", 0x158070, 0x5a8b3, 0x9e910,
+     0x325d1, 0x9e84b, 0x100183, 328, 0x1003e4},
+};
+
+static const unsigned char kPlainJsOldExportAlias[] = {
+    't', '.', 'F', 'p', 's', '=', 'I'};
+static const unsigned char kPlainJsNewExportAlias[] = {
+    't', '.', 'A', 'p', 'p', '=', 'b'};
+static const char kPlainJsOldAppErrorSource[] =
+    "var b=(0,a.memo)((function(){var e=(0,l.default)().sendClientApplicationErrorEvent;return(0,f.jsx)(m.default,{iconId:\"download_error\",onPress:function(){var t=new Error(\"homeui ApplicationErrorEvent test\");e({errorMessage:t.message,stack:t.stack,severity:\"info\"})},title:\"Trigger AppError\"})}));t.ApplicationErrorEventTrigger=b;";
+static const char kPlainJsNewAppErrorSourcePrefix[] =
+    "var b=(0,a.memo)((function(){var e=(0,d.useInteractivePress)({link:\"OnionHEN?NavUI=1\"});return(0,f.jsx)(m.default,{iconId:{uri:\"/system_ex/vsh_asset/onionhen.png\"},onPress:e,title:\"\"})}));t.ApplicationErrorEventTrigger=b;";
+
+static_assert(sizeof(kPlainJsOldExportAlias) ==
+              sizeof(kPlainJsNewExportAlias));
+static_assert(sizeof(kPlainJsOldAppErrorSource) - 1 == 328);
+static_assert(sizeof(kPlainJsNewAppErrorSourcePrefix) - 1 <= 328);
 
 std::atomic<bool> g_homeui_top_nav_reload_pending{false};
 #if SHELL_DEBUG == 1
@@ -353,6 +388,49 @@ static bool locate_legacy_bundle(unsigned char *buffer, size_t visible_size,
          legacy_bundle_at(buffer, available, kRnpsFallbackPayloadOffset, out);
 }
 
+static bool plain_js_bundle_at(unsigned char *buffer, size_t available,
+                               size_t offset, LegacyBundleView *out) {
+  if (!range_contains(available, offset, sizeof(kPlainJsBundlePrefix)) ||
+      !has_magic(buffer + offset, available - offset, kPlainJsBundlePrefix,
+                 sizeof(kPlainJsBundlePrefix))) {
+    return false;
+  }
+
+  out->data = buffer + offset;
+  out->size = available - offset;
+  out->base_offset = offset;
+  return true;
+}
+
+static bool locate_plain_js_bundle(unsigned char *buffer, size_t visible_size,
+                                   size_t capacity, LegacyBundleView *out) {
+  const size_t available = capacity > visible_size ? capacity : visible_size;
+
+  if (plain_js_bundle_at(buffer, available, 0, out)) {
+    return true;
+  }
+
+  if (!has_magic(buffer, available, kRnpsMagic, sizeof(kRnpsMagic))) {
+    return false;
+  }
+
+  size_t payload_offset = kRnpsFallbackPayloadOffset;
+  if (range_contains(available, kRnpsPayloadOffsetField, sizeof(uint32_t))) {
+    const uint32_t declared_offset =
+        read_u32le(buffer + kRnpsPayloadOffsetField);
+    if (declared_offset > 0 && declared_offset < available) {
+      payload_offset = declared_offset;
+    }
+  }
+
+  if (plain_js_bundle_at(buffer, available, payload_offset, out)) {
+    return true;
+  }
+
+  return payload_offset != kRnpsFallbackPayloadOffset &&
+         plain_js_bundle_at(buffer, available, kRnpsFallbackPayloadOffset, out);
+}
+
 static bool legacy_bytes_at(const LegacyBundleView &bundle, size_t offset,
                             const unsigned char *expected, size_t len) {
   return range_contains(bundle.size, offset, len) &&
@@ -414,6 +492,60 @@ static void apply_legacy_source(const LegacyBundleView &bundle) {
   unsigned char *target = bundle.data + kLegacyAppErrorSourceOffset;
   memcpy(target, kLegacyNewAppErrorSourcePrefix, prefix_size);
   memset(target + prefix_size, ' ', kLegacyAppErrorSourceSize - prefix_size);
+}
+
+static bool plain_js_source_is_target(
+    const LegacyBundleView &bundle, const PlainJsHomeUiProfile &profile) {
+  constexpr size_t prefix_size = sizeof(kPlainJsNewAppErrorSourcePrefix) - 1;
+  if (!range_contains(bundle.size, profile.app_error_source_offset,
+                      profile.app_error_source_size) ||
+      !legacy_bytes_at(
+          bundle, profile.app_error_source_offset,
+          reinterpret_cast<const unsigned char *>(
+              kPlainJsNewAppErrorSourcePrefix),
+          prefix_size)) {
+    return false;
+  }
+
+  const unsigned char *source = bundle.data + profile.app_error_source_offset;
+  for (size_t i = prefix_size; i < profile.app_error_source_size; ++i) {
+    if (source[i] != ' ') {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool validate_plain_js_source(
+    const LegacyBundleView &bundle, const PlainJsHomeUiProfile &profile,
+    bool *already_applied) {
+  if (plain_js_source_is_target(bundle, profile)) {
+    *already_applied = true;
+    return true;
+  }
+
+  if (profile.app_error_source_size !=
+          sizeof(kPlainJsOldAppErrorSource) - 1 ||
+      !legacy_bytes_at(
+          bundle, profile.app_error_source_offset,
+          reinterpret_cast<const unsigned char *>(kPlainJsOldAppErrorSource),
+          sizeof(kPlainJsOldAppErrorSource) - 1)) {
+#if SHELL_DEBUG == 1
+    LOG_WARN("homeui_top_nav_patch: plain-JS AppError source mismatch; skip");
+#endif
+    return false;
+  }
+
+  *already_applied = false;
+  return true;
+}
+
+static void apply_plain_js_source(const LegacyBundleView &bundle,
+                                  const PlainJsHomeUiProfile &profile) {
+  constexpr size_t prefix_size = sizeof(kPlainJsNewAppErrorSourcePrefix) - 1;
+  unsigned char *target = bundle.data + profile.app_error_source_offset;
+  memcpy(target, kPlainJsNewAppErrorSourcePrefix, prefix_size);
+  memset(target + prefix_size, ' ', profile.app_error_source_size - prefix_size);
 }
 
 static bool read_hbc_file_length(const HbcView &hbc, size_t *file_length) {
@@ -719,6 +851,83 @@ static bool patch_legacy_homeui_top_nav(const LegacyBundleView &bundle) {
   return true;
 }
 
+static const PlainJsHomeUiProfile *
+find_plain_js_homeui_profile(const LegacyBundleView &bundle) {
+  for (const PlainJsHomeUiProfile &profile : kPlainJsHomeUiProfiles) {
+    if (bundle.size != profile.payload_size ||
+        !legacy_bytes_at(
+            bundle, profile.title_id_offset,
+            reinterpret_cast<const unsigned char *>("NPXS40002"),
+            sizeof("NPXS40002") - 1) ||
+        !legacy_bytes_at(
+            bundle, profile.app_error_event_trigger_offset,
+            reinterpret_cast<const unsigned char *>(
+                "ApplicationErrorEventTrigger"),
+            sizeof("ApplicationErrorEventTrigger") - 1) ||
+        !legacy_bytes_at(
+            bundle, profile.navigate_to_home_offset,
+            reinterpret_cast<const unsigned char *>("pshomeui:navigateToHome"),
+            sizeof("pshomeui:navigateToHome") - 1)) {
+      continue;
+    }
+    return &profile;
+  }
+  return nullptr;
+}
+
+static bool patch_plain_js_homeui_top_nav(const LegacyBundleView &bundle) {
+  const PlainJsHomeUiProfile *profile = find_plain_js_homeui_profile(bundle);
+  if (!profile) {
+#if SHELL_DEBUG == 1
+    LOG_WARN("homeui_top_nav_patch: skip unknown plain-JS RNPS HomeUI");
+#endif
+    return false;
+  }
+
+  const BytePatch patches[] = {
+      {"plain-JS home icon order", profile->icon_order_offset,
+       kLegacyOldIconOrder, nullptr, nullptr, kLegacyNewIconOrder,
+       sizeof(kLegacyOldIconOrder)},
+      {"plain-JS App export alias", profile->export_alias_offset,
+       kPlainJsOldExportAlias, nullptr, nullptr, kPlainJsNewExportAlias,
+       sizeof(kPlainJsOldExportAlias)},
+  };
+
+  bool source_already_applied = false;
+  if (!validate_plain_js_source(bundle, *profile, &source_already_applied)) {
+    return false;
+  }
+
+  bool any_change = !source_already_applied;
+  for (const BytePatch &patch : patches) {
+    bool already_applied = false;
+    if (!validate_patch(bundle, patch, &already_applied)) {
+      return false;
+    }
+    any_change = any_change || !already_applied;
+  }
+
+  if (!any_change) {
+#if SHELL_DEBUG == 1
+    LOG_WARN("homeui_top_nav_patch: plain-JS HomeUI already applied "
+             "(rnps_base=0x%llx)",
+             (unsigned long long)bundle.base_offset);
+#endif
+    return true;
+  }
+
+  for (const BytePatch &patch : patches) {
+    apply_patch(bundle, patch);
+  }
+  apply_plain_js_source(bundle, *profile);
+
+#if SHELL_DEBUG == 1
+  LOG_DEBUG("homeui_top_nav_patch: activated '%s' (rnps_base=0x%llx)",
+            profile->name, (unsigned long long)bundle.base_offset);
+#endif
+  return true;
+}
+
 } // namespace
 
 #endif /* SHELLUI_HOMEUI_TOP_NAV_PATCH == 1 */
@@ -775,6 +984,12 @@ void patch_homeui_top_nav(unsigned char *buffer, int *size_ptr,
   LegacyBundleView legacy_bundle = {};
   if (locate_legacy_bundle(buffer, visible_size, capacity, &legacy_bundle)) {
     patch_legacy_homeui_top_nav(legacy_bundle);
+    return;
+  }
+
+  LegacyBundleView plain_js_bundle = {};
+  if (locate_plain_js_bundle(buffer, visible_size, capacity, &plain_js_bundle)) {
+    patch_plain_js_homeui_top_nav(plain_js_bundle);
     return;
   }
 

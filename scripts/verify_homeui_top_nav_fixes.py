@@ -27,6 +27,7 @@ CPP = (REPO / "source/shellui/src/homeui_top_nav_patch.cpp").read_text()
 INC = (REPO / "source/shellui/src/homeui_top_nav_profiles.inc").read_text()
 HERMES = bytes([0xC6, 0x1F, 0xBC, 0x03, 0xC1, 0x03, 0x19, 0x1F])
 LEGACY = bytes([0xE5, 0xD1, 0x0B, 0xFB])
+PLAIN_JS_PREFIX = b"/*! For license information"
 
 # Decrypted dump list covered by the C++ HomeUI profiles.
 DUMP_ROOT = Path("/Users/chenpy/Projects/Person/ps5-kylin/Sony Dumps")
@@ -36,6 +37,8 @@ DUMPS = [
         "4.03",
         "4.50",
         "4.51",
+        "8.0",
+        "8.4",
         "9.00",
         "10.01",
         "10.2",
@@ -165,7 +168,34 @@ def load_profiles() -> list[dict]:
     return profiles
 
 
+def load_plain_js_profile() -> dict:
+    match = re.search(
+        r'kPlainJsHomeUiProfiles\[\] = \{\s*\{\s*"([^"]+)",\s*'
+        r'(0x[0-9a-fA-F]+),\s*(0x[0-9a-fA-F]+),\s*'
+        r'(0x[0-9a-fA-F]+),\s*(0x[0-9a-fA-F]+),\s*'
+        r'(0x[0-9a-fA-F]+),\s*(0x[0-9a-fA-F]+),\s*'
+        r'([0-9]+),\s*(0x[0-9a-fA-F]+)\s*\},\s*\};',
+        CPP,
+        re.S,
+    )
+    if not match:
+        raise SystemExit("no plain-JS HomeUI profile parsed")
+    values = [int(value, 0) for value in match.groups()[1:]]
+    keys = (
+        "payload_size",
+        "title_id_offset",
+        "app_error_event_trigger_offset",
+        "navigate_to_home_offset",
+        "icon_order_offset",
+        "app_error_source_offset",
+        "app_error_source_size",
+        "export_alias_offset",
+    )
+    return {"name": match.group(1), **dict(zip(keys, values))}
+
+
 PROFILES = load_profiles()
+PLAIN_JS_PROFILE = load_plain_js_profile()
 for _p in PROFILES:
     _b = _p["bytes"]
     assert (
@@ -206,6 +236,13 @@ LEGACY_NEW_ALIAS = extract_array("kLegacyNewExportAlias")
 LEGACY_OLD_SOURCE = extract_c_string("kLegacyOldAppErrorSource")
 LEGACY_NEW_SOURCE_PREFIX = extract_c_string("kLegacyNewAppErrorSourcePrefix")
 LEGACY_NEW_SOURCE = LEGACY_NEW_SOURCE_PREFIX.ljust(LEGACY_SOURCE_SIZE, b" ")
+PLAIN_JS_OLD_ALIAS = extract_array("kPlainJsOldExportAlias")
+PLAIN_JS_NEW_ALIAS = extract_array("kPlainJsNewExportAlias")
+PLAIN_JS_OLD_SOURCE = extract_c_string("kPlainJsOldAppErrorSource")
+PLAIN_JS_NEW_SOURCE_PREFIX = extract_c_string("kPlainJsNewAppErrorSourcePrefix")
+PLAIN_JS_NEW_SOURCE = PLAIN_JS_NEW_SOURCE_PREFIX.ljust(
+    PLAIN_JS_PROFILE["app_error_source_size"], b" "
+)
 IMAGE_SOURCE_BUTTON_BODY = extract_array("kImageSourceOnionHenButtonBody")
 STOCK_APP_ERROR_ON_PRESS_BODY = extract_array("kStockAppErrorOnPressBody")
 IMAGE_SOURCE_PROPS_HELPER_BODY = extract_array(
@@ -218,6 +255,12 @@ assert NEW_LINK == b"OnionHEN?NavUI=1", NEW_LINK
 assert len(LEGACY_OLD_ORDER) == len(LEGACY_NEW_ORDER) == 37
 assert len(LEGACY_OLD_ALIAS) == len(LEGACY_NEW_ALIAS) == 7
 assert len(LEGACY_OLD_SOURCE) == len(LEGACY_NEW_SOURCE) == LEGACY_SOURCE_SIZE
+assert len(PLAIN_JS_OLD_ALIAS) == len(PLAIN_JS_NEW_ALIAS) == 7
+assert (
+    len(PLAIN_JS_OLD_SOURCE)
+    == len(PLAIN_JS_NEW_SOURCE)
+    == PLAIN_JS_PROFILE["app_error_source_size"]
+)
 assert len(IMAGE_SOURCE_BUTTON_BODY) == 77
 assert len(STOCK_APP_ERROR_ON_PRESS_BODY) == 76
 assert len(IMAGE_SOURCE_PROPS_HELPER_BODY) == 76
@@ -245,6 +288,20 @@ def locate_legacy(data: bytes) -> bytearray | None:
             off = 0xB20
         if data[off : off + 4] == LEGACY:
             return bytearray(data[off:])
+    return None
+
+
+def locate_plain_js(data: bytes) -> bytearray | None:
+    if data.startswith(PLAIN_JS_PREFIX):
+        return bytearray(data)
+    if data[:8] == b"RNPSHEDR":
+        off = struct.unpack_from("<I", data, 0x1C)[0]
+        if off == 0 or off >= len(data):
+            off = 0xB20
+        if data[off : off + len(PLAIN_JS_PREFIX)] == PLAIN_JS_PREFIX:
+            return bytearray(data[off:])
+        if data[0xB20 : 0xB20 + len(PLAIN_JS_PREFIX)] == PLAIN_JS_PREFIX:
+            return bytearray(data[0xB20:])
     return None
 
 
@@ -614,6 +671,104 @@ def verify_legacy(bundle: bytes, tag: str) -> list[str]:
     return errs
 
 
+def match_plain_js_profile(bundle: bytes) -> dict | None:
+    p = PLAIN_JS_PROFILE
+    if len(bundle) != p["payload_size"] or not bundle.startswith(PLAIN_JS_PREFIX):
+        return None
+    markers = (
+        (p["title_id_offset"], b"NPXS40002"),
+        (p["app_error_event_trigger_offset"], b"ApplicationErrorEventTrigger"),
+        (p["navigate_to_home_offset"], b"pshomeui:navigateToHome"),
+    )
+    if any(bundle[offset : offset + len(marker)] != marker for offset, marker in markers):
+        return None
+    return p
+
+
+def precheck_plain_js(bundle: bytes, p: dict) -> list[str]:
+    errs: list[str] = []
+    order_offset = p["icon_order_offset"]
+    alias_offset = p["export_alias_offset"]
+    source_offset = p["app_error_source_offset"]
+    source_size = p["app_error_source_size"]
+    order = bytes(bundle[order_offset : order_offset + len(LEGACY_OLD_ORDER)])
+    alias = bytes(bundle[alias_offset : alias_offset + len(PLAIN_JS_OLD_ALIAS)])
+    source = bytes(bundle[source_offset : source_offset + source_size])
+    if order not in (LEGACY_OLD_ORDER, LEGACY_NEW_ORDER):
+        errs.append(f"pre: plain-JS order unexpected ({order!r})")
+    if alias not in (PLAIN_JS_OLD_ALIAS, PLAIN_JS_NEW_ALIAS):
+        errs.append(f"pre: plain-JS alias unexpected ({alias!r})")
+    if source not in (PLAIN_JS_OLD_SOURCE, PLAIN_JS_NEW_SOURCE):
+        errs.append(f"pre: plain-JS AppError source unexpected ({source[:32]!r})")
+    return errs
+
+
+def apply_plain_js(bundle: bytearray, p: dict) -> list[str]:
+    notes: list[str] = []
+    ok = True
+    ok &= patch_at(
+        bundle,
+        "plain_js_order",
+        p["icon_order_offset"],
+        [LEGACY_OLD_ORDER, LEGACY_NEW_ORDER],
+        LEGACY_NEW_ORDER,
+        notes,
+    )
+    ok &= patch_at(
+        bundle,
+        "plain_js_alias",
+        p["export_alias_offset"],
+        [PLAIN_JS_OLD_ALIAS, PLAIN_JS_NEW_ALIAS],
+        PLAIN_JS_NEW_ALIAS,
+        notes,
+    )
+    ok &= patch_at(
+        bundle,
+        "plain_js_app_error",
+        p["app_error_source_offset"],
+        [PLAIN_JS_OLD_SOURCE, PLAIN_JS_NEW_SOURCE],
+        PLAIN_JS_NEW_SOURCE,
+        notes,
+    )
+    if not ok:
+        notes.append("APPLY_FAILED")
+    return notes
+
+
+def verify_plain_js(
+    bundle: bytes, p: dict, tag: str, original_fps_body: bytes
+) -> list[str]:
+    errs: list[str] = []
+    order_offset = p["icon_order_offset"]
+    alias_offset = p["export_alias_offset"]
+    source_offset = p["app_error_source_offset"]
+    source_size = p["app_error_source_size"]
+    source_end = source_offset + source_size
+    order = bytes(bundle[order_offset : order_offset + len(LEGACY_NEW_ORDER)])
+    alias = bytes(bundle[alias_offset : alias_offset + len(PLAIN_JS_NEW_ALIAS)])
+    source = bytes(bundle[source_offset:source_end])
+    if order != LEGACY_NEW_ORDER:
+        errs.append(f"{tag}: plain-JS order not Search|App|Settings|Profile")
+    if alias != PLAIN_JS_NEW_ALIAS:
+        errs.append(f"{tag}: plain-JS App alias missing ({alias!r})")
+    if source != PLAIN_JS_NEW_SOURCE:
+        errs.append(f"{tag}: plain-JS AppError source mismatch")
+    if bytes(bundle[source_end:alias_offset]) != original_fps_body:
+        errs.append(f"{tag}: plain-JS Fps implementation changed")
+    for marker in (
+        b"useInteractivePress",
+        b"OnionHEN?NavUI=1",
+        b'iconId:{uri:"/system_ex/vsh_asset/onionhen.png"}',
+        b"onPress:e",
+        b'title:""',
+    ):
+        if marker not in source:
+            errs.append(f"{tag}: plain-JS source missing {marker!r}")
+    if b"sendClientApplicationErrorEvent" in source:
+        errs.append(f"{tag}: plain-JS AppError telemetry body still active")
+    return errs
+
+
 def run_pass(pass_id: int):
     print(f"\n========== PASS {pass_id} ==========")
     rows = []
@@ -653,6 +808,83 @@ def run_pass(pass_id: int):
                 print(
                     "       Legacy OK: order=Search|App|Settings|Profile; "
                     "App=useInteractivePress OnionHEN"
+                )
+            else:
+                for error in errs:
+                    print(f"       {error}")
+            rows.append((name, ok, errs))
+            continue
+
+        plain_js = locate_plain_js(raw)
+        if plain_js is not None:
+            p = match_plain_js_profile(plain_js)
+            if not p:
+                print(f"[FAIL] {name}: no plain-JS HomeUI profile")
+                rows.append((name, False, ["no plain-JS profile"]))
+                continue
+
+            original = bytes(plain_js)
+            source_end = p["app_error_source_offset"] + p["app_error_source_size"]
+            original_fps_body = original[source_end : p["export_alias_offset"]]
+            errs = precheck_plain_js(plain_js, p)
+            if locate_plain_js(original) is None:
+                errs.append("direct plain-JS payload locator failed")
+
+            notes1 = apply_plain_js(plain_js, p)
+            errs += verify_plain_js(
+                plain_js, p, "after-patch", original_fps_body
+            )
+            if len(plain_js) != len(original):
+                errs.append("plain-JS patch changed payload length")
+
+            allowed = set(
+                range(
+                    p["icon_order_offset"],
+                    p["icon_order_offset"] + len(LEGACY_NEW_ORDER),
+                )
+            )
+            allowed.update(
+                range(
+                    p["app_error_source_offset"],
+                    p["app_error_source_offset"] + p["app_error_source_size"],
+                )
+            )
+            allowed.update(
+                range(
+                    p["export_alias_offset"],
+                    p["export_alias_offset"] + len(PLAIN_JS_NEW_ALIAS),
+                )
+            )
+            unexpected = [
+                offset
+                for offset, (old, new) in enumerate(zip(original, plain_js))
+                if old != new and offset not in allowed
+            ]
+            if unexpected:
+                errs.append(
+                    "plain-JS bytes changed outside allowed ranges at "
+                    f"0x{unexpected[0]:x}"
+                )
+
+            plain_js2 = bytearray(plain_js)
+            notes2 = apply_plain_js(plain_js2, p)
+            errs += verify_plain_js(
+                plain_js2, p, "idempotent", original_fps_body
+            )
+            if plain_js2 != plain_js:
+                errs.append("idempotent: plain-JS second pass changed bytes")
+            if any(
+                "MISMATCH" in note or "APPLY_FAILED" in note
+                for note in notes1 + notes2
+            ):
+                errs.append(f"apply:{notes1}|{notes2}")
+
+            ok = not errs
+            print(f"[{'OK' if ok else 'FAIL'}] {name:12} → {p['name']}")
+            if ok:
+                print(
+                    "       Plain JS OK: Fps=stock; "
+                    "order=Search|App|Settings|Profile"
                 )
             else:
                 for error in errs:
