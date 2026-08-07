@@ -82,6 +82,13 @@ KNOWN_LEGACY_HOMEUI_PROFILES = [
         "file_size": 0x1534B0,
         "sha256": "6db944372cfe8b7d50328ed4bd47c8cae6917821fb30f20004e7f85c673fe00a",
     },
+    {
+        "name": "7.61 NPXS40002 legacy HomeUI",
+        "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
+        "payload_size": 0x19DC10,
+        "file_size": 0x19E730,
+        "sha256": "1f884701ec9a490b8149f9873ead915fc2d2d5ee95f55363beff39cc5872e93e",
+    },
 ]
 
 
@@ -118,6 +125,14 @@ KNOWN_LEGACY_SETTINGS_PROFILES = [
         "payload_size": 0x483FC0,
         "file_size": 0x484AF0,
         "sha256": "8e016beed7584283c9719c49662fb5e1071083dc1e3dd8988e1b9fe9fd45b032",
+    },
+    {
+        "name": "7.61 NPXS40008 Settings",
+        "route": "standard",
+        "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
+        "payload_size": 0x5E9D20,
+        "file_size": 0x5EA850,
+        "sha256": "469f723359ec07ab6ab72089328401301eb6f32dbc4a6776bf1421c7195ce853",
     },
     {
         "name": "8.00 NPXS40008 Settings",

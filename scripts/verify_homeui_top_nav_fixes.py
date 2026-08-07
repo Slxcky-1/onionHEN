@@ -37,6 +37,7 @@ DUMPS = [
         "4.03",
         "4.50",
         "4.51",
+        "7.61",
         "8.0",
         "8.4",
         "9.00",
@@ -225,17 +226,62 @@ STOCK_DL = extract_array("kStockDownloadErrorString")
 BLANK_LINK = extract_array("kLegacyBlankTopNavLinkUri")
 PADDED_LINK = extract_array("kLegacyPaddedTopNavLinkUri")
 
-LEGACY_ORDER_OFFSET = extract_size("kLegacyIconOrderOffset")
-LEGACY_SOURCE_OFFSET = extract_size("kLegacyAppErrorSourceOffset")
-LEGACY_SOURCE_SIZE = extract_size("kLegacyAppErrorSourceSize")
-LEGACY_ALIAS_OFFSET = extract_size("kLegacyExportAliasOffset")
 LEGACY_OLD_ORDER = extract_array("kLegacyOldIconOrder")
 LEGACY_NEW_ORDER = extract_array("kLegacyNewIconOrder")
 LEGACY_OLD_ALIAS = extract_array("kLegacyOldExportAlias")
 LEGACY_NEW_ALIAS = extract_array("kLegacyNewExportAlias")
 LEGACY_OLD_SOURCE = extract_c_string("kLegacyOldAppErrorSource")
 LEGACY_NEW_SOURCE_PREFIX = extract_c_string("kLegacyNewAppErrorSourcePrefix")
-LEGACY_NEW_SOURCE = LEGACY_NEW_SOURCE_PREFIX.ljust(LEGACY_SOURCE_SIZE, b" ")
+LEGACY_761_OLD_ALIAS = extract_array("kLegacy761OldExportAlias")
+LEGACY_761_NEW_ALIAS = extract_array("kLegacy761NewExportAlias")
+LEGACY_761_OLD_SOURCE = extract_c_string("kLegacy761OldAppErrorSource")
+LEGACY_761_NEW_SOURCE_PREFIX = extract_c_string(
+    "kLegacy761NewAppErrorSourcePrefix"
+)
+LEGACY_PROFILES = (
+    {
+        "name": "4.03/4.50/4.51 NPXS40002 legacy HomeUI",
+        "payload_size": extract_size("kLegacyPayloadSize"),
+        "title_id_offset": extract_size("kLegacyTitleIdOffset"),
+        "app_error_event_trigger_offset": extract_size(
+            "kLegacyAppErrorEventTriggerOffset"
+        ),
+        "navigate_to_home_offset": extract_size("kLegacyNavigateToHomeOffset"),
+        "icon_order_offset": extract_size("kLegacyIconOrderOffset"),
+        "app_error_source_offset": extract_size("kLegacyAppErrorSourceOffset"),
+        "app_error_source_size": extract_size("kLegacyAppErrorSourceSize"),
+        "export_alias_offset": extract_size("kLegacyExportAliasOffset"),
+        "old_alias": LEGACY_OLD_ALIAS,
+        "new_alias": LEGACY_NEW_ALIAS,
+        "old_source": LEGACY_OLD_SOURCE,
+        "new_source_prefix": LEGACY_NEW_SOURCE_PREFIX,
+    },
+    {
+        "name": "7.61 NPXS40002 legacy HomeUI",
+        "payload_size": extract_size("kLegacy761PayloadSize"),
+        "title_id_offset": extract_size("kLegacy761TitleIdOffset"),
+        "app_error_event_trigger_offset": extract_size(
+            "kLegacy761AppErrorEventTriggerOffset"
+        ),
+        "navigate_to_home_offset": extract_size(
+            "kLegacy761NavigateToHomeOffset"
+        ),
+        "icon_order_offset": extract_size("kLegacy761IconOrderOffset"),
+        "app_error_source_offset": extract_size(
+            "kLegacy761AppErrorSourceOffset"
+        ),
+        "app_error_source_size": extract_size("kLegacy761AppErrorSourceSize"),
+        "export_alias_offset": extract_size("kLegacy761ExportAliasOffset"),
+        "old_alias": LEGACY_761_OLD_ALIAS,
+        "new_alias": LEGACY_761_NEW_ALIAS,
+        "old_source": LEGACY_761_OLD_SOURCE,
+        "new_source_prefix": LEGACY_761_NEW_SOURCE_PREFIX,
+    },
+)
+for _legacy_profile in LEGACY_PROFILES:
+    _legacy_profile["new_source"] = _legacy_profile["new_source_prefix"].ljust(
+        _legacy_profile["app_error_source_size"], b" "
+    )
 PLAIN_JS_OLD_ALIAS = extract_array("kPlainJsOldExportAlias")
 PLAIN_JS_NEW_ALIAS = extract_array("kPlainJsNewExportAlias")
 PLAIN_JS_OLD_SOURCE = extract_c_string("kPlainJsOldAppErrorSource")
@@ -254,7 +300,13 @@ assert NEW_ICON_URI == b"/system_ex/vsh_asset/onionhen.png", NEW_ICON_URI
 assert NEW_LINK == b"OnionHEN?NavUI=1", NEW_LINK
 assert len(LEGACY_OLD_ORDER) == len(LEGACY_NEW_ORDER) == 37
 assert len(LEGACY_OLD_ALIAS) == len(LEGACY_NEW_ALIAS) == 7
-assert len(LEGACY_OLD_SOURCE) == len(LEGACY_NEW_SOURCE) == LEGACY_SOURCE_SIZE
+for _legacy_profile in LEGACY_PROFILES:
+    assert len(_legacy_profile["old_alias"]) == len(_legacy_profile["new_alias"]) == 7
+    assert (
+        len(_legacy_profile["old_source"])
+        == len(_legacy_profile["new_source"])
+        == _legacy_profile["app_error_source_size"]
+    )
 assert len(PLAIN_JS_OLD_ALIAS) == len(PLAIN_JS_NEW_ALIAS) == 7
 assert (
     len(PLAIN_JS_OLD_SOURCE)
@@ -596,29 +648,48 @@ def precheck(hbc: bytes, p: dict) -> list[str]:
     return errs
 
 
-def precheck_legacy(bundle: bytes) -> list[str]:
+def match_legacy_profile(bundle: bytes) -> dict | None:
+    for p in LEGACY_PROFILES:
+        if len(bundle) != p["payload_size"]:
+            continue
+        markers = (
+            (p["title_id_offset"], b"NPXS40002"),
+            (p["app_error_event_trigger_offset"], b"ApplicationErrorEventTrigger"),
+            (p["navigate_to_home_offset"], b"pshomeui:navigateToHome"),
+        )
+        if all(
+            bundle[offset : offset + len(marker)] == marker
+            for offset, marker in markers
+        ):
+            return p
+    return None
+
+
+def precheck_legacy(bundle: bytes, p: dict) -> list[str]:
     errs: list[str] = []
-    order = bytes(bundle[LEGACY_ORDER_OFFSET : LEGACY_ORDER_OFFSET + 37])
-    alias = bytes(bundle[LEGACY_ALIAS_OFFSET : LEGACY_ALIAS_OFFSET + 7])
-    source = bytes(
-        bundle[LEGACY_SOURCE_OFFSET : LEGACY_SOURCE_OFFSET + LEGACY_SOURCE_SIZE]
-    )
+    order_offset = p["icon_order_offset"]
+    alias_offset = p["export_alias_offset"]
+    source_offset = p["app_error_source_offset"]
+    source_size = p["app_error_source_size"]
+    order = bytes(bundle[order_offset : order_offset + len(LEGACY_OLD_ORDER)])
+    alias = bytes(bundle[alias_offset : alias_offset + len(p["old_alias"])])
+    source = bytes(bundle[source_offset : source_offset + source_size])
     if order not in (LEGACY_OLD_ORDER, LEGACY_NEW_ORDER):
         errs.append(f"pre: legacy order unexpected ({order!r})")
-    if alias not in (LEGACY_OLD_ALIAS, LEGACY_NEW_ALIAS):
+    if alias not in (p["old_alias"], p["new_alias"]):
         errs.append(f"pre: legacy alias unexpected ({alias!r})")
-    if source not in (LEGACY_OLD_SOURCE, LEGACY_NEW_SOURCE):
+    if source not in (p["old_source"], p["new_source"]):
         errs.append(f"pre: legacy AppError source unexpected ({source[:32]!r})")
     return errs
 
 
-def apply_legacy(bundle: bytearray) -> list[str]:
+def apply_legacy(bundle: bytearray, p: dict) -> list[str]:
     notes: list[str] = []
     ok = True
     ok &= patch_at(
         bundle,
         "legacy_order",
-        LEGACY_ORDER_OFFSET,
+        p["icon_order_offset"],
         [LEGACY_OLD_ORDER, LEGACY_NEW_ORDER],
         LEGACY_NEW_ORDER,
         notes,
@@ -626,17 +697,17 @@ def apply_legacy(bundle: bytearray) -> list[str]:
     ok &= patch_at(
         bundle,
         "legacy_alias",
-        LEGACY_ALIAS_OFFSET,
-        [LEGACY_OLD_ALIAS, LEGACY_NEW_ALIAS],
-        LEGACY_NEW_ALIAS,
+        p["export_alias_offset"],
+        [p["old_alias"], p["new_alias"]],
+        p["new_alias"],
         notes,
     )
     ok &= patch_at(
         bundle,
         "legacy_app_error",
-        LEGACY_SOURCE_OFFSET,
-        [LEGACY_OLD_SOURCE, LEGACY_NEW_SOURCE],
-        LEGACY_NEW_SOURCE,
+        p["app_error_source_offset"],
+        [p["old_source"], p["new_source"]],
+        p["new_source"],
         notes,
     )
     if not ok:
@@ -644,19 +715,26 @@ def apply_legacy(bundle: bytearray) -> list[str]:
     return notes
 
 
-def verify_legacy(bundle: bytes, tag: str) -> list[str]:
+def verify_legacy(
+    bundle: bytes, p: dict, tag: str, original_fps_body: bytes
+) -> list[str]:
     errs: list[str] = []
-    order = bytes(bundle[LEGACY_ORDER_OFFSET : LEGACY_ORDER_OFFSET + 37])
-    alias = bytes(bundle[LEGACY_ALIAS_OFFSET : LEGACY_ALIAS_OFFSET + 7])
-    source = bytes(
-        bundle[LEGACY_SOURCE_OFFSET : LEGACY_SOURCE_OFFSET + LEGACY_SOURCE_SIZE]
-    )
+    order_offset = p["icon_order_offset"]
+    alias_offset = p["export_alias_offset"]
+    source_offset = p["app_error_source_offset"]
+    source_size = p["app_error_source_size"]
+    source_end = source_offset + source_size
+    order = bytes(bundle[order_offset : order_offset + len(LEGACY_NEW_ORDER)])
+    alias = bytes(bundle[alias_offset : alias_offset + len(p["new_alias"])])
+    source = bytes(bundle[source_offset:source_end])
     if order != LEGACY_NEW_ORDER:
         errs.append(f"{tag}: legacy order not Search|App|Settings|Profile")
-    if alias != LEGACY_NEW_ALIAS:
+    if alias != p["new_alias"]:
         errs.append(f"{tag}: legacy App alias missing ({alias!r})")
-    if source != LEGACY_NEW_SOURCE:
+    if source != p["new_source"]:
         errs.append(f"{tag}: legacy AppError source mismatch")
+    if bytes(bundle[source_end:alias_offset]) != original_fps_body:
+        errs.append(f"{tag}: legacy Fps implementation changed")
     for marker in (
         b"useInteractivePress",
         b"OnionHEN?NavUI=1",
@@ -786,12 +864,58 @@ def run_pass(pass_id: int):
         raw = path.read_bytes()
         legacy = locate_legacy(raw)
         if legacy is not None:
-            errs = precheck_legacy(legacy)
-            notes1 = apply_legacy(legacy)
-            errs += verify_legacy(legacy, "after-patch")
+            p = match_legacy_profile(legacy)
+            if not p:
+                print(f"[FAIL] {name}: no legacy HomeUI profile")
+                rows.append((name, False, ["no legacy profile"]))
+                continue
+
+            original = bytes(legacy)
+            source_end = p["app_error_source_offset"] + p["app_error_source_size"]
+            original_fps_body = original[source_end : p["export_alias_offset"]]
+            errs = precheck_legacy(legacy, p)
+            if locate_legacy(original) is None:
+                errs.append("direct legacy payload locator failed")
+
+            notes1 = apply_legacy(legacy, p)
+            errs += verify_legacy(legacy, p, "after-patch", original_fps_body)
+            if len(legacy) != len(original):
+                errs.append("legacy patch changed payload length")
+
+            allowed = set(
+                range(
+                    p["icon_order_offset"],
+                    p["icon_order_offset"] + len(LEGACY_NEW_ORDER),
+                )
+            )
+            allowed.update(
+                range(
+                    p["app_error_source_offset"],
+                    p["app_error_source_offset"] + p["app_error_source_size"],
+                )
+            )
+            allowed.update(
+                range(
+                    p["export_alias_offset"],
+                    p["export_alias_offset"] + len(p["new_alias"]),
+                )
+            )
+            unexpected = [
+                offset
+                for offset, (old, new) in enumerate(zip(original, legacy))
+                if old != new and offset not in allowed
+            ]
+            if unexpected:
+                errs.append(
+                    "legacy bytes changed outside allowed ranges at "
+                    f"0x{unexpected[0]:x}"
+                )
+
             legacy2 = bytearray(legacy)
-            notes2 = apply_legacy(legacy2)
-            errs += verify_legacy(legacy2, "idempotent")
+            notes2 = apply_legacy(legacy2, p)
+            errs += verify_legacy(
+                legacy2, p, "idempotent", original_fps_body
+            )
             if legacy2 != legacy:
                 errs.append("idempotent: legacy second pass changed bytes")
             if any(
@@ -800,10 +924,7 @@ def run_pass(pass_id: int):
             ):
                 errs.append(f"apply:{notes1}|{notes2}")
             ok = not errs
-            print(
-                f"[{'OK' if ok else 'FAIL'}] {name:12} → "
-                "4.03/4.50/4.51 legacy HomeUI"
-            )
+            print(f"[{'OK' if ok else 'FAIL'}] {name:12} → {p['name']}")
             if ok:
                 print(
                     "       Legacy OK: order=Search|App|Settings|Profile; "

@@ -33,6 +33,8 @@
   `6db944372cfe8b7d50328ed4bd47c8cae6917821fb30f20004e7f85c673fe00a`）。
   它们使用旧 RNPS JavaScript bundle，不是 Hermes HBC，共用一个 legacy
   HomeUI profile。
+- `7.61` 的 `NPXS40002` 也是 legacy RNPS JavaScript bundle，但源码布局
+  不同，payload size 为 `0x19dc10`，使用独立 HomeUI profile。
 - `8.00`、`8.40` 的 `NPXS40002` 是直接存放 minified JavaScript 的 RNPS
   payload，大小均为 `0x158070`。两者在 `payload+0x157ef0` 前内容一致，
   差异只位于尾部签名区，因此共用一个 plain-JS HomeUI profile。
@@ -42,6 +44,8 @@
 - `4.03` 的 `NPXS40008` 使用 legacy bundle，payload size 为 `0x483280`；
   `4.50`、`4.51` 对应文件完全一致，payload size 为 `0x483fc0`。三者均
   使用 standard route，并通过已知 payload size 和目标字节共同识别。
+- `7.61` 的 `NPXS40008` 使用 legacy bundle，payload size 为 `0x5e9d20`，
+  使用 standard route 和独立定点 profile。
 - `8.00`、`8.40` 的 `NPXS40008` 仍使用 legacy bundle，payload size 分别为
   `0x64bb80`、`0x654af0`，均使用 standard route 和各自的定点 profile。
 - `9.00` 的 `NPXS40008` 使用 Hermes bundle，`hbc_file_length=0x4b1934`、
@@ -82,7 +86,7 @@ Hermes bundle 会输出：
 - 关键字符串 offset
 - Settings route 推断：`standard` / `old`
 
-4.x/8.x legacy Settings 与 4.x HomeUI 会改为输出：payload offset、旧 bundle magic、
+4.x/7.61/8.x legacy Settings 与 4.x/7.61 HomeUI 会改为输出：payload offset、旧 bundle magic、
 payload size、整文件 SHA-256、匹配的 legacy profile 和关键源码字符串
 offset；Settings 还会输出 profile 对应的 route。
 
@@ -121,6 +125,7 @@ HomeUI profile 完全一致，直接复用；`NPXS40008` 也使用同一份 bund
 | 固件范围 | route | URI |
 |----------|-------|-----|
 | `4.03`、`4.50`、`4.51` | `standard` | `function=debug_settings` |
+| `7.61` | `standard` | `function=debug_settings` |
 | `8.00`、`8.40` | `standard` | `function=debug_settings` |
 | `9.00` 到 `10.6` | `standard` | `function=debug_settings` |
 | `11.x` 及以上 | `old` | `function=debug_settings_old` |
@@ -131,7 +136,7 @@ HomeUI profile 完全一致，直接复用；`NPXS40008` 也使用同一份 bund
 asset path。Hermes 分支只执行标签等长替换，随后重算 HBC footer SHA-1；图标
 由 bootstrapper 直接写到现有 `texture/icon_setting.png` 路径。
 
-`4.x/8.x` Settings 是 pre-Hermes RNPS JavaScript bundle，不能加入 Hermes 指纹表；
+`4.x/7.61/8.x` Settings 是 pre-Hermes RNPS JavaScript bundle，不能加入 Hermes 指纹表；
 它由 `hook_functions.cpp` 的 legacy profile 按 payload size 和目标 offset 原字节
 识别，执行以下定点等长替换：
 
@@ -179,8 +184,8 @@ HomeUI 有三类 bundle：
 
 - 9.00 及当前已知的新固件使用 Hermes HBC，由固件 profile 描述 offset
   和字节。
-- 4.03/4.50/4.51 使用旧 RNPS JavaScript bundle，由 legacy 分支执行等长
-  源码替换；不能把它当作 HBC profile。
+- 4.03/4.50/4.51 和 7.61 使用旧 RNPS JavaScript bundle，由各自的 legacy
+  profile 执行等长源码替换；不能把它当作 HBC profile。
 - 8.00/8.40 使用 RNPS 内的明文 minified JavaScript，由 plain-JS profile
   按 payload size、固定 marker 和目标原字节共同识别。
 
@@ -202,10 +207,11 @@ OnionHEN 使用原本 77 字节的 `ApplicationErrorEventTrigger` 按钮函数�
 宿主，`Fps` 保持原实现。不要再劫持 `Fps` 函数体；它在游戏退出、HomeUI
 重新挂载时会参与恢复流程，旧方案曾引发 RN JS executor 崩溃。
 
-### 旧 RNPS JavaScript bundle（4.x）
+### 旧 RNPS JavaScript bundle（4.x/7.61）
 
-旧 bundle magic 为 `e5 d1 0b fb`，位于 RNPS payload offset（当前三个
-dump 都是 `0xb20`）。兼容采用三处等长替换：
+旧 bundle magic 为 `e5 d1 0b fb`，位于 RNPS payload offset（当前 HomeUI
+dump 都是 `0xb20`）。4.x 和 7.61 的源码变量及 offset 不同，但兼容策略
+相同，均采用三处等长替换：
 
 ```text
 ["Fps","Search","Settings","Profile"]
