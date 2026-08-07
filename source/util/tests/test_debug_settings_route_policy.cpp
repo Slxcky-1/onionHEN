@@ -19,6 +19,16 @@ static int test_0403_uses_standard_route(void) {
   return 0;
 }
 
+static int test_0510_uses_standard_route(void) {
+  const DebugSettingsRoutePolicy policy =
+      DebugSettingsRoutePolicy::for_system_version(0x05100000);
+
+  TEST_ASSERT_TRUE(!policy.uses_old_route());
+  TEST_ASSERT_STREQ("pssettings:play?function=debug_settings",
+                    policy.toolbox_uri(UriKind::Simple));
+  return 0;
+}
+
 static int test_0600_uses_standard_route(void) {
   const DebugSettingsRoutePolicy policy =
       DebugSettingsRoutePolicy::for_system_version(0x06000000);
@@ -435,6 +445,8 @@ extern "C" int test_debug_settings_route_policy_suite(void) {
   int fails = 0;
   fails += onion_test_run("debug_route.0403_standard",
                           test_0403_uses_standard_route);
+  fails += onion_test_run("debug_route.0510_standard",
+                          test_0510_uses_standard_route);
   fails += onion_test_run("debug_route.0600_standard",
                           test_0600_uses_standard_route);
   fails += onion_test_run("debug_route.0740_standard",

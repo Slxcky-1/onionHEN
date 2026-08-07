@@ -83,6 +83,13 @@ KNOWN_LEGACY_HOMEUI_PROFILES = [
         "sha256": "6db944372cfe8b7d50328ed4bd47c8cae6917821fb30f20004e7f85c673fe00a",
     },
     {
+        "name": "5.10 NPXS40002 legacy HomeUI",
+        "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
+        "payload_size": 0x185C30,
+        "file_size": 0x186750,
+        "sha256": "bfa53c6bd1fd4c468ebf7ee44955db0cf8286f116a8ab1870b756de0efbfc5fb",
+    },
+    {
         # 6.00 and 6.02 NPXS40002 are byte-identical.
         "name": "6.00/6.02 NPXS40002 legacy HomeUI",
         "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
@@ -134,6 +141,14 @@ KNOWN_LEGACY_SETTINGS_PROFILES = [
         "payload_size": 0x483FC0,
         "file_size": 0x484AF0,
         "sha256": "8e016beed7584283c9719c49662fb5e1071083dc1e3dd8988e1b9fe9fd45b032",
+    },
+    {
+        "name": "5.10 NPXS40008 Settings",
+        "route": "standard",
+        "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
+        "payload_size": 0x4B8AC0,
+        "file_size": 0x4B95F0,
+        "sha256": "f6fd5f1aba8de0ee3f56e821c69dcea795dec461998db6082a4f58a33ba88ad7",
     },
     {
         # 6.00 and 6.02 NPXS40008 are byte-identical.

@@ -254,7 +254,7 @@ static bool update_hermes_footer_sha1(unsigned char *buffer, size_t size) {
   return true;
 }
 
-/* 4.x, 6.x, 7.x and 8.x NPXS40008 use pre-Hermes RNPS JavaScript bundles. */
+/* 4.x through 8.x NPXS40008 use pre-Hermes RNPS JavaScript bundles. */
 static constexpr unsigned char kLegacySettingsBundleMagic[] = {
     0xe5, 0xd1, 0x0b, 0xfb};
 static constexpr size_t kLegacySettingsPayloadOffsetFallback = 0xb20;
@@ -271,6 +271,7 @@ static constexpr LegacySettingsBundleProfile kLegacySettingsProfiles[] = {
     {"4.03 NPXS40008 Settings", 0x483280, 0x234a17, 0x24db26},
     /* 4.50 and 4.51 NPXS40008 are byte-identical. */
     {"4.50/4.51 NPXS40008 Settings", 0x483fc0, 0x234f2d, 0x24e03c},
+    {"5.10 NPXS40008 Settings", 0x4b8ac0, 0x2436c2, 0x25cb97},
     /* 6.00 and 6.02 NPXS40008 are byte-identical. */
     {"6.00/6.02 NPXS40008 Settings", 0x5524a0, 0x27f5dc, 0x299152},
     /* 7.40 and 7.61 NPXS40008 are byte-identical. */

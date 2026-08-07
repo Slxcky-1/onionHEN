@@ -52,7 +52,7 @@ constexpr size_t kHbcFooterSha1Size = 20;
 constexpr const char *kOnionHenTopNavIconPath =
     "/system_ex/vsh_asset/onionhen.png";
 
-/* 4.x, 6.x, 7.40 and 7.61 HomeUI use pre-Hermes RNPS JavaScript bundles. */
+/* 4.x through 7.x HomeUI use pre-Hermes RNPS JavaScript bundles. */
 constexpr size_t kLegacyPayloadSize = 0x152990;
 constexpr size_t kLegacyTitleIdOffset = 0x6ae31;
 constexpr size_t kLegacyAppErrorEventTriggerOffset = 0xa6bb1;
@@ -61,6 +61,14 @@ constexpr size_t kLegacyIconOrderOffset = 0xa6aea;
 constexpr size_t kLegacyAppErrorSourceOffset = 0x1021c9;
 constexpr size_t kLegacyAppErrorSourceSize = 383;
 constexpr size_t kLegacyExportAliasOffset = 0x10249d;
+constexpr size_t kLegacy510PayloadSize = 0x185c30;
+constexpr size_t kLegacy510TitleIdOffset = 0x6e217;
+constexpr size_t kLegacy510AppErrorEventTriggerOffset = 0xb12de;
+constexpr size_t kLegacy510NavigateToHomeOffset = 0x3da05;
+constexpr size_t kLegacy510IconOrderOffset = 0xb1217;
+constexpr size_t kLegacy510AppErrorSourceOffset = 0x124d28;
+constexpr size_t kLegacy510AppErrorSourceSize = 399;
+constexpr size_t kLegacy510ExportAliasOffset = 0x12501c;
 constexpr size_t kLegacy6PayloadSize = 0x185d00;
 constexpr size_t kLegacy6TitleIdOffset = 0x6c51d;
 constexpr size_t kLegacy6AppErrorEventTriggerOffset = 0xaece9;
@@ -95,14 +103,14 @@ static const char kLegacyOldAppErrorSource[] =
 /* Module 231 forwards iconId directly to PUI Button.icon. */
 static const char kLegacyNewAppErrorSourcePrefix[] =
     "var h=(0,u().memo)((function(){var e=(0,f.useInteractivePress)({link:\"OnionHEN?NavUI=1\"});return u().default.createElement(d.default,{iconId:{uri:\"/system_ex/vsh_asset/onionhen.png\"},onPress:e,title:\"\",__source:{fileName:_,lineNumber:80}})}));t.ApplicationErrorEventTrigger=h;";
-/* 6.00/6.02, 7.40 and 7.61 share this minified SystemIcon module shape. */
-static const unsigned char kLegacy6x7xOldExportAlias[] = {
+/* 5.10 through 7.61 share this minified SystemIcon module shape. */
+static const unsigned char kLegacy5x7xOldExportAlias[] = {
     't', '.', 'F', 'p', 's', '=', 'h'};
-static const unsigned char kLegacy6x7xNewExportAlias[] = {
+static const unsigned char kLegacy5x7xNewExportAlias[] = {
     't', '.', 'A', 'p', 'p', '=', 'b'};
-static const char kLegacy6x7xOldAppErrorSource[] =
+static const char kLegacy5x7xOldAppErrorSource[] =
     "var b=(0,u().memo)((function(){var e=(0,f.default)().sendClientApplicationErrorEvent;return u().default.createElement(p.default,{iconId:\"download_error\",onPress:function(){var t=new Error(\"homeui ApplicationErrorEvent test\");e({errorMessage:t.message,stack:t.stack,severity:\"info\"})},title:\"Trigger AppError\",__source:{fileName:v,lineNumber:80,columnNumber:10}})}));t.ApplicationErrorEventTrigger=b;";
-static const char kLegacy6x7xNewAppErrorSourcePrefix[] =
+static const char kLegacy5x7xNewAppErrorSourcePrefix[] =
     "var b=(0,u().memo)((function(){var e=(0,c.useInteractivePress)({link:\"OnionHEN?NavUI=1\"});return u().default.createElement(p.default,{iconId:{uri:\"/system_ex/vsh_asset/onionhen.png\"},onPress:e,title:\"\",__source:{fileName:v,lineNumber:80,columnNumber:10}})}));t.ApplicationErrorEventTrigger=b;";
 
 static_assert(sizeof(kLegacyOldIconOrder) == sizeof(kLegacyNewIconOrder));
@@ -111,16 +119,20 @@ static_assert(sizeof(kLegacyOldAppErrorSource) - 1 ==
               kLegacyAppErrorSourceSize);
 static_assert(sizeof(kLegacyNewAppErrorSourcePrefix) - 1 <=
               kLegacyAppErrorSourceSize);
-static_assert(sizeof(kLegacy6x7xOldExportAlias) ==
-              sizeof(kLegacy6x7xNewExportAlias));
-static_assert(sizeof(kLegacy6x7xOldAppErrorSource) - 1 ==
-              kLegacy761AppErrorSourceSize);
-static_assert(sizeof(kLegacy6x7xOldAppErrorSource) - 1 ==
+static_assert(sizeof(kLegacy5x7xOldExportAlias) ==
+              sizeof(kLegacy5x7xNewExportAlias));
+static_assert(sizeof(kLegacy5x7xOldAppErrorSource) - 1 ==
+              kLegacy510AppErrorSourceSize);
+static_assert(sizeof(kLegacy5x7xOldAppErrorSource) - 1 ==
               kLegacy6AppErrorSourceSize);
-static_assert(sizeof(kLegacy6x7xNewAppErrorSourcePrefix) - 1 <=
+static_assert(sizeof(kLegacy5x7xOldAppErrorSource) - 1 ==
               kLegacy761AppErrorSourceSize);
-static_assert(sizeof(kLegacy6x7xNewAppErrorSourcePrefix) - 1 <=
+static_assert(sizeof(kLegacy5x7xNewAppErrorSourcePrefix) - 1 <=
+              kLegacy510AppErrorSourceSize);
+static_assert(sizeof(kLegacy5x7xNewAppErrorSourcePrefix) - 1 <=
               kLegacy6AppErrorSourceSize);
+static_assert(sizeof(kLegacy5x7xNewAppErrorSourcePrefix) - 1 <=
+              kLegacy761AppErrorSourceSize);
 
 struct LegacyHomeUiProfile {
   const char *name;
@@ -154,6 +166,20 @@ static const LegacyHomeUiProfile kLegacyHomeUiProfiles[] = {
      kLegacyOldAppErrorSource,
      kLegacyNewAppErrorSourcePrefix,
      sizeof(kLegacyNewAppErrorSourcePrefix) - 1},
+    {"5.10 NPXS40002 legacy HomeUI",
+     kLegacy510PayloadSize,
+     kLegacy510TitleIdOffset,
+     kLegacy510AppErrorEventTriggerOffset,
+     kLegacy510NavigateToHomeOffset,
+     kLegacy510IconOrderOffset,
+     kLegacy510AppErrorSourceOffset,
+     kLegacy510AppErrorSourceSize,
+     kLegacy510ExportAliasOffset,
+     kLegacy5x7xOldExportAlias,
+     kLegacy5x7xNewExportAlias,
+     kLegacy5x7xOldAppErrorSource,
+     kLegacy5x7xNewAppErrorSourcePrefix,
+     sizeof(kLegacy5x7xNewAppErrorSourcePrefix) - 1},
     {"6.00/6.02 NPXS40002 legacy HomeUI",
      kLegacy6PayloadSize,
      kLegacy6TitleIdOffset,
@@ -163,11 +189,11 @@ static const LegacyHomeUiProfile kLegacyHomeUiProfiles[] = {
      kLegacy6AppErrorSourceOffset,
      kLegacy6AppErrorSourceSize,
      kLegacy6ExportAliasOffset,
-     kLegacy6x7xOldExportAlias,
-     kLegacy6x7xNewExportAlias,
-     kLegacy6x7xOldAppErrorSource,
-     kLegacy6x7xNewAppErrorSourcePrefix,
-     sizeof(kLegacy6x7xNewAppErrorSourcePrefix) - 1},
+     kLegacy5x7xOldExportAlias,
+     kLegacy5x7xNewExportAlias,
+     kLegacy5x7xOldAppErrorSource,
+     kLegacy5x7xNewAppErrorSourcePrefix,
+     sizeof(kLegacy5x7xNewAppErrorSourcePrefix) - 1},
     {"7.40/7.61 NPXS40002 legacy HomeUI",
      kLegacy761PayloadSize,
      kLegacy761TitleIdOffset,
@@ -177,11 +203,11 @@ static const LegacyHomeUiProfile kLegacyHomeUiProfiles[] = {
      kLegacy761AppErrorSourceOffset,
      kLegacy761AppErrorSourceSize,
      kLegacy761ExportAliasOffset,
-     kLegacy6x7xOldExportAlias,
-     kLegacy6x7xNewExportAlias,
-     kLegacy6x7xOldAppErrorSource,
-     kLegacy6x7xNewAppErrorSourcePrefix,
-     sizeof(kLegacy6x7xNewAppErrorSourcePrefix) - 1},
+     kLegacy5x7xOldExportAlias,
+     kLegacy5x7xNewExportAlias,
+     kLegacy5x7xOldAppErrorSource,
+     kLegacy5x7xNewAppErrorSourcePrefix,
+     sizeof(kLegacy5x7xNewAppErrorSourcePrefix) - 1},
 };
 
 /* 8.00/8.40 HomeUI stores minified JavaScript directly in the RNPS payload. */

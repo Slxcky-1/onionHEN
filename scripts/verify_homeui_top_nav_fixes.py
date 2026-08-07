@@ -37,6 +37,7 @@ DUMPS = [
         "4.03",
         "4.50",
         "4.51",
+        "5.1",
         "6.0",
         "6.02",
         "7.4",
@@ -235,11 +236,11 @@ LEGACY_OLD_ALIAS = extract_array("kLegacyOldExportAlias")
 LEGACY_NEW_ALIAS = extract_array("kLegacyNewExportAlias")
 LEGACY_OLD_SOURCE = extract_c_string("kLegacyOldAppErrorSource")
 LEGACY_NEW_SOURCE_PREFIX = extract_c_string("kLegacyNewAppErrorSourcePrefix")
-LEGACY_6X_7X_OLD_ALIAS = extract_array("kLegacy6x7xOldExportAlias")
-LEGACY_6X_7X_NEW_ALIAS = extract_array("kLegacy6x7xNewExportAlias")
-LEGACY_6X_7X_OLD_SOURCE = extract_c_string("kLegacy6x7xOldAppErrorSource")
-LEGACY_6X_7X_NEW_SOURCE_PREFIX = extract_c_string(
-    "kLegacy6x7xNewAppErrorSourcePrefix"
+LEGACY_5X_7X_OLD_ALIAS = extract_array("kLegacy5x7xOldExportAlias")
+LEGACY_5X_7X_NEW_ALIAS = extract_array("kLegacy5x7xNewExportAlias")
+LEGACY_5X_7X_OLD_SOURCE = extract_c_string("kLegacy5x7xOldAppErrorSource")
+LEGACY_5X_7X_NEW_SOURCE_PREFIX = extract_c_string(
+    "kLegacy5x7xNewAppErrorSourcePrefix"
 )
 LEGACY_PROFILES = (
     {
@@ -260,6 +261,27 @@ LEGACY_PROFILES = (
         "new_source_prefix": LEGACY_NEW_SOURCE_PREFIX,
     },
     {
+        "name": "5.10 NPXS40002 legacy HomeUI",
+        "payload_size": extract_size("kLegacy510PayloadSize"),
+        "title_id_offset": extract_size("kLegacy510TitleIdOffset"),
+        "app_error_event_trigger_offset": extract_size(
+            "kLegacy510AppErrorEventTriggerOffset"
+        ),
+        "navigate_to_home_offset": extract_size(
+            "kLegacy510NavigateToHomeOffset"
+        ),
+        "icon_order_offset": extract_size("kLegacy510IconOrderOffset"),
+        "app_error_source_offset": extract_size(
+            "kLegacy510AppErrorSourceOffset"
+        ),
+        "app_error_source_size": extract_size("kLegacy510AppErrorSourceSize"),
+        "export_alias_offset": extract_size("kLegacy510ExportAliasOffset"),
+        "old_alias": LEGACY_5X_7X_OLD_ALIAS,
+        "new_alias": LEGACY_5X_7X_NEW_ALIAS,
+        "old_source": LEGACY_5X_7X_OLD_SOURCE,
+        "new_source_prefix": LEGACY_5X_7X_NEW_SOURCE_PREFIX,
+    },
+    {
         "name": "6.00/6.02 NPXS40002 legacy HomeUI",
         "payload_size": extract_size("kLegacy6PayloadSize"),
         "title_id_offset": extract_size("kLegacy6TitleIdOffset"),
@@ -271,10 +293,10 @@ LEGACY_PROFILES = (
         "app_error_source_offset": extract_size("kLegacy6AppErrorSourceOffset"),
         "app_error_source_size": extract_size("kLegacy6AppErrorSourceSize"),
         "export_alias_offset": extract_size("kLegacy6ExportAliasOffset"),
-        "old_alias": LEGACY_6X_7X_OLD_ALIAS,
-        "new_alias": LEGACY_6X_7X_NEW_ALIAS,
-        "old_source": LEGACY_6X_7X_OLD_SOURCE,
-        "new_source_prefix": LEGACY_6X_7X_NEW_SOURCE_PREFIX,
+        "old_alias": LEGACY_5X_7X_OLD_ALIAS,
+        "new_alias": LEGACY_5X_7X_NEW_ALIAS,
+        "old_source": LEGACY_5X_7X_OLD_SOURCE,
+        "new_source_prefix": LEGACY_5X_7X_NEW_SOURCE_PREFIX,
     },
     {
         "name": "7.40/7.61 NPXS40002 legacy HomeUI",
@@ -292,10 +314,10 @@ LEGACY_PROFILES = (
         ),
         "app_error_source_size": extract_size("kLegacy761AppErrorSourceSize"),
         "export_alias_offset": extract_size("kLegacy761ExportAliasOffset"),
-        "old_alias": LEGACY_6X_7X_OLD_ALIAS,
-        "new_alias": LEGACY_6X_7X_NEW_ALIAS,
-        "old_source": LEGACY_6X_7X_OLD_SOURCE,
-        "new_source_prefix": LEGACY_6X_7X_NEW_SOURCE_PREFIX,
+        "old_alias": LEGACY_5X_7X_OLD_ALIAS,
+        "new_alias": LEGACY_5X_7X_NEW_ALIAS,
+        "old_source": LEGACY_5X_7X_OLD_SOURCE,
+        "new_source_prefix": LEGACY_5X_7X_NEW_SOURCE_PREFIX,
     },
 )
 for _legacy_profile in LEGACY_PROFILES:
