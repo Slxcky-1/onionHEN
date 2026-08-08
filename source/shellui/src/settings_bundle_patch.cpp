@@ -59,6 +59,7 @@ static constexpr LegacySettingsProfile kLegacySettingsProfiles[] = {
     {"7.40/7.61 NPXS40008 Settings", 0x5e9d20, 0x2bac8c, 0x2d56e1},
     {"8.00 NPXS40008 Settings", 0x64bb80, 0x2e75c9, 0x302a6f},
     {"8.40 NPXS40008 Settings", 0x654af0, 0x2e62fd, 0x3017a3},
+    {"8.60 NPXS40008 Settings", 0x6561e0, 0x2e6e72, 0x302318},
 };
 
 static constexpr unsigned char kLegacyOldLabel[] = {

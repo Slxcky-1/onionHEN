@@ -21,7 +21,7 @@ DUMP_ROOT = Path("/Users/chenpy/Projects/Person/ps5-kylin/Sony Dumps")
 SETTINGS_CPP = (
     REPO / "source/shellui/src/settings_bundle_patch.cpp"
 ).read_text()
-HERMES_VERSIONS = ("9.00", "11.6")
+HERMES_VERSIONS = ("9.00", "fw9.4", "fw9.6", "11.6")
 LEGACY_VERSIONS = (
     "4.03",
     "4.50",
@@ -33,6 +33,7 @@ LEGACY_VERSIONS = (
     "7.61",
     "8.0",
     "8.4",
+    "fw8.6",
 )
 HERMES_MAGIC = bytes.fromhex("c61fbc03c103191f")
 LEGACY_MAGIC = bytes.fromhex("e5d10bfb")
@@ -49,6 +50,12 @@ COMMON_PROTECTED_STRINGS = (
 )
 VERSION_PROTECTED_STRINGS = {
     "9.00": (
+        b"assets/src/modules/devices/hunt/buttonAssignments/assets/icon",
+    ),
+    "fw9.4": (
+        b"assets/src/modules/devices/hunt/buttonAssignments/assets/icon",
+    ),
+    "fw9.6": (
         b"assets/src/modules/devices/hunt/buttonAssignments/assets/icon",
     ),
     "11.6": (b"avatar-appear-offline-icon",),

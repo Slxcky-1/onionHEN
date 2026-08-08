@@ -31,6 +31,13 @@ KNOWN_HOMEUI_PROFILES = [
         "source_hash": "587635687e0a190e38425232c39092888da5adbe",
     },
     {
+        # 9.4 and 9.6 NPXS40002 dumps are byte-identical.
+        "name": "9.4/9.6 NPXS40002 HomeUI",
+        "hbc_version": 89,
+        "file_length": 0x1A3B54,
+        "source_hash": "81452e48a6937d9f1c13308ce6958f8f9f0c6938",
+    },
+    {
         "name": "10.01 NPXS40002 HomeUI",
         "hbc_version": 89,
         "file_length": 0x1B3318,
@@ -184,6 +191,14 @@ KNOWN_LEGACY_SETTINGS_PROFILES = [
         "file_size": 0x655620,
         "sha256": "5fe90813275c75b280e424cc9c10139b380a9b223fe8c5712b7df86329553711",
     },
+    {
+        "name": "8.60 NPXS40008 Settings",
+        "route": "standard",
+        "payload_magic": LEGACY_BUNDLE_MAGIC.hex(),
+        "payload_size": 0x6561E0,
+        "file_size": 0x656D10,
+        "sha256": "57d59334d99a101e92bbb470c1c271c7838f3b7a21ffebcf237a487cdc6665c4",
+    },
 ]
 
 
@@ -193,6 +208,18 @@ KNOWN_SETTINGS_PROFILES = [
         "route": "standard",
         "file_length": 0x4B1934,
         "source_hash": "72188b52b12bad6af90c90a848b7fd76e5af102d",
+    },
+    {
+        "name": "9.40 NPXS40008 Settings",
+        "route": "standard",
+        "file_length": 0x4BA2C0,
+        "source_hash": "4f1ae4b6786cc96646e14eec923d09c3c031e980",
+    },
+    {
+        "name": "9.60 NPXS40008 Settings",
+        "route": "standard",
+        "file_length": 0x4BA1F0,
+        "source_hash": "59506d7b5c595196b21661264bc9c1b487d21b51",
     },
     {
         "name": "10.01 NPXS40008 Settings",
