@@ -45,6 +45,7 @@ along with this program; see the file COPYING. If not, see
 #include "globalconf.hpp"
 #include "launcher.hpp"
 #include "ipc.hpp"
+#include "startup_navigation.hpp"
 #include "welcome_toast.hpp"
 #include <onion/debug_settings_route_policy.hpp>
 #include <onion/ready.h>
@@ -60,11 +61,6 @@ pthread_t cheat_thr = nullptr;
 #define PAD_BUTTON_OPTIONS	0x00000008
 
 // Structure definitions
-typedef struct {
-  unsigned int size;
-  uint32_t userId;
-} SceShellUIUtilLaunchByUriParam;
-
 typedef struct {
     int32_t type;             // 0x00
     int32_t req_id;           // 0x04
@@ -109,8 +105,6 @@ extern "C" {
     int sceSysmoduleLoadModuleInternal(int id);
     int sceNetCtlInit();
     int sceUserServiceInitialize(const int *);
-    int sceKernelLoadStartModule(const char *name, size_t argc, const void *argv, 
-                                uint32_t flags, void *unknown, int *result);
     int sceKernelDlsym(uint32_t lib, const char *name, void **fun);
     int scePadClose(int handle);
     int sceSystemStateMgrEnterStandby(void);
@@ -164,61 +158,6 @@ void start_worker_threads(pthread_t* fifo_thr, pthread_t* msg_thr) {
   pthread_t supervisor_thr = nullptr;
   pthread_create(&supervisor_thr, nullptr, runtime_supervisor_thread, nullptr);
   pthread_detach(supervisor_thr);
-}
-
-int navigate_home_menu_via_uri() {
-  constexpr const char *kHomeMenuUri =
-      "pshomeui:navigateToHome?bootCondition=psButton";
-  using ShellUIUtilInitialize = int (*)(void);
-  using ShellUIUtilLaunchByUri =
-      int (*)(const char *, SceShellUIUtilLaunchByUriParam *);
-
-  const int module = sceKernelLoadStartModule(
-      "/system_ex/common_ex/lib/libSceShellUIUtil.sprx", 0, nullptr, 0,
-      nullptr, nullptr);
-  if (module < 0) {
-    LOG_WARN("Failed to load libSceShellUIUtil.sprx: 0x%x",
-             static_cast<unsigned int>(module));
-    return module;
-  }
-
-  const auto initialize = reinterpret_cast<ShellUIUtilInitialize>(
-      kernel_dynlib_dlsym(-1, static_cast<uint32_t>(module),
-                          "sceShellUIUtilInitialize"));
-  const auto launch_by_uri = reinterpret_cast<ShellUIUtilLaunchByUri>(
-      kernel_dynlib_dlsym(-1, static_cast<uint32_t>(module),
-                          "sceShellUIUtilLaunchByUri"));
-  if (!initialize || !launch_by_uri) {
-    LOG_WARN("Failed to resolve ShellUIUtil URI entry points");
-    return -1;
-  }
-
-  SceShellUIUtilLaunchByUriParam param{};
-  param.size = sizeof(param);
-  initialize();
-  (void)sceUserServiceGetForegroundUser(reinterpret_cast<int *>(&param.userId));
-  return launch_by_uri(kHomeMenuUri, &param);
-}
-
-void apply_startup_destination(const onion::Settings& settings) {
-  if (settings.startup_open_after_load == onion::kStartupOpenNone) {
-    LOG_DEBUG("Startup destination: none");
-    return;
-  }
-
-  if (settings.startup_open_after_load != onion::kStartupOpenHomeMenu) {
-    LOG_WARN("Ignoring unsupported startup destination: %d",
-             settings.startup_open_after_load);
-    return;
-  }
-
-  const int result = navigate_home_menu_via_uri();
-  if (result < 0) {
-    LOG_WARN("Failed to open Home Menu after startup: 0x%x",
-             static_cast<unsigned int>(result));
-    return;
-  }
-  LOG_INFO("Opened Home Menu after startup");
 }
 
 /** Keep IPC_loop alive: rejoin + restart on exit. */
@@ -380,7 +319,7 @@ int main() {
   sceNotificationSend(0xFE, true, welcome_toast_json.c_str());
   LOG_INFO("StartUp thread created!! - welcome to OnionHEN");
 
-  apply_startup_destination(boot_settings);
+  onion::daemon::apply_startup_destination(boot_settings);
 
   ipc_supervisor_loop(&msg_thr);
   // unreachable
