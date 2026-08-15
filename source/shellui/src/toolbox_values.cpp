@@ -27,6 +27,10 @@ struct ExactValueEntry {
 
 const ExactValueEntry kExactValues[] = {
     {"id_lm_test", +[]() -> std::string { return "0"; }},
+    {"id_start_opt",
+     +[]() -> std::string {
+       return int_str(g_settings.startup_open_after_load);
+     }},
     {"id_overlay_enabled",
      +[]() -> std::string { return bool_str(g_settings.overlay_enabled); }},
     {"id_overlay_gpu",

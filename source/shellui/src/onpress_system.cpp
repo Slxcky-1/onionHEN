@@ -4,6 +4,28 @@
 #include <onion/notify_i18n.h>
 #include <cstdlib>
 
+static OnPressResult id_start_opt(OnPressContext &ctx) {
+  char *end = nullptr;
+  const long selected = std::strtol(ctx.value.c_str(), &end, 10);
+  if (end == ctx.value.c_str() || *end != '\0' ||
+      (selected != onion::kStartupOpenNone &&
+       selected != onion::kStartupOpenHomeMenu)) {
+    LOG_WARN("Rejected unsupported startup destination: %s",
+             ctx.value.c_str());
+    return OnPressResult::EarlyReturn;
+  }
+
+  const int destination = static_cast<int>(selected);
+  if (destination == g_settings.startup_open_after_load) {
+    return OnPressResult::EarlyReturn;
+  }
+
+  g_settings.startup_open_after_load = destination;
+  LOG_INFO("Startup destination: %s",
+           destination == onion::kStartupOpenHomeMenu ? "home_menu" : "none");
+  return OnPressResult::Handled;
+}
+
 static OnPressResult id_log_level(OnPressContext &ctx) {
   char *end = nullptr;
   const long selected = std::strtol(ctx.value.c_str(), &end, 10);
@@ -157,6 +179,7 @@ static OnPressResult id_toolbox_shortcut(OnPressContext &ctx) {
 }
 
 static const OnPressExactEntry kExact[] = {
+    {"id_start_opt", id_start_opt},
     {"id_log_level", id_log_level},
     {"id_app_jailbreak_enabled", id_app_jailbreak_enabled},
     {"id_debug_jb", id_debug_jb},

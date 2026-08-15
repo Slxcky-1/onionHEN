@@ -55,6 +55,9 @@ inline constexpr int kUiLanguageSystem = 0;
 inline constexpr int kUiLanguageZhHans = 1;
 inline constexpr int kUiLanguageEn = 2;
 
+inline constexpr int kStartupOpenNone = 0;
+inline constexpr int kStartupOpenHomeMenu = 1;
+
 // Mirrors onion_log_level from <onion/log.h>. Duplicated rather than included
 // so libonion_settings stays independent of libonion_platform; the processes
 // that bridge the two (see onion_apply_log_settings) static_assert that the
@@ -80,6 +83,10 @@ struct AppJailbreakAllowlist {
 };
 
 struct Settings {
+  // [startup]
+  // Page to open after OnionHEN finishes loading.
+  int startup_open_after_load = kStartupOpenNone;
+
   // [rest_mode]
   uint64_t rest_mode_delay_seconds = 10;
 

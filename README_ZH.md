@@ -197,6 +197,7 @@ OnionHEN 通过以下两个运行时视图创建并共享同一套配置 schema�
 | --- | --- | --- |
 | `meta.schema_version` | `1` | `1` |
 | `toolbox.language` | `system` | `system`, `zh-Hans`, `en` |
+| `startup.open_after_load` | `none` | `none`, `home_menu` |
 | `home_screen.show_title_ids` | `false` | `true`, `false` |
 | `game_menu.show_onionhen_options` | `true` | `true`, `false` |
 | `rest_mode.resume_reinject_delay_seconds` | `0` | 秒数 |

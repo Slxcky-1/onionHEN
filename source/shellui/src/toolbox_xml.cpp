@@ -652,7 +652,17 @@ void append_toolbox_system_group(ps5ui::Group& g) {
 }
 
 void append_toolbox_preferences_group(ps5ui::Group& g) {
-  g.list("id_ui_lang", toolbox_i18n::tr("lang.list"),
+  g.list("id_start_opt", toolbox_i18n::tr("startup.open_after_load"),
+         [](ps5ui::ListBuilder& L) {
+           L.item("id_start_opt_none", toolbox_i18n::tr("startup.none"), "0")
+               .item("id_start_opt_home_menu",
+                     toolbox_i18n::tr("startup.home_menu"), "1");
+         },
+         toolbox_i18n::tr("startup.open_after_load.sub"),
+         toolbox_val("id_start_opt", "0"),
+         toolbox_i18n::tr("startup.open_after_load.confirm"),
+         toolbox_i18n::tr("startup.open_after_load.confirm_phrase"))
+      .list("id_ui_lang", toolbox_i18n::tr("lang.list"),
          [](ps5ui::ListBuilder& L) {
            L.item("id_ui_lang_system", toolbox_i18n::tr("lang.system"), "0")
                .item("id_ui_lang_zh", toolbox_i18n::tr("lang.zh"), "1")
@@ -881,7 +891,7 @@ void generate_toolbox_xml(std::string& new_xml) {
           "id_group_preferences", toolbox_i18n::tr("group.preferences"),
           [](ps5ui::Group& g) { append_toolbox_preferences_group(g); },
           toolbox_i18n::tr("group.preferences.sub"), kIconShortcuts,
-          "id_ui_lang")
+          "id_start_opt")
       .group(
           "id_group_debug", toolbox_i18n::tr("group.debug"),
           [](ps5ui::Group& g) { append_toolbox_debug_group(g); },

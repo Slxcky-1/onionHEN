@@ -124,6 +124,20 @@ const char *language_name(int v) {
   }
 }
 
+int parse_startup_open_after_load(const char *s, int def) {
+  if (streq_ci(s, "none")) {
+    return kStartupOpenNone;
+  }
+  if (streq_ci(s, "home_menu")) {
+    return kStartupOpenHomeMenu;
+  }
+  return def;
+}
+
+const char *startup_open_after_load_name(int v) {
+  return v == kStartupOpenHomeMenu ? "home_menu" : "none";
+}
+
 int parse_log_level(const char *s, int def) {
   if (streq_ci(s, "off")) return kLogLevelOff;
   if (streq_ci(s, "error")) return kLogLevelError;
@@ -407,6 +421,9 @@ bool apply_parser(IniParser *parser, Settings *out) {
   out->schema_version = version;
   out->ui_lang =
       parse_language(ini_get(parser, "toolbox.language"), out->ui_lang);
+  out->startup_open_after_load = parse_startup_open_after_load(
+      ini_get(parser, "startup.open_after_load"),
+      out->startup_open_after_load);
   out->log_level =
       parse_log_level(ini_get(parser, "logging.level"), out->log_level);
   out->display_tids = parse_bool(
@@ -522,6 +539,13 @@ std::string settings_serialize(const Settings &in) {
   b += "# Available values: system, zh-Hans, en\n";
   b += "# system follows the PS5 system language when it can be detected.\n";
   b += "language=" + std::string(language_name(in.ui_lang)) + "\n";
+  b += "\n";
+  b += "[startup]\n";
+  b += "# open_after_load chooses which page opens after OnionHEN finishes loading.\n";
+  b += "# Available values: none, home_menu\n";
+  b += "open_after_load=" +
+       std::string(startup_open_after_load_name(in.startup_open_after_load)) +
+       "\n";
   b += "\n";
   b += "[logging]\n";
   b += "# level controls how much OnionHEN records to its log files.\n";

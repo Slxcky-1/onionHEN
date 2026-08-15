@@ -28,6 +28,8 @@ static int test_defaults_and_serialize_keys(void) {
   TEST_ASSERT_TRUE(text.find("schema_version=1") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("[toolbox]") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("language=system") != std::string::npos);
+  TEST_ASSERT_TRUE(text.find("[startup]") != std::string::npos);
+  TEST_ASSERT_TRUE(text.find("open_after_load=none") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("[logging]") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("level=info") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("temperature_threshold_celsius=77") !=
@@ -61,6 +63,7 @@ static int test_roundtrip_file(void) {
   in.fan_threshold = 55;
   in.cheats_shortcut_opt = 2;
   in.rest_mode_delay_seconds = 7;
+  in.startup_open_after_load = onion::kStartupOpenHomeMenu;
   in.ui_lang = onion::kUiLanguageEn;
   in.log_level = onion::kLogLevelDebug;
 
@@ -72,6 +75,8 @@ static int test_roundtrip_file(void) {
   TEST_ASSERT_EQ_INT(55, out.fan_threshold);
   TEST_ASSERT_EQ_INT(2, out.cheats_shortcut_opt);
   TEST_ASSERT_EQ_U64(7, out.rest_mode_delay_seconds);
+  TEST_ASSERT_EQ_INT(onion::kStartupOpenHomeMenu,
+                     out.startup_open_after_load);
   TEST_ASSERT_EQ_INT(onion::kUiLanguageEn, out.ui_lang);
   TEST_ASSERT_EQ_INT(onion::kLogLevelDebug, out.log_level);
   TEST_ASSERT_EQ_INT(onion::kSettingsSchemaVersion, out.schema_version);
@@ -96,6 +101,7 @@ static int test_full_schema_roundtrip(void) {
   TEST_ASSERT_TRUE(!path.empty());
 
   onion::Settings in{};
+  in.startup_open_after_load = onion::kStartupOpenHomeMenu;
   in.rest_mode_delay_seconds = 42;
   in.libhijacker_cheats = true;
   in.app_jailbreak_enabled = false;
@@ -127,6 +133,7 @@ static int test_full_schema_roundtrip(void) {
   TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
 
   TEST_ASSERT_EQ_U64(in.rest_mode_delay_seconds, out.rest_mode_delay_seconds);
+  TEST_ASSERT_EQ_INT(in.startup_open_after_load, out.startup_open_after_load);
   TEST_ASSERT_TRUE(out.libhijacker_cheats == in.libhijacker_cheats);
   TEST_ASSERT_TRUE(out.app_jailbreak_enabled == in.app_jailbreak_enabled);
   TEST_ASSERT_TRUE(out.debug_app_jb_msg == in.debug_app_jb_msg);
@@ -175,6 +182,7 @@ static int test_partial_ini_keeps_defaults(void) {
   TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
   /* Removed keys are ignored; unspecified keys stay at defaults. */
   TEST_ASSERT_EQ_U64(10, out.rest_mode_delay_seconds);
+  TEST_ASSERT_EQ_INT(onion::kStartupOpenNone, out.startup_open_after_load);
   TEST_ASSERT_EQ_INT(77, out.fan_threshold);
   TEST_ASSERT_TRUE(out.overlay_enabled);
   TEST_ASSERT_TRUE(out.app_jailbreak_enabled);
@@ -184,6 +192,37 @@ static int test_partial_ini_keeps_defaults(void) {
   TEST_ASSERT_EQ_U64(1, out.app_jailbreak_allowlist.title_id_prefix_count);
   TEST_ASSERT_STREQ("LAPY",
                     out.app_jailbreak_allowlist.title_id_prefixes[0].c_str());
+
+  unlink(path.c_str());
+  return 0;
+}
+
+static int test_startup_open_after_load_parse_policy(void) {
+  std::string path = temp_ini_path();
+  TEST_ASSERT_TRUE(!path.empty());
+
+  FILE *f = fopen(path.c_str(), "w");
+  TEST_ASSERT_TRUE(f != nullptr);
+  fputs("[meta]\nschema_version=1\n\n[startup]\n"
+        "open_after_load=home_menu\n",
+        f);
+  fclose(f);
+
+  onion::Settings configured{};
+  TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &configured));
+  TEST_ASSERT_EQ_INT(onion::kStartupOpenHomeMenu,
+                     configured.startup_open_after_load);
+
+  f = fopen(path.c_str(), "w");
+  TEST_ASSERT_TRUE(f != nullptr);
+  fputs("[meta]\nschema_version=1\n\n[startup]\n"
+        "open_after_load=settings\n",
+        f);
+  fclose(f);
+
+  onion::Settings invalid{};
+  TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &invalid));
+  TEST_ASSERT_EQ_INT(onion::kStartupOpenNone, invalid.startup_open_after_load);
 
   unlink(path.c_str());
   return 0;
@@ -346,6 +385,8 @@ extern "C" int test_settings_suite(void) {
   failures += onion_test_run("settings_missing_file_defaults", test_missing_file_defaults);
   failures += onion_test_run("settings_full_schema_roundtrip", test_full_schema_roundtrip);
   failures += onion_test_run("settings_partial_ini_defaults", test_partial_ini_keeps_defaults);
+  failures += onion_test_run("settings_startup_open_after_load",
+                             test_startup_open_after_load_parse_policy);
   failures += onion_test_run("settings_serialize_overlay_keys", test_serialize_contains_overlay_keys);
   failures += onion_test_run("settings_empty_file_defaults", test_empty_file_loads_defaults);
   failures += onion_test_run("settings_app_jailbreak_allowlist",

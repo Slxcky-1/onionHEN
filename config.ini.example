@@ -15,6 +15,11 @@ schema_version=1
 # system follows the PS5 system language when it can be detected.
 language=system
 
+[startup]
+# open_after_load chooses which page opens after OnionHEN finishes loading.
+# Available values: none, home_menu
+open_after_load=none
+
 [logging]
 # level controls how much OnionHEN records to its log files.
 # Available values: off, error, warn, info, debug, trace

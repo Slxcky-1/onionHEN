@@ -19,6 +19,9 @@ static int test_default_zh(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("group.display.sub"),
                                "游戏覆盖层、主菜单显示与游戏选项入口") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.preferences"), "操作偏好") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("startup.open_after_load"),
+                               "OnionHEN 加载后自动打开") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("startup.home_menu"), "主菜单") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("log.level"), "日志输出等级") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("log.info"), "信息（推荐）") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("log.trace"), "跟踪") == 0);
@@ -41,6 +44,9 @@ static int test_en(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("group.connection"),
                                "Account, Connection & Remote Play") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.preferences"), "Preferences") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("startup.open_after_load"),
+                               "Automatically open after OnionHEN loads") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("startup.home_menu"), "Home Menu") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("log.level"), "Log output level") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("log.info"),
                                "Information (recommended)") == 0);

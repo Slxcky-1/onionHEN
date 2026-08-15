@@ -61,6 +61,11 @@ pthread_t cheat_thr = nullptr;
 
 // Structure definitions
 typedef struct {
+  unsigned int size;
+  uint32_t userId;
+} SceShellUIUtilLaunchByUriParam;
+
+typedef struct {
     int32_t type;             // 0x00
     int32_t req_id;           // 0x04
     int32_t priority;         // 0x08
@@ -91,7 +96,6 @@ extern "C" {
     int sceKernelSendNotificationRequest(int32_t device,
         OrbisNotificationRequest *req,
         size_t size, int32_t blocking);
-    int sceSystemServiceNavigateToGoHome(void);
     int sceUserServiceGetUserName(const int userId, char *userName, const size_t size);
     uint64_t sceKernelGetProcessTime();
     int sceSystemServiceGetAppId(const char *title_id);
@@ -160,6 +164,61 @@ void start_worker_threads(pthread_t* fifo_thr, pthread_t* msg_thr) {
   pthread_t supervisor_thr = nullptr;
   pthread_create(&supervisor_thr, nullptr, runtime_supervisor_thread, nullptr);
   pthread_detach(supervisor_thr);
+}
+
+int navigate_home_menu_via_uri() {
+  constexpr const char *kHomeMenuUri =
+      "pshomeui:navigateToHome?bootCondition=psButton";
+  using ShellUIUtilInitialize = int (*)(void);
+  using ShellUIUtilLaunchByUri =
+      int (*)(const char *, SceShellUIUtilLaunchByUriParam *);
+
+  const int module = sceKernelLoadStartModule(
+      "/system_ex/common_ex/lib/libSceShellUIUtil.sprx", 0, nullptr, 0,
+      nullptr, nullptr);
+  if (module < 0) {
+    LOG_WARN("Failed to load libSceShellUIUtil.sprx: 0x%x",
+             static_cast<unsigned int>(module));
+    return module;
+  }
+
+  const auto initialize = reinterpret_cast<ShellUIUtilInitialize>(
+      kernel_dynlib_dlsym(-1, static_cast<uint32_t>(module),
+                          "sceShellUIUtilInitialize"));
+  const auto launch_by_uri = reinterpret_cast<ShellUIUtilLaunchByUri>(
+      kernel_dynlib_dlsym(-1, static_cast<uint32_t>(module),
+                          "sceShellUIUtilLaunchByUri"));
+  if (!initialize || !launch_by_uri) {
+    LOG_WARN("Failed to resolve ShellUIUtil URI entry points");
+    return -1;
+  }
+
+  SceShellUIUtilLaunchByUriParam param{};
+  param.size = sizeof(param);
+  initialize();
+  (void)sceUserServiceGetForegroundUser(reinterpret_cast<int *>(&param.userId));
+  return launch_by_uri(kHomeMenuUri, &param);
+}
+
+void apply_startup_destination(const onion::Settings& settings) {
+  if (settings.startup_open_after_load == onion::kStartupOpenNone) {
+    LOG_DEBUG("Startup destination: none");
+    return;
+  }
+
+  if (settings.startup_open_after_load != onion::kStartupOpenHomeMenu) {
+    LOG_WARN("Ignoring unsupported startup destination: %d",
+             settings.startup_open_after_load);
+    return;
+  }
+
+  const int result = navigate_home_menu_via_uri();
+  if (result < 0) {
+    LOG_WARN("Failed to open Home Menu after startup: 0x%x",
+             static_cast<unsigned int>(result));
+    return;
+  }
+  LOG_INFO("Opened Home Menu after startup");
 }
 
 /** Keep IPC_loop alive: rejoin + restart on exit. */
@@ -310,14 +369,18 @@ int main() {
   LOG_INFO("is toolbox only: %s | ver: %x", toolbox_only ? "Yes" : "No",
                sys_ver.version);
 
-  /* Always inject toolbox into ShellUI; do not auto-open any settings page. */
+  /* Toolbox injection is independent from the optional post-load navigation. */
   cmd_enable_toolbox();
+
+  const onion::Settings boot_settings = g_settings.snapshot();
 
   const std::string welcome_toast_json = onion::daemon::make_welcome_toast_json(
       debug_settings_route.toolbox_uri(
           onion::debug_settings_route::UriKind::Simple));
   sceNotificationSend(0xFE, true, welcome_toast_json.c_str());
   LOG_INFO("StartUp thread created!! - welcome to OnionHEN");
+
+  apply_startup_destination(boot_settings);
 
   ipc_supervisor_loop(&msg_thr);
   // unreachable
