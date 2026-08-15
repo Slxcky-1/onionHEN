@@ -70,8 +70,6 @@ static constexpr unsigned char kLegacyNewLabel[] = {
     'o', 'l', 's'};
 static constexpr unsigned char kLegacyOldIcon[] = {
     'i', 'c', 'o', 'n', '_', 's', 'e', 't', 't', 'i', 'n', 'g'};
-static constexpr unsigned char kLegacyNewIcon[] = {
-    'o', 'n', 'i', 'o', 'n', 'h', '_', 's', 'i', 'c', 'o', 'n'};
 
 /* Both Hermes labels contain 15 UTF-16LE code units. */
 static constexpr unsigned char kHermesOldLabel[] = {
@@ -86,7 +84,6 @@ static constexpr unsigned char kHermesNewLabel[] = {
 };
 
 static_assert(sizeof(kLegacyOldLabel) == sizeof(kLegacyNewLabel));
-static_assert(sizeof(kLegacyOldIcon) == sizeof(kLegacyNewIcon));
 static_assert(sizeof(kHermesOldLabel) == sizeof(kHermesNewLabel));
 
 static bool range_contains(size_t size, size_t offset, size_t length) {
@@ -170,21 +167,16 @@ static bool locate_legacy_payload(unsigned char *buffer, size_t size,
   return false;
 }
 
-static bool patch_state_known(const BundleView &bundle, size_t offset,
-                              const unsigned char *stock,
-                              const unsigned char *patched, size_t size) {
-  return bytes_at(bundle, offset, stock, size) ||
-         bytes_at(bundle, offset, patched, size);
-}
-
 static const LegacySettingsProfile *
 find_legacy_profile(const BundleView &payload) {
   for (const LegacySettingsProfile &profile : kLegacySettingsProfiles) {
     if (payload.size == profile.payload_size &&
-        patch_state_known(payload, profile.label_offset, kLegacyOldLabel,
-                          kLegacyNewLabel, sizeof(kLegacyOldLabel)) &&
-        patch_state_known(payload, profile.icon_offset, kLegacyOldIcon,
-                          kLegacyNewIcon, sizeof(kLegacyOldIcon))) {
+        (bytes_at(payload, profile.label_offset, kLegacyOldLabel,
+                  sizeof(kLegacyOldLabel)) ||
+         bytes_at(payload, profile.label_offset, kLegacyNewLabel,
+                  sizeof(kLegacyNewLabel))) &&
+        bytes_at(payload, profile.icon_offset, kLegacyOldIcon,
+                 sizeof(kLegacyOldIcon))) {
       return &profile;
     }
   }
@@ -263,15 +255,12 @@ void patch_settings_bundle(unsigned char *buffer, int size) {
     const int label_count = apply_equal_length_patch(
         legacy, profile->label_offset, kLegacyOldLabel, kLegacyNewLabel,
         sizeof(kLegacyOldLabel));
-    const int icon_count = apply_equal_length_patch(
-        legacy, profile->icon_offset, kLegacyOldIcon, kLegacyNewIcon,
-        sizeof(kLegacyOldIcon));
 #if SHELL_DEBUG == 1
-    LOG_DEBUG("settings_bundle_patch: activated '%s' label=%d icon=%d",
-              profile->name, label_count, icon_count);
+    LOG_DEBUG("settings_bundle_patch: activated '%s' label=%d "
+              "(stock icon id preserved; URI is intercepted at runtime)",
+              profile->name, label_count);
 #else
     (void)label_count;
-    (void)icon_count;
 #endif
     return;
   }

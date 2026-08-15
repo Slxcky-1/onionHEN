@@ -155,21 +155,29 @@ HomeUI profile 完全一致，直接复用；`NPXS40008` 也使用同一份 bund
 `9.00` 及以上的 Hermes Settings bundle 使用 `hbc_file_length` 和
 `source_hash` 指纹。Hermes 字符串 entry 会共享底层存储区，不能对
 `icon_setting` 做裸字节全局替换，否则会同时破坏 `_settingInstance` 和相邻
-asset path。Hermes 分支只执行标签等长替换，随后重算 HBC footer SHA-1；图标
-由 bootstrapper 直接写到现有 `texture/icon_setting.png` 路径。
+asset path。Hermes 分支只执行标签等长替换，随后重算 HBC footer SHA-1；
+`icon_setting` 资源文件保持 Sony 原文件，由 `SettingsPlugin.CxmlUri` hook
+在 ShellUI 运行期间将该 URI 临时拦截到
+`/system_ex/vsh_asset/onionhen.png`。插件未运行时不会留下任何图标改动。
 
 `4.x/5.x/6.x/7.x/8.x` Settings 是 pre-Hermes RNPS JavaScript bundle，不能加入 Hermes 指纹表；
 它由 `settings_bundle_patch.cpp` 的 legacy profile 按 payload size 和目标 offset 原字节
-识别，执行以下定点等长替换：
+识别，只执行菜单标签的定点等长替换；图标 ID 保持 `icon_setting`，由同一个
+`SettingsPlugin.CxmlUri` hook 运行时拦截：
 
 ```text
 ★Debug Settings -> ★OnionHEN Tools
-icon_setting     -> onionh_sicon
+icon_setting     --(runtime URI interception)--> /system_ex/vsh_asset/onionhen.png
 ```
+
+旧版如果已经把系统上的 `icon_setting.png` 覆盖为 OnionHEN 图标，新版只能阻止
+后续继续覆盖，无法从二进制中推回已丢失的 Sony 原图；这类机器需要从对应固件
+的 stock 资源恢复该文件。
 
 legacy 标签在 bundle 内有多个文本命中，必须只修改 categoriesList 菜单项
 profile 指定的 offset，不能全局替换错误提示中的同名文本。重复执行 patch
-时，新字节也应被 profile 接受，但不得再次修改 bundle。
+时，新标签也应被 profile 接受，但不得再次修改 bundle；图标资源和图标 ID
+均不得被写回系统文件或 bundle。
 
 新增 Hermes Settings 兼容时，不只看 `hbc_file_length`。必须同时匹配：
 

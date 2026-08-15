@@ -260,6 +260,20 @@ MonoString * CxmlUri_Hook(MonoObject * Instance, MonoString * uri) {
   LOG_DEBUG("uri_string: %s", uri_string.c_str());
   #endif
   ///LOG_DEBUG("CxmlUri_Hook: %s", uri_string.c_str());
+  /*
+   * NPXS40008 registers its Debug Settings icon as icon_setting.png.  Do not
+   * rewrite that asset on disk (or mutate the RNPS string table): the stock
+   * file must remain visible whenever OnionHEN is not loaded.  CxmlUri is the
+   * SettingsPlugin asset resolver, so redirect only this request while our
+   * hooks are ready.
+   */
+  if (uri_string.find("icon_setting") != std::string::npos) {
+#if SHELL_DEBUG == 1
+    LOG_DEBUG("CxmlUri_Hook: intercepted Settings icon -> "
+              "/system_ex/vsh_asset/onionhen.png");
+#endif
+    return mono_str_ui("/system_ex/vsh_asset/onionhen.png");
+  }
   if (uri_string.rfind("tex_game_icon") != std::string::npos) {
     //LOG_DEBUG("CxmlUri_Hook: Returning store icon");
     std::string icon = "/user/appmeta/" + g_ui.running_tid + "/icon0.png";

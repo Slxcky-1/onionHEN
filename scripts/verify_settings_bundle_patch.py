@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Verify Hermes and legacy Settings patches against representative dumps.
+"""Verify Settings label patches and runtime icon redirection.
 
 The runtime patch must preserve Hermes shared string storage: only the Debug
-Settings label and the HBC footer may change. The Settings icon is deployed at
-the stock icon_setting.png path by the bootstrapper. Legacy bundles use
-profiled, equal-length UTF-8 label and icon replacements.
+Settings label and the HBC footer may change. The stock Settings icon asset is
+never overwritten; ShellUI redirects its URI only while hooks are active.
+Legacy bundles use profiled, equal-length label replacements and keep the
+stock icon id untouched.
 """
 
 from __future__ import annotations
@@ -43,7 +44,6 @@ NEW_LABEL = ("\u2605OnionHEN Tools").encode("utf-16le")
 LEGACY_OLD_LABEL = ("\u2605Debug Settings").encode()
 LEGACY_NEW_LABEL = ("\u2605OnionHEN Tools").encode()
 LEGACY_OLD_ICON = b"icon_setting"
-LEGACY_NEW_ICON = b"onionh_sicon"
 COMMON_PROTECTED_STRINGS = (
     b"icon_setting",
     b"_settingInstance",
@@ -226,7 +226,7 @@ def match_legacy_profile(payload: bytes | bytearray) -> dict | None:
         icon = bytes(payload[icon_offset : icon_offset + len(LEGACY_OLD_ICON)])
         if label not in (LEGACY_OLD_LABEL, LEGACY_NEW_LABEL):
             continue
-        if icon not in (LEGACY_OLD_ICON, LEGACY_NEW_ICON):
+        if icon != LEGACY_OLD_ICON:
             continue
         return profile
     return None
@@ -244,16 +244,11 @@ def apply_legacy_settings(
         return None, payload_offset, 0, 0
 
     label_count = 0
-    icon_count = 0
     label_offset = payload_offset + profile["label_offset"]
-    icon_offset = payload_offset + profile["icon_offset"]
     if data[label_offset : label_offset + len(LEGACY_OLD_LABEL)] == LEGACY_OLD_LABEL:
         data[label_offset : label_offset + len(LEGACY_OLD_LABEL)] = LEGACY_NEW_LABEL
         label_count = 1
-    if data[icon_offset : icon_offset + len(LEGACY_OLD_ICON)] == LEGACY_OLD_ICON:
-        data[icon_offset : icon_offset + len(LEGACY_OLD_ICON)] = LEGACY_NEW_ICON
-        icon_count = 1
-    return profile, payload_offset, label_count, icon_count
+    return profile, payload_offset, label_count, 0
 
 
 def verify_legacy_version(version: str) -> list[str]:
@@ -284,9 +279,9 @@ def verify_legacy_version(version: str) -> list[str]:
     matched, patched_offset, label_count, icon_count = apply_legacy_settings(patched)
     if matched != profile or patched_offset != payload_offset:
         errors.append("container patch matched the wrong profile or payload offset")
-    if (label_count, icon_count) != (1, 1):
+    if (label_count, icon_count) != (1, 0):
         errors.append(
-            f"first patch counts label={label_count} icon={icon_count}, expected 1/1"
+            f"first patch counts label={label_count} icon={icon_count}, expected 1/0"
         )
     if len(patched) != len(original):
         errors.append("legacy patch changed container length")
@@ -294,7 +289,6 @@ def verify_legacy_version(version: str) -> list[str]:
     label_start = payload_offset + profile["label_offset"]
     icon_start = payload_offset + profile["icon_offset"]
     allowed = set(range(label_start, label_start + len(LEGACY_OLD_LABEL)))
-    allowed.update(range(icon_start, icon_start + len(LEGACY_OLD_ICON)))
     unexpected = [
         offset
         for offset, (old, new) in enumerate(zip(original, patched))
@@ -302,8 +296,10 @@ def verify_legacy_version(version: str) -> list[str]:
     ]
     if unexpected:
         errors.append(
-            f"legacy bytes changed outside label/icon at 0x{unexpected[0]:x}"
+            f"legacy bytes changed outside label at 0x{unexpected[0]:x}"
         )
+    if bytes(patched[icon_start : icon_start + len(LEGACY_OLD_ICON)]) != LEGACY_OLD_ICON:
+        errors.append("legacy patch changed stock icon id")
 
     patched_payload = bytes(patched[payload_offset:])
     remaining_old_labels = find_all(patched_payload, LEGACY_OLD_LABEL)
@@ -315,7 +311,7 @@ def verify_legacy_version(version: str) -> list[str]:
 
     direct = bytearray(original_payload)
     _, direct_offset, direct_labels, direct_icons = apply_legacy_settings(direct)
-    if direct_offset != 0 or (direct_labels, direct_icons) != (1, 1):
+    if direct_offset != 0 or (direct_labels, direct_icons) != (1, 0):
         errors.append("direct payload patch did not apply exactly once")
     if direct != patched[payload_offset:]:
         errors.append("direct and RNPS-container patch results differ")
@@ -338,13 +334,27 @@ def verify_legacy_version(version: str) -> list[str]:
 def verify_source_contract() -> list[str]:
     errors: list[str] = []
     bootstrapper = (REPO / "source/bootstrapper/source/main.cpp").read_text()
-    if (
-        'replace_all(buffer, size_ptr, buffer_capacity, "icon_setting"'
-        in SETTINGS_CPP
+    hook_functions = (REPO / "source/shellui/src/hook_functions.cpp").read_text()
+    if any(
+        needle in SETTINGS_CPP
+        for needle in ("kLegacyNewIcon", "onionh_sicon", "onionhen_sicon")
     ):
-        errors.append("Hermes icon_setting replacement is still present")
-    if "texture/icon_setting.png" not in bootstrapper:
-        errors.append("bootstrapper does not deploy the stock Settings icon path")
+        errors.append("Settings bundle still rewrites the icon id")
+    if any(
+        needle in bootstrapper
+        for needle in ("NPXS40008/assets", "texture/icon_setting.png")
+    ):
+        errors.append("bootstrapper still overwrites the stock Settings icon")
+    if (
+        "icon_setting" not in hook_functions
+        or "/system_ex/vsh_asset/onionhen.png" not in hook_functions
+    ):
+        errors.append("Settings icon URI interception is missing")
+    if any(
+        needle in hook_functions
+        for needle in ("onionh_sicon", "onionhen_sicon")
+    ):
+        errors.append("Settings icon hook still contains deprecated icon ids")
     return errors
 
 

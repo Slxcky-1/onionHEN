@@ -336,14 +336,10 @@ static void cleanup(void);
   static bool write_embedded_assets() {
     mkdir("/data/OnionHEN/", 0777);
     mkdir("/data/OnionHEN/assets/", 0777);
-    /*
-     * Always overwrite branding icons so asset updates take effect on re-HEN.
-     * (Previously gated on !if_exists — first deploy stuck forever.)
-     *
-     * NPXS40008 = RN Settings (debug settings list). Hermes string entries
-     * share backing storage, so keep the stock icon_setting id and replace
-     * its image on disk instead of rewriting the HBC string table.
-     */
+    /* Always refresh only OnionHEN-owned assets.  NPXS40008's stock
+     * icon_setting.png stays untouched; ShellUI redirects that URI while its
+     * hooks are active so Debug Settings returns to the Sony icon by itself
+     * when the plugin is not running. */
     const bool startup_icon_ready = write_blob_file(
         "/data/OnionHEN/onionhen.png", &sicon_start, sicon_size);
 
@@ -359,22 +355,6 @@ static void cleanup(void);
     write_blob_file("/system_ex/vsh_asset/onionhen.png", &sicon_start,
                     sicon_size);
 
-    static const char *const kSettingsSiconPaths[] = {
-        "/system_ex/rnps/apps/NPXS40008/assets/src/modules/categoriesList/assets/"
-        "texture/icon_setting.png",
-        "/system_ex/rnps/apps/NPXS40008/assets/src/modules/categoriesList/assets/"
-        "texture/onionhen_sicon.png",
-        "/system_ex/rnps/apps/NPXS40008/assets/src/modules/categoriesList/assets/"
-        "texture/onionh_sicon.png",
-        "/mnt/rnps/apps/NPXS40008/assets/src/modules/categoriesList/assets/"
-        "texture/icon_setting.png",
-        "/mnt/rnps/apps/NPXS40008/assets/src/modules/categoriesList/assets/"
-        "texture/onionhen_sicon.png",
-        "/mnt/rnps/apps/NPXS40008/assets/src/modules/categoriesList/assets/"
-        "texture/onionh_sicon.png",
-    };
-    for (const char *path : kSettingsSiconPaths)
-      write_blob_file(path, &sicon_start, sicon_size);
     return startup_icon_ready;
 }
 
