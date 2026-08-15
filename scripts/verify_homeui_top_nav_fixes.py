@@ -19,7 +19,9 @@ from __future__ import annotations
 import hashlib
 import re
 import struct
+import subprocess
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -29,43 +31,72 @@ HERMES = bytes([0xC6, 0x1F, 0xBC, 0x03, 0xC1, 0x03, 0x19, 0x1F])
 LEGACY = bytes([0xE5, 0xD1, 0x0B, 0xFB])
 PLAIN_JS_PREFIX = b"/*! For license information"
 
-# Decrypted dump list covered by the C++ HomeUI profiles.
+# Every firmware in Sony Dumps that contains a decrypted NPXS40002 dump.
 DUMP_ROOT = Path("/Users/chenpy/Projects/Person/ps5-kylin/Sony Dumps")
 DUMPS = [
-    DUMP_ROOT / version
-    for version in (
-        "4.03",
-        "4.50",
-        "4.51",
-        "5.1",
-        "6.0",
-        "6.02",
-        "7.4",
-        "7.61",
-        "8.0",
-        "8.4",
-        "fw8.6",
-        "fw8.20.02",
-        "9.00",
-        "fw9.4",
-        "fw9.6",
-        "10.01",
-        "fw10.0",
-        "10.2",
-        "10.4",
-        "10.6",
-        "11.0",
-        "11.2",
-        "11.4",
-        "11.6",
-        "12.0",
-        "12.02",
-        "12.2",
-        "12.4",
-        "12.6",
-        "12.7",
-    )
+    # (firmware label, directory/archive, archive member or None)
+    ("2.30", "2.3厚机.rar", "NPXS40002.bin"),
+    ("2.50", "2.5厚机.rar", "NPXS40002.bin"),
+    ("3.00", "3.0厚机.rar", "NPXS40002.bin"),
+    ("3.10", "03.10厚机.rar", "NPXS40002.bin"),
+    ("3.20", "03.20厚机.rar", "NPXS40002.bin"),
+    ("3.21", "03.21厚机.rar", "NPXS40002.bin"),
+    ("4.00", "4.0厚机.rar", "4.0厚机/NPXS40002.bin"),
+    ("4.02", "4.02厚机.rar", "4.02厚机/NPXS40002.bin"),
+    ("4.03", "4.03", None),
+    ("4.50", "4.50", None),
+    ("4.51", "4.51", None),
+    ("5.00", "5.00厚机", None),
+    ("5.02", "5.02厚机", None),
+    ("5.10", "5.1", None),
+    ("5.50", "5.50厚机", None),
+    ("6.00", "6.0", None),
+    ("6.02", "6.02", None),
+    ("6.50", "6.50厚机", None),
+    ("7.00", "7.00厚机", None),
+    ("7.01", "7.01厚机", None),
+    ("7.01.01", "7.01.01厚机", None),
+    ("7.20", "7.20厚机", None),
+    ("7.40", "7.4", None),
+    ("7.60", "7.60厚机", None),
+    ("7.61", "7.61", None),
+    ("8.00", "8.0", None),
+    ("8.20", "8.2厚机", None),
+    ("8.20.02", "fw8.20.02", None),
+    ("8.40", "8.4", None),
+    ("8.60", "fw8.6", None),
+    ("9.00", "9.00", None),
+    ("9.40", "fw9.4", None),
+    ("9.60", "fw9.6", None),
+    ("10.00", "fw10.0", None),
+    ("10.01", "10.01", None),
+    ("10.20", "10.2", None),
+    ("10.40", "10.4", None),
+    ("10.60", "10.6", None),
+    ("11.00", "11.0", None),
+    ("11.20", "11.2", None),
+    ("11.40", "11.4", None),
+    ("11.60", "11.6", None),
+    ("12.00", "12.0", None),
+    ("12.02", "12.02", None),
+    ("12.20", "12.2", None),
+    ("12.40", "12.4", None),
+    ("12.60", "12.6", None),
+    ("12.70", "12.7", None),
 ]
+
+
+@lru_cache(maxsize=None)
+def read_dump_app(source: str, archive_member: str | None, app_id: str) -> bytes:
+    path = DUMP_ROOT / source
+    if archive_member is None:
+        return (path / f"{app_id}.bin").read_bytes()
+    result = subprocess.run(
+        ["unar", "-q", "-o", "-", str(path), archive_member],
+        check=True,
+        stdout=subprocess.PIPE,
+    )
+    return result.stdout
 
 
 def extract_array(name: str) -> bytes:
@@ -75,21 +106,34 @@ def extract_array(name: str) -> bytes:
         CPP,
         re.S,
     )
-    if not m:
+    if m:
+        body = m.group(1)
+        hx = re.findall(r"0x([0-9a-fA-F]{2})", body)
+        if hx:
+            return bytes(int(x, 16) for x in hx)
+        chars = re.findall(r"'((?:\\.|[^'\\]))'", body)
+        out = bytearray()
+        escapes = {"n": 10, "r": 13, "t": 9, "0": 0, "\\": 92, "'": 39}
+        for c in chars:
+            if c.startswith("\\") and len(c) == 2:
+                out.append(escapes.get(c[1], ord(c[1])))
+            else:
+                out.append(ord(c))
+        return bytes(out)
+
+    literal = re.search(
+        rf"static const unsigned char {re.escape(name)}\[\]\s*=\s*"
+        r"((?:\"(?:\\.|[^\"\\])*\"\s*)+);",
+        CPP,
+        re.S,
+    )
+    if not literal:
         raise SystemExit(f"missing C++ array {name}")
-    body = m.group(1)
-    hx = re.findall(r"0x([0-9a-fA-F]{2})", body)
-    if hx:
-        return bytes(int(x, 16) for x in hx)
-    chars = re.findall(r"'((?:\\.|[^'\\]))'", body)
-    out = bytearray()
-    escapes = {"n": 10, "r": 13, "t": 9, "0": 0, "\\": 92, "'": 39}
-    for c in chars:
-        if c.startswith("\\") and len(c) == 2:
-            out.append(escapes.get(c[1], ord(c[1])))
-        else:
-            out.append(ord(c))
-    return bytes(out)
+    chunks = re.findall(r'\"((?:\\.|[^\"\\])*)\"', literal.group(1))
+    return b"".join(
+        bytes(chunk, "utf-8").decode("unicode_escape").encode("latin1")
+        for chunk in chunks
+    )
 
 
 def extract_c_string(name: str) -> bytes:
@@ -172,7 +216,7 @@ def load_source_strategies() -> dict[str, dict]:
     strategies = {}
     pattern = re.compile(
         r"static const SourcePatchStrategy (\w+) = \{\s*"
-        r"(\w+),\s*(\w+),\s*sizeof\(\w+\),\s*"
+        r"(\w+),\s*(\w+),\s*sizeof\(\w+\)(?:\s*-\s*1)?,\s*"
         r"(\w+),\s*(\w+),\s*sizeof\(\w+\) - 1,\s*"
         r"sizeof\(\w+\) - 1,\s*\};",
         re.S,
@@ -221,6 +265,7 @@ def load_source_profiles(strategies: dict[str, dict]) -> list[dict]:
                 "kind": re.search(
                     r"/\* kind \*/ SourceBundleKind::(\w+)", entry
                 ).group(1),
+                "strategy_name": strategy_name,
                 "payload_size": int(
                     re.search(
                         r"/\* payload_size \*/ (0x[0-9a-fA-F]+)", entry
@@ -268,6 +313,8 @@ PADDED_LINK = extract_array("kLegacyPaddedTopNavLinkUri")
 
 LEGACY_OLD_ORDER = extract_array("kLegacyOldIconOrder")
 LEGACY_NEW_ORDER = extract_array("kLegacyNewIconOrder")
+LEGACY2X_OLD_ORDER = extract_array("kLegacy2xOldIconOrder")
+LEGACY2X_NEW_ORDER = extract_array("kLegacy2xNewIconOrder")
 SOURCE_STRATEGIES = load_source_strategies()
 SOURCE_PROFILES = load_source_profiles(SOURCE_STRATEGIES)
 LEGACY_PROFILES = tuple(
@@ -287,7 +334,7 @@ assert NEW_ICON_URI == b"/system_ex/vsh_asset/onionhen.png", NEW_ICON_URI
 assert NEW_LINK == b"OnionHEN?NavUI=1", NEW_LINK
 assert len(LEGACY_OLD_ORDER) == len(LEGACY_NEW_ORDER) == 37
 for _source_profile in SOURCE_PROFILES:
-    assert len(_source_profile["old_alias"]) == len(_source_profile["new_alias"]) == 7
+    assert len(_source_profile["old_alias"]) == len(_source_profile["new_alias"])
     assert (
         len(_source_profile["old_source"])
         == len(_source_profile["new_source"])
@@ -296,6 +343,12 @@ for _source_profile in SOURCE_PROFILES:
 assert len(IMAGE_SOURCE_BUTTON_BODY) == 77
 assert len(STOCK_APP_ERROR_ON_PRESS_BODY) == 76
 assert len(IMAGE_SOURCE_PROPS_HELPER_BODY) == 76
+
+
+def source_icon_orders(profile: dict) -> tuple[bytes, bytes]:
+    if profile["strategy_name"] == "kLegacy2xSourceStrategy":
+        return LEGACY2X_OLD_ORDER, LEGACY2X_NEW_ORDER
+    return LEGACY_OLD_ORDER, LEGACY_NEW_ORDER
 
 
 def locate_hbc(data: bytes) -> bytearray | None:
@@ -632,11 +685,17 @@ def match_legacy_profile(bundle: bytes) -> dict | None:
     for p in LEGACY_PROFILES:
         if len(bundle) != p["payload_size"]:
             continue
-        markers = (
+        markers = [
             (p["title_id_offset"], b"NPXS40002"),
-            (p["app_error_event_trigger_offset"], b"ApplicationErrorEventTrigger"),
             (p["navigate_to_home_offset"], b"pshomeui:navigateToHome"),
-        )
+        ]
+        if p["app_error_event_trigger_offset"]:
+            markers.append(
+                (
+                    p["app_error_event_trigger_offset"],
+                    b"ApplicationErrorEventTrigger",
+                )
+            )
         if all(
             bundle[offset : offset + len(marker)] == marker
             for offset, marker in markers
@@ -651,10 +710,11 @@ def precheck_legacy(bundle: bytes, p: dict) -> list[str]:
     alias_offset = p["export_alias_offset"]
     source_offset = p["app_error_source_offset"]
     source_size = p["app_error_source_size"]
-    order = bytes(bundle[order_offset : order_offset + len(LEGACY_OLD_ORDER)])
+    old_order, new_order = source_icon_orders(p)
+    order = bytes(bundle[order_offset : order_offset + len(old_order)])
     alias = bytes(bundle[alias_offset : alias_offset + len(p["old_alias"])])
     source = bytes(bundle[source_offset : source_offset + source_size])
-    if order not in (LEGACY_OLD_ORDER, LEGACY_NEW_ORDER):
+    if order not in (old_order, new_order):
         errs.append(f"pre: legacy order unexpected ({order!r})")
     if alias not in (p["old_alias"], p["new_alias"]):
         errs.append(f"pre: legacy alias unexpected ({alias!r})")
@@ -666,12 +726,13 @@ def precheck_legacy(bundle: bytes, p: dict) -> list[str]:
 def apply_legacy(bundle: bytearray, p: dict) -> list[str]:
     notes: list[str] = []
     ok = True
+    old_order, new_order = source_icon_orders(p)
     ok &= patch_at(
         bundle,
         "legacy_order",
         p["icon_order_offset"],
-        [LEGACY_OLD_ORDER, LEGACY_NEW_ORDER],
-        LEGACY_NEW_ORDER,
+        [old_order, new_order],
+        new_order,
         notes,
     )
     ok &= patch_at(
@@ -704,11 +765,12 @@ def verify_legacy(
     source_offset = p["app_error_source_offset"]
     source_size = p["app_error_source_size"]
     source_end = source_offset + source_size
-    order = bytes(bundle[order_offset : order_offset + len(LEGACY_NEW_ORDER)])
+    _, new_order = source_icon_orders(p)
+    order = bytes(bundle[order_offset : order_offset + len(new_order)])
     alias = bytes(bundle[alias_offset : alias_offset + len(p["new_alias"])])
     source = bytes(bundle[source_offset:source_end])
-    if order != LEGACY_NEW_ORDER:
-        errs.append(f"{tag}: legacy order not Search|App|Settings|Profile")
+    if order != new_order:
+        errs.append(f"{tag}: legacy target icon order mismatch")
     if alias != p["new_alias"]:
         errs.append(f"{tag}: legacy App alias missing ({alias!r})")
     if source != p["new_source"]:
@@ -830,18 +892,13 @@ def verify_plain_js(
 def run_pass(pass_id: int):
     print(f"\n========== PASS {pass_id} ==========")
     rows = []
-    for d in DUMPS:
-        name = d.name
-        if not d.is_dir():
-            print(f"[MISS] {name}")
-            rows.append((name, False, ["missing dir"]))
+    for name, source, archive_member in DUMPS:
+        try:
+            raw = read_dump_app(source, archive_member, "NPXS40002")
+        except (OSError, subprocess.CalledProcessError) as exc:
+            print(f"[MISS] {name}: {exc}")
+            rows.append((name, False, [str(exc)]))
             continue
-        path = d / "NPXS40002.bin"
-        if not path.exists():
-            print(f"[MISS] {name}: no NPXS40002.bin")
-            rows.append((name, False, ["no NPXS40002.bin"]))
-            continue
-        raw = path.read_bytes()
         legacy = locate_legacy(raw)
         if legacy is not None:
             p = match_legacy_profile(legacy)
@@ -865,7 +922,8 @@ def run_pass(pass_id: int):
             allowed = set(
                 range(
                     p["icon_order_offset"],
-                    p["icon_order_offset"] + len(LEGACY_NEW_ORDER),
+                    p["icon_order_offset"]
+                    + len(source_icon_orders(p)[1]),
                 )
             )
             allowed.update(
@@ -906,10 +964,12 @@ def run_pass(pass_id: int):
             ok = not errs
             print(f"[{'OK' if ok else 'FAIL'}] {name:12} → {p['name']}")
             if ok:
-                print(
-                    "       Legacy OK: order=Search|App|Settings|Profile; "
-                    "App=useInteractivePress OnionHEN"
+                order_text = (
+                    "OnionHEN|Search|Settings|Profile"
+                    if p["strategy_name"] == "kLegacy2xSourceStrategy"
+                    else "Search|App|Settings|Profile"
                 )
+                print(f"       Legacy OK: order={order_text}; OnionHEN=useInteractivePress")
             else:
                 for error in errs:
                     print(f"       {error}")
