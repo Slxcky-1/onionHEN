@@ -791,7 +791,7 @@ void append_toolbox_about_group(ps5ui::Group& g) {
                        "尼克库尔曼 · 云 · 啊烦",
                        ps5ui::Style::Center)
                 .label("id_about_tester_4",
-                       "小小蔡",
+                       "小小蔡 · B站谢锡榆 · 荆枫",
                        ps5ui::Style::Center)
                 .label("id_about_more", toolbox_i18n::tr("about.more"),
                        ps5ui::Style::Center);
