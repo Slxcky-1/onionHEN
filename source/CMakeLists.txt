@@ -55,9 +55,18 @@ include_directories(SYSTEM "${PS5_PAYLOAD_SDK}/include")
 link_directories("${ONIONHEN_OUT_LIB}" "${ONIONHEN_PS5_STUB_DIR}")
 
 # Temporary beta trial gate (build-time seal + local anti-rollback state).
-# Disable with -DONION_ENABLE_BETA_TRIAL=OFF; remove the whole module later.
+# Debug (default): ON. Release never ships the gate — formal packages must
+# not expire. Override Debug with -DONION_ENABLE_BETA_TRIAL=OFF.
+# Remove the whole module later.
 option(ONION_ENABLE_BETA_TRIAL
-	"Build temporary beta trial time gate (14-day build campaign)" ON)
+	"Build temporary beta trial time gate (14-day campaign; ignored for Release)" ON)
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+	if(ONION_ENABLE_BETA_TRIAL)
+		message(STATUS "Release build: disabling beta trial gate")
+	endif()
+	set(ONION_ENABLE_BETA_TRIAL OFF)
+endif()
+message(STATUS "Beta trial gate: ${ONION_ENABLE_BETA_TRIAL}")
 
 # Optional Ed25519 self-integrity for signed payload ELFs (see libonion_integrity/).
 # When ON, also pass ONION_ELF_SIGNING_PUBLIC_KEY_HEX and post-link sign with

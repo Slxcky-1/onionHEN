@@ -5,8 +5,8 @@
  * Self-contained under source/libonion_trial/ — remove later without
  * touching core product logic.
  *
- * Enable:  -DONION_ENABLE_BETA_TRIAL=ON  (default while in beta)
- * Disable: -DONION_ENABLE_BETA_TRIAL=OFF then delete this tree.
+ * Enable:  -DONION_ENABLE_BETA_TRIAL=ON  (Debug default)
+ * Disable: Release builds, or -DONION_ENABLE_BETA_TRIAL=OFF, then delete this tree.
  */
 
 #pragma once

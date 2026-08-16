@@ -10,7 +10,7 @@
 | 战役窗口 | 从 **构建配置时刻** 起 **14 天**（`not_before` … `not_after`） |
 | 防外传 | 外传包与正版 **同寿**，到期后启动被拒绝 |
 | 防改时间 | 本机密封 `trial.state` 记录 `last_seen`，检测时钟回拨 |
-| 正式版 | `-DONION_ENABLE_BETA_TRIAL=OFF` 不链接本库 |
+| 正式版 | `CMAKE_BUILD_TYPE=Release`（或 `-DONION_ENABLE_BETA_TRIAL=OFF`）不链接本库 |
 
 离线客户端无法绝对防破解（可 patch gate）；目标是普通用户改时间续命无效、过期包失去价值。
 
@@ -35,9 +35,11 @@ export ONION_BETA_NOT_BEFORE=$(date -u +%s)
 export ONION_BETA_NOT_AFTER=$(( ONION_BETA_NOT_BEFORE + 14*86400 ))
 export ONION_BETA_STATE_KEY_HEX=$(openssl rand -hex 32)
 
-cmake ... -DONION_ENABLE_BETA_TRIAL=ON
-# 关闭：
+# Debug 默认开启；Release 自动关闭（不链接本库）
+cmake ... -DCMAKE_BUILD_TYPE=Debug -DONION_ENABLE_BETA_TRIAL=ON
+# 关闭（Debug 手动关，或直接打 Release）：
 cmake ... -DONION_ENABLE_BETA_TRIAL=OFF
+cmake ... -DCMAKE_BUILD_TYPE=Release
 ```
 
 ### 2. 本机 `trial.state`（加密）
@@ -89,7 +91,7 @@ daemon 启动 → LoadSettings → onion_trial_gate()
 
 ## 后续移除
 
-1. `-DONION_ENABLE_BETA_TRIAL=OFF` 或删 root option  
+1. 打 `Release`、传 `-DONION_ENABLE_BETA_TRIAL=OFF`，或删 root option  
 2. 删除 `source/libonion_trial/`  
 3. 还原 `daemon/CMakeLists.txt` 与 `daemon/source/main.cpp` 中的 `#if` 块  
 4. （可选）清理设备 `/data/OnionHEN/trial/`  

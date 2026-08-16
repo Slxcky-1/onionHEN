@@ -1,6 +1,6 @@
 ###################################################################################################
 # Temporary beta trial gate (build-time seal + local anti-rollback state)
-# (self-contained; remove with -DONION_ENABLE_BETA_TRIAL=OFF)
+# (self-contained; Release builds skip this tree, or -DONION_ENABLE_BETA_TRIAL=OFF)
 #
 # Optional at configure/build time (auto-filled when omitted):
 #   ONION_BETA_NOT_BEFORE      Unix seconds (default: configure time)

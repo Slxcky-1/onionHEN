@@ -388,12 +388,23 @@ configure() {
   local -a extra_cmake=()
   # Temporary beta trial gate (libonion_trial/README.md).
   # Seal params are optional: CMake auto-fills not_before/after (14d), build_id, state key.
-  # Accept legacy ONION_ENABLE_BETA_ACTIVATION as an alias for ONION_ENABLE_BETA_TRIAL.
-  if [[ -n "${ONION_ENABLE_BETA_TRIAL:-}" ]]; then
+  # Release never carries the time gate. Debug defaults ON; override via
+  # ONION_ENABLE_BETA_TRIAL. Accept legacy ONION_ENABLE_BETA_ACTIVATION.
+  if [[ "${BUILD_TYPE}" == "Release" ]]; then
+    extra_cmake+=("-DONION_ENABLE_BETA_TRIAL=OFF")
+    if [[ -n "${ONION_ENABLE_BETA_TRIAL:-}" && "${ONION_ENABLE_BETA_TRIAL}" != "OFF" ]]; then
+      warn "Release build ignores ONION_ENABLE_BETA_TRIAL=${ONION_ENABLE_BETA_TRIAL}"
+    fi
+    log "Beta trial gate OFF (Release)"
+  elif [[ -n "${ONION_ENABLE_BETA_TRIAL:-}" ]]; then
     extra_cmake+=("-DONION_ENABLE_BETA_TRIAL=${ONION_ENABLE_BETA_TRIAL}")
+    log "Beta trial gate ${ONION_ENABLE_BETA_TRIAL}"
   elif [[ -n "${ONION_ENABLE_BETA_ACTIVATION:-}" ]]; then
     warn "ONION_ENABLE_BETA_ACTIVATION is deprecated; use ONION_ENABLE_BETA_TRIAL"
     extra_cmake+=("-DONION_ENABLE_BETA_TRIAL=${ONION_ENABLE_BETA_ACTIVATION}")
+    log "Beta trial gate ${ONION_ENABLE_BETA_ACTIVATION}"
+  else
+    log "Beta trial gate ON (Debug)"
   fi
   for _beta_var in ONION_BETA_NOT_BEFORE ONION_BETA_NOT_AFTER ONION_BETA_BUILD_ID \
                    ONION_BETA_STATE_KEY_HEX ONION_BETA_SKEW_SEC; do
