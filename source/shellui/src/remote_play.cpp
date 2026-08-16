@@ -16,14 +16,33 @@ along with this program; see the file COPYING. If not, see
 
 #include "remote_play.h"
 #include "ipc.hpp"
+#include "remote_play_notifications.hpp"
+#include "remote_play_page.hpp"
+#include "remote_play_pairing.hpp"
 #include <onion/account_id_b64.h>
+#include <atomic>
+#include <chrono>
+#include <mutex>
+#include <pthread.h>
 #include <unistd.h>
 
-bool IsRunningConfirmRegistLoop = false;
-pthread_t ConfirmRegistLoop_Thread;
-
 namespace {
+std::atomic_bool g_stop_requested{false};
+std::atomic_bool g_session_active{false};
+std::atomic<uint64_t> g_pairing_deadline_ms{0};
+std::mutex g_session_command_mutex;
+std::mutex g_confirm_thread_mutex;
+pthread_t g_confirm_thread{};
 bool g_confirm_thread_started = false;
+
+void *confirm_regist_loop(void *);
+
+uint64_t monotonic_milliseconds() {
+  return static_cast<uint64_t>(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now().time_since_epoch())
+          .count());
+}
 
 /**
  * Invalidate active PIN / leave device-registration mode.
@@ -37,14 +56,46 @@ void invalidate_pin_registration(const char *why) {
     return;
   }
   const int err = sceRemoteplayNotifyPinCodeError(1);
-  LOG_ERROR("[remote_play] NotifyPinCodeError(1) => 0x%x (%s)", err, why);
+  if (err != 0)
+    LOG_WARN("[remote_play] NotifyPinCodeError(1) => 0x%x (%s)", err, why);
+  else
+    LOG_DEBUG("[remote_play] NotifyPinCodeError(1) => 0x%x (%s)", err, why);
+}
+
+void stop_confirm_thread() {
+  pthread_t thread{};
+  bool should_join = false;
+
+  g_stop_requested.store(true, std::memory_order_release);
+  {
+    std::lock_guard<std::mutex> lock(g_confirm_thread_mutex);
+    should_join = g_confirm_thread_started;
+    thread = g_confirm_thread;
+  }
+
+  if (should_join && !pthread_equal(pthread_self(), thread)) {
+    void *result = nullptr;
+    (void)pthread_join(thread, &result);
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(g_confirm_thread_mutex);
+    if (should_join)
+      g_confirm_thread_started = false;
+  }
+}
+
+void stop_session() {
+  g_stop_requested.store(true, std::memory_order_release);
+  const bool had_session =
+      g_session_active.exchange(false, std::memory_order_acq_rel);
+  if (had_session)
+    invalidate_pin_registration("stop_loop");
+  stop_confirm_thread();
+  g_pairing_deadline_ms.store(0, std::memory_order_release);
 }
 
 } // namespace
-
-void Base64Encode(uint64_t input, char *output) {
-  onion_account_id_base64_encode(input, output);
-}
 
 bool InitRemotePlay() {
   int rp_enable = 0, err = 0;
@@ -80,10 +131,11 @@ bool InitRemotePlay() {
 }
 
 bool GeneratePINCode(uint32_t& pin) {
+  std::lock_guard<std::mutex> command_lock(g_session_command_mutex);
   pin = 0;
 
-  /* Join prior confirm thread; StopConfirmRegistLoop also invalidates PIN. */
-  StopConfirmRegistLoop();
+  /* Replace any previous session before creating a new registration. */
+  stop_session();
 
   if (!sceRemoteplayGeneratePinCode) {
     LOG_DEBUG("[remote_play] GeneratePinCode unresolved");
@@ -96,42 +148,33 @@ bool GeneratePINCode(uint32_t& pin) {
     return false;
   }
 
-  const int thread_err =
-      pthread_create(&ConfirmRegistLoop_Thread, nullptr, ConfirmRegistLoop,
-                     nullptr);
+  const uint64_t deadline =
+      monotonic_milliseconds() + remote_play::kPairingTimeoutMilliseconds;
+  g_pairing_deadline_ms.store(deadline, std::memory_order_release);
+  g_stop_requested.store(false, std::memory_order_release);
+  g_session_active.store(true, std::memory_order_release);
+  int thread_err = 0;
+  {
+    std::lock_guard<std::mutex> lock(g_confirm_thread_mutex);
+    thread_err =
+        pthread_create(&g_confirm_thread, nullptr, confirm_regist_loop, nullptr);
+    g_confirm_thread_started = (thread_err == 0);
+  }
   if (thread_err != 0) {
     LOG_ERROR("[remote_play] confirm thread create failed => 0x%x",
                 thread_err);
     invalidate_pin_registration("thread_create_failed");
+    g_session_active.store(false, std::memory_order_release);
+    g_pairing_deadline_ms.store(0, std::memory_order_release);
     return false;
   }
-  g_confirm_thread_started = true;
 
   return true;
 }
 
 void StopConfirmRegistLoop() {
-  const bool was_running = IsRunningConfirmRegistLoop;
-  const bool was_started = g_confirm_thread_started;
-
-  if (was_running || was_started) {
-    IsRunningConfirmRegistLoop = false;
-    if (was_started) {
-      void *retval = nullptr;
-      pthread_join(ConfirmRegistLoop_Thread, &retval);
-      g_confirm_thread_started = false;
-    }
-    LOG_DEBUG("[remote_play] confirm loop stopped (was_running=%d)",
-                was_running ? 1 : 0);
-  }
-
-  /*
-   * Always leave registration mode when the toolbox RP page is torn down or a
-   * new PIN is about to be generated. Stopping the poll thread alone is not
-   * enough — libSceRemoteplay keeps the PIN session until NotifyPinCodeError.
-   */
-  invalidate_pin_registration(was_running || was_started ? "stop_loop"
-                                                         : "stop_idle");
+  std::lock_guard<std::mutex> command_lock(g_session_command_mutex);
+  stop_session();
 }
 
 bool GetEncodedAccountID(char *buff, uint64_t &accountid,
@@ -161,28 +204,51 @@ bool GetEncodedAccountID(char *buff, uint64_t &accountid,
   if (accountid == 0) {
     return false;
   }
-  Base64Encode(accountid, buff);
+  onion_account_id_base64_encode(accountid, buff);
   return buff[0] != '\0';
 }
 
-void *ConfirmRegistLoop(void *) {
-  IsRunningConfirmRegistLoop = true;
-  int pair_stat = -1, pair_err = -1, err = -1;
+namespace {
+
+void *confirm_regist_loop(void *) {
+  const uint64_t deadline =
+      g_pairing_deadline_ms.load(std::memory_order_acquire);
+  int pair_stat = -1, pair_err = -1;
+  uint32_t last_notification_mark = 0;
+  const char *terminal_reason = nullptr;
 
   LOG_DEBUG("[remote_play] ConfirmRegistLoop started");
 
-  while (IsRunningConfirmRegistLoop) {
-    if (!sceRemoteplayConfirmDeviceRegist) {
-      LOG_DEBUG("[remote_play] ConfirmDeviceRegist unresolved");
+  while (!g_stop_requested.load(std::memory_order_acquire)) {
+    const uint32_t remaining_seconds = remote_play::seconds_remaining(
+        deadline, monotonic_milliseconds());
+    if (remaining_seconds == 0) {
+      NotifyRemotePlayPairingTimedOut();
+      RequestRemotePlayTimeoutBack();
+      terminal_reason = "timeout";
       break;
     }
-    err = sceRemoteplayConfirmDeviceRegist(&pair_stat, &pair_err);
+
+    const uint32_t notification_mark =
+        remote_play::countdown_notification_mark(remaining_seconds);
+    if (notification_mark != last_notification_mark) {
+      NotifyRemotePlayPairingCountdown(notification_mark);
+      last_notification_mark = notification_mark;
+    }
+
+    if (!sceRemoteplayConfirmDeviceRegist) {
+      LOG_DEBUG("[remote_play] ConfirmDeviceRegist unresolved");
+      terminal_reason = "symbol_unresolved";
+      break;
+    }
+    const int err = sceRemoteplayConfirmDeviceRegist(&pair_stat, &pair_err);
     if (err != 0) {
       LOG_DEBUG("[remote_play] ConfirmDeviceRegist 0x%x pair_stat=%d "
                   "pair_err=%d",
                   err, pair_stat, pair_err);
       notify("sceRemoteplayConfirmDeviceRegist 0x%X pair_stat: %d pair_err: %d",
              err, pair_stat, pair_err);
+      terminal_reason = "confirmation_error";
       break;
     }
     if (pair_stat == 2) {
@@ -191,15 +257,22 @@ void *ConfirmRegistLoop(void *) {
        * open a Remote Play session immediately without waiting for page exit.
        */
       LOG_DEBUG("[remote_play] pair_stat=2 paired — ending PIN session");
-      notify("Remote Play paired! For better stability a reboot is recommended");
-      invalidate_pin_registration("pair_success");
+      NotifyRemotePlayPaired();
+      terminal_reason = "pair_success";
       break;
     }
     /* Avoid busy-spinning sceRemoteplayConfirmDeviceRegist. */
     usleep(100 * 1000);
   }
 
-  IsRunningConfirmRegistLoop = false;
-  LOG_DEBUG("[remote_play] ConfirmRegistLoop exit");
+  if (terminal_reason != nullptr &&
+      g_session_active.exchange(false, std::memory_order_acq_rel)) {
+    invalidate_pin_registration(terminal_reason);
+    g_pairing_deadline_ms.store(0, std::memory_order_release);
+  }
+  LOG_DEBUG("[remote_play] ConfirmRegistLoop exit reason=%s",
+            terminal_reason != nullptr ? terminal_reason : "requested");
   return nullptr;
 }
+
+} // namespace

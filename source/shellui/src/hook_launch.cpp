@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 
 #include "shellui_state.hpp"
+#include "remote_play_page.hpp"
 #include <cstring>
 
 void save_appid(int value, const char* filename) {
@@ -207,6 +208,7 @@ void Terminate() {
     }
 
     LOG_DEBUG("******************************\nShellUI is exiting\n*****************************");
+    EndRemotePlayPageSession("shellui_terminate");
     LOG_DEBUG("Sending Action");
     IPC_Client& ipc = IPC_Client::getInstance(true);
     ipc.SendRestModeAction();

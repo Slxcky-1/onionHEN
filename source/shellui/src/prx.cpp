@@ -24,6 +24,7 @@ along with this program; see the file COPYING. If not, see
 #include "ipc.hpp"
 #include "proc.h"
 #include "ps5/kernel.h"
+#include "remote_play_page.hpp"
 #include "ucred.h"
 #include "webserver.hpp"
 
@@ -551,16 +552,6 @@ bool install_hooks(const ShellImages& img) {
       {"OptionMenu.createJson", img.rn_shell, "ReactNative.Modules.ShellUI.HomeUI",
        "OptionMenu", "createJson", 8, reinterpret_cast<void*>(&createJson_hook),
        reinterpret_cast<void**>(&createJson), true},
-      /*
-       * Re-enabled for device test: scene leave should end Remote Play PIN
-       * registration (StopConfirmRegistLoop + NotifyPinCodeError). Historical
-       * crash was old trampoline RIP-rel; libonion_detour relocates that now.
-       * Still non-required so a missing method does not abort hook install.
-       */
-      {"LayerManager.UpdateImposeStatusFlag", img.app_system,
-       "Sce.Vsh.ShellUI.AppSystem", "LayerManager", "UpdateImposeStatusFlag", 2,
-       reinterpret_cast<void*>(&UpdateImposeStatusFlag_hook),
-       reinterpret_cast<void**>(&UpdateImposeStatusFlag_Orig), false},
       /* Optional: Core.Input may still be loading while we install; missing is non-fatal. */
       {"GamePad.GetData", img.core, "Sce.PlayStation.Core.Input", "GamePad", "GetData",
        1, reinterpret_cast<void*>(&GetData_hook), reinterpret_cast<void**>(&GetData),
@@ -574,6 +565,10 @@ bool install_hooks(const ShellImages& img) {
       {"SettingPage.OnCreating", img.legacy, UI3_dec.c_str(), "SettingPage",
        "OnCreating", 1, reinterpret_cast<void*>(&OnPreCreate_Hook),
        reinterpret_cast<void**>(&oOnPreCreate), false},
+      {"SettingPage.OnDeactivating", img.legacy, UI3_dec.c_str(),
+       "SettingPage", "OnDeactivating", 1,
+       reinterpret_cast<void*>(&OnDeactivating_Hook),
+       reinterpret_cast<void**>(&oOnDeactivating), false},
       {"SettingsPlugin.GetString", img.legacy, UI3_dec.c_str(), "SettingsPlugin",
        "GetString", 1, reinterpret_cast<void*>(&GetString_Hook),
        reinterpret_cast<void**>(&oGetString), true},
@@ -589,6 +584,9 @@ bool install_hooks(const ShellImages& img) {
     if (!install_mono_hook(h))
       return false;
   }
+
+  if (!InitializeRemotePlayPageLifecycle(img.legacy, img.pui))
+    LOG_WARN("[remote_play] visibility polling is unavailable");
 
   // --- Optional diagnostics (log only) ---
   (void)install_optional_diag(

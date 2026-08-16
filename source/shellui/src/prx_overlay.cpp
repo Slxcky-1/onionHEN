@@ -6,6 +6,7 @@
 #include "ipc.hpp"
 #include "external_symbols.hpp"
 #include "overlay_text_metrics.hpp"
+#include "remote_play_page.hpp"
 #include <onion/net.h>
 #include <onion/settings.hpp>
 #include <cstdio>
@@ -492,6 +493,7 @@ void OnRender_Hook(MonoObject* instance) {
   /* UI thread: apply deferred home reloads after cold inject. */
   shellui_poll_display_tids_home_reload();
   shellui_poll_homeui_top_nav_reload();
+  PollRemotePlayPageLifecycle();
 
   static bool inited = false;
   static unsigned int idle_thread_id[kCpuCores] = {};

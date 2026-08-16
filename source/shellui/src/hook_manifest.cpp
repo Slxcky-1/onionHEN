@@ -1,11 +1,11 @@
 /* Copyright (C) 2025 OnionHEN / LightningMods — P0 split. */
 
 #include "hooked_funcs.hpp"
-#include "remote_play.h"
 #include "ipc.hpp"
 #include "external_symbols.hpp"
 #include "shellui_state.hpp"
 #include "onpress_policy.hpp"
+#include "remote_play_page.hpp"
 #include "toolbox_route.hpp"
 #include <onion/platform.h>
 #include <string>
@@ -58,20 +58,10 @@ uint64_t GetManifestResourceStream_Hook(uint64_t inst, MonoString *FileName) {
       .cheats_shortcut_not_open = g_ui.cheats_shortcut_activated_not_open,
   });
 
-  /*
-   * Leaving the Remote Play toolbox page must end PIN registration (thread +
-   * sceRemoteplayNotifyPinCodeError). UpdateImposeStatusFlag is disabled, so
-   * this resource-stream transition is the primary leave signal.
-  */
-  const bool was_remote_play =
-      g_ui.is_active_page(toolbox::Page::RemotePlay);
+  if (route.page == toolbox::Page::RemotePlay)
+    BeginRemotePlayPageLoad(g_ui.active_page);
   g_ui.set_active_page(toolbox::active_page_after_resource(
       g_ui.active_page, route.page, resourceName));
-  if (was_remote_play &&
-      !g_ui.is_active_page(toolbox::Page::RemotePlay)) {
-    LOG_DEBUG("[remote_play] left toolbox page — end registration");
-    StopConfirmRegistLoop();
-  }
 
   if (route.page == toolbox::Page::RedirectOgDebug) {
     MonoString *debug_resource =

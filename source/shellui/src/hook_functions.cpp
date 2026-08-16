@@ -18,7 +18,6 @@ along with this program; see the file COPYING. If not, see
 #include "homeui_top_nav_patch.hpp"
 #include "settings_bundle_patch.hpp"
 #include <onion/platform.h>
-#include "remote_play.h"
 #include "detour.h"
 #include "ipc.hpp"
 #include <climits>
@@ -43,12 +42,12 @@ extern bool is_6xx, is_3xx;
 /* ================================= ORIG HOOKED MONO FUNCS ============================================= */
 int (*oOnPress)(MonoObject* Instance, MonoObject* element, MonoObject* e) = nullptr;
 int (*oOnPreCreate)(MonoObject* Instance, MonoObject* element) = nullptr;
+void (*oOnDeactivating)(MonoObject* Instance, int transition) = nullptr;
 MonoString* (*CxmlUri)(MonoObject* obj, MonoString* uri) = nullptr;
 uint64_t(*GetManifestResourceStream_Original)(uint64_t inst, MonoString* FileName) = nullptr;
 uint64_t(*GetManifestResourceInternal_Orig)(MonoObject* instance, MonoString* name, int* size, MonoObject& module) = nullptr;
 void (*DebugSettings_GetModel_Orig)(MonoObject* instance, MonoObject* param, MonoObject* promise) = nullptr;
 void (*ReactNavigatorManager_UpdateNavigationState_Orig)(MonoObject* instance, MonoObject* state) = nullptr;
-void (*UpdateImposeStatusFlag_Orig)(MonoObject* Instance, MonoObject* a) = nullptr;
 bool (*CheckRemotePlayRestriction_Orig)(MonoObject* instance) = nullptr;
 void (*oTerminate)(void) = nullptr;
 GamePadData (*GetData)(int deviceIndex) = nullptr;
@@ -203,45 +202,6 @@ void ParseCheatID(const char* id, char* tid, int* cheat_id)
 {
     sscanf(id, "id_cheat_%[^_]_%d", tid, cheat_id);
 }
-
-//
-// Scene has changed: end Remote Play PIN registration if we are leaving that page.
-// Installed via LayerManager.UpdateImposeStatusFlag (optional / non-required).
-//
-void UpdateImposeStatusFlag_hook(MonoObject* scene, MonoObject* frontActiveScene)
-{
-    LOG_DEBUG("[DBG-UIS] enter scene=%p front=%p orig=%p remote=%d confirm=%d",
-                static_cast<void *>(scene), static_cast<void *>(frontActiveScene),
-                reinterpret_cast<void*>(UpdateImposeStatusFlag_Orig),
-                g_ui.is_active_page(toolbox::Page::RemotePlay) ? 1 : 0,
-                IsRunningConfirmRegistLoop ? 1 : 0);
-    if(!frontActiveScene || !scene) {
-        LOG_WARN("[DBG-UIS] scene or frontActiveScene null — skip RP cleanup");
-        if (UpdateImposeStatusFlag_Orig)
-            UpdateImposeStatusFlag_Orig(scene, frontActiveScene);
-        return;
-    }
-
-    /*
-     * Old logic only stopped the loop when is_remote_play was already false,
-     * so a real leave (flag still true) never called StopConfirmRegistLoop.
-     * On any scene transition away from the RP page, end registration fully.
-     */
-    if (g_ui.is_active_page(toolbox::Page::RemotePlay) ||
-        IsRunningConfirmRegistLoop) {
-        LOG_DEBUG("[DBG-UIS] scene change — end remote play registration "
-                    "(remote=%d confirm=%d)",
-                    g_ui.is_active_page(toolbox::Page::RemotePlay) ? 1 : 0,
-                    IsRunningConfirmRegistLoop ? 1 : 0);
-        StopConfirmRegistLoop();
-        g_ui.leave_page(toolbox::Page::RemotePlay);
-    }
-
-    if (UpdateImposeStatusFlag_Orig)
-        UpdateImposeStatusFlag_Orig(scene, frontActiveScene);
-    LOG_DEBUG("[DBG-UIS] original returned");
-}
-
 
 // threads → hook_background.cpp
 MonoString * CxmlUri_Hook(MonoObject * Instance, MonoString * uri) {

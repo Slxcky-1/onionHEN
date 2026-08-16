@@ -2,6 +2,8 @@
 #include "test_harness.h"
 
 #include "ps5_settings_ui.hpp"
+#include "remote_play_page_lifecycle.hpp"
+#include "remote_play_pairing.hpp"
 
 #include <string>
 
@@ -170,11 +172,63 @@ static int test_remote_play_like_page(void) {
 
   TEST_ASSERT_TRUE(xml.find("id=\"remote_play_pin_display\"") != std::string::npos);
   TEST_ASSERT_TRUE(xml.find("id=\"id_pin\"") != std::string::npos);
+  TEST_ASSERT_TRUE(xml.find("remote_play_countdown") == std::string::npos);
   TEST_ASSERT_TRUE(xml.find("id=\"base64_account_id\"") != std::string::npos);
   TEST_ASSERT_TRUE(xml.find("id=\"decoded_account_id\"") != std::string::npos);
   TEST_ASSERT_TRUE(xml.find("解码后账号 ID: 1234ABCD") != std::string::npos);
   TEST_ASSERT_TRUE(xml.find("id=\"id_save_rp_info\"") != std::string::npos);
   TEST_ASSERT_TRUE(xml.find("远程游玩") != std::string::npos);
+  return 0;
+}
+
+static int test_remote_play_countdown_rounding(void) {
+  using remote_play::seconds_remaining;
+  TEST_ASSERT_EQ_INT(120, seconds_remaining(120000, 0));
+  TEST_ASSERT_EQ_INT(120, seconds_remaining(120000, 1));
+  TEST_ASSERT_EQ_INT(1, seconds_remaining(120000, 119001));
+  TEST_ASSERT_EQ_INT(0, seconds_remaining(120000, 120000));
+  TEST_ASSERT_EQ_INT(0, seconds_remaining(120000, 120001));
+  TEST_ASSERT_EQ_INT(120, seconds_remaining(999999, 0));
+  return 0;
+}
+
+static int test_remote_play_countdown_notification_marks(void) {
+  using remote_play::countdown_notification_mark;
+  TEST_ASSERT_EQ_INT(120, countdown_notification_mark(121));
+  TEST_ASSERT_EQ_INT(120, countdown_notification_mark(120));
+  TEST_ASSERT_EQ_INT(120, countdown_notification_mark(111));
+  TEST_ASSERT_EQ_INT(110, countdown_notification_mark(110));
+  TEST_ASSERT_EQ_INT(110, countdown_notification_mark(101));
+  TEST_ASSERT_EQ_INT(100, countdown_notification_mark(100));
+  TEST_ASSERT_EQ_INT(10, countdown_notification_mark(1));
+  TEST_ASSERT_EQ_INT(0, countdown_notification_mark(0));
+  return 0;
+}
+
+static int test_remote_play_page_lifecycle(void) {
+  using remote_play::PageObservation;
+  using remote_play::PageObservationAction;
+  using remote_play::PagePhase;
+  using remote_play::classify_page_observation;
+
+  TEST_ASSERT_TRUE(classify_page_observation(
+                       PagePhase::Loading, {true, true, false}) ==
+                   PageObservationAction::Wait);
+  TEST_ASSERT_TRUE(classify_page_observation(
+                       PagePhase::Loading, {true, true, true}) ==
+                   PageObservationAction::MarkVisible);
+  TEST_ASSERT_TRUE(classify_page_observation(
+                       PagePhase::Visible, {true, true, true}) ==
+                   PageObservationAction::StayVisible);
+  TEST_ASSERT_TRUE(classify_page_observation(
+                       PagePhase::Visible, {true, false, false}) ==
+                   PageObservationAction::LeaveToPrevious);
+  TEST_ASSERT_TRUE(classify_page_observation(
+                       PagePhase::Visible, {false, true, false}) ==
+                   PageObservationAction::LeaveToolbox);
+  TEST_ASSERT_TRUE(classify_page_observation(
+                       PagePhase::BackRequested, {true, true, false}) ==
+                   PageObservationAction::LeaveToolbox);
   return 0;
 }
 
@@ -303,6 +357,12 @@ extern "C" int test_ps5_settings_ui_suite(void) {
   fails += onion_test_run("ps5ui.link_style", test_link_and_root_style);
   fails += onion_test_run("ps5ui.attr_escape", test_attr_escaping_in_titles);
   fails += onion_test_run("ps5ui.remote_play_like", test_remote_play_like_page);
+  fails += onion_test_run("ps5ui.remote_play_countdown",
+                          test_remote_play_countdown_rounding);
+  fails += onion_test_run("ps5ui.remote_play_notify_marks",
+                          test_remote_play_countdown_notification_marks);
+  fails += onion_test_run("ps5ui.remote_play_page_lifecycle",
+                          test_remote_play_page_lifecycle);
   fails += onion_test_run("ps5ui.fluent_chain", test_fluent_returns_this);
   fails += onion_test_run("ps5ui.text_field_confirm", test_text_field_and_confirm);
   fails += onion_test_run("ps5ui.toolbox_skeleton", test_toolbox_like_skeleton);

@@ -29,6 +29,12 @@ static int test_default_zh(void) {
                                "打开系统安装界面，用于安装 PKG 游戏或应用") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("fan.enable.sub"),
                                "关闭时使用系统默认风扇策略") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("rp.notify.countdown"),
+                               "远程游玩配对剩余时间：%u 秒") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("rp.notify.paired"),
+                               "远程游玩配对成功，可以开始连接") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("rp.notify.timeout"),
+                               "远程游玩配对已超时") == 0);
   return 0;
 }
 
@@ -59,6 +65,12 @@ static int test_en(void) {
                                "Decoded account ID: ") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("rp.pin_error"),
                                "Could not obtain a Remote Play PIN") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("rp.notify.countdown"),
+                               "Remote Play pairing: %u seconds remaining") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("rp.notify.paired"),
+                               "Remote Play paired and ready to connect") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("rp.notify.timeout"),
+                               "Remote Play pairing timed out") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("debug.np_env.sub"),
                                "Change the PlayStation Network environment "
                                "string; the console reboots after saving") == 0);

@@ -255,10 +255,8 @@ void generate_remote_play_xml(std::string& xml_buffer) {
   bzero(AccountID, ACCOUNT_ID_BASE64_SIZE);
 
   LOG_DEBUG("Starting remote play");
-  static bool remote_play_initialized = false;
-  if (!remote_play_initialized) {
-    remote_play_initialized = InitRemotePlay();
-  }
+  StopConfirmRegistLoop();
+  const bool remote_play_initialized = InitRemotePlay();
 
   ps5ui::Page page("remote_play_pin_display", toolbox_i18n::tr("rp.title"));
   page.root_style(ps5ui::Style::Center);
