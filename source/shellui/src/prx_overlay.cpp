@@ -493,7 +493,7 @@ void OnRender_Hook(MonoObject* instance) {
   /* UI thread: apply deferred home reloads after cold inject. */
   shellui_poll_display_tids_home_reload();
   shellui_poll_homeui_top_nav_reload();
-  PollRemotePlayPageLifecycle();
+  PollRemotePlayPageLifecycle(instance);
 
   static bool inited = false;
   static unsigned int idle_thread_id[kCpuCores] = {};

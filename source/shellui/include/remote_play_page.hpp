@@ -11,8 +11,8 @@ namespace toolbox {
 enum class Page : unsigned char;
 }
 
-/** Resolve the Legacy/PUI methods used by the UI-thread lifecycle poller. */
-bool InitializeRemotePlayPageLifecycle(MonoImage *legacy, MonoImage *pui);
+/** Resolve optional Legacy/PUI capabilities used by the lifecycle poller. */
+void InitializeRemotePlayPageLifecycle(MonoImage *legacy, MonoImage *pui);
 
 /** Record the toolbox page that owns the Remote Play link before XML loads. */
 void BeginRemotePlayPageLoad(toolbox::Page previous_page);
@@ -23,11 +23,19 @@ void AttachRemotePlayPage(MonoObject *page);
 /** True only for the retained Legacy SettingPage instance. */
 bool IsRemotePlayPage(MonoObject *page);
 
+/** Mark the retained page active from SettingPage.OnActivated. */
+void ActivateRemotePlayPage(MonoObject *page);
+
+enum class RemotePlayPageBackReason : unsigned char {
+  PairingSucceeded = 1,
+  PairingTimedOut,
+};
+
 /** Pairing worker event; the actual page pop is performed on the UI thread. */
-void RequestRemotePlayTimeoutBack();
+void RequestRemotePlayPageBack(RemotePlayPageBackReason reason);
 
 /** Observe Settings visibility and consume deferred navigation once per frame. */
-void PollRemotePlayPageLifecycle();
+void PollRemotePlayPageLifecycle(MonoObject *application);
 
 enum class RemotePlayExitDestination : unsigned char {
   OutsideToolbox = 0,

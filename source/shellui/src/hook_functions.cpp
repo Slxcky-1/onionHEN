@@ -42,6 +42,7 @@ extern bool is_6xx, is_3xx;
 /* ================================= ORIG HOOKED MONO FUNCS ============================================= */
 int (*oOnPress)(MonoObject* Instance, MonoObject* element, MonoObject* e) = nullptr;
 int (*oOnPreCreate)(MonoObject* Instance, MonoObject* element) = nullptr;
+void (*oOnActivated)(MonoObject* Instance, int transition) = nullptr;
 void (*oOnDeactivating)(MonoObject* Instance, int transition) = nullptr;
 MonoString* (*CxmlUri)(MonoObject* obj, MonoString* uri) = nullptr;
 uint64_t(*GetManifestResourceStream_Original)(uint64_t inst, MonoString* FileName) = nullptr;

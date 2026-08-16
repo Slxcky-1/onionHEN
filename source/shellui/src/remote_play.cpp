@@ -214,8 +214,12 @@ void *confirm_regist_loop(void *) {
   const uint64_t deadline =
       g_pairing_deadline_ms.load(std::memory_order_acquire);
   int pair_stat = -1, pair_err = -1;
+  int last_pair_stat = -2, last_pair_err = -2;
   uint32_t last_notification_mark = 0;
   const char *terminal_reason = nullptr;
+  bool should_return_to_previous_page = false;
+  RemotePlayPageBackReason back_reason =
+      RemotePlayPageBackReason::PairingTimedOut;
 
   LOG_DEBUG("[remote_play] ConfirmRegistLoop started");
 
@@ -223,9 +227,9 @@ void *confirm_regist_loop(void *) {
     const uint32_t remaining_seconds = remote_play::seconds_remaining(
         deadline, monotonic_milliseconds());
     if (remaining_seconds == 0) {
-      NotifyRemotePlayPairingTimedOut();
-      RequestRemotePlayTimeoutBack();
       terminal_reason = "timeout";
+      should_return_to_previous_page = true;
+      back_reason = RemotePlayPageBackReason::PairingTimedOut;
       break;
     }
 
@@ -251,14 +255,21 @@ void *confirm_regist_loop(void *) {
       terminal_reason = "confirmation_error";
       break;
     }
+    if (pair_stat != last_pair_stat || pair_err != last_pair_err) {
+      LOG_INFO("[remote_play] pairing state status=%d error=%d", pair_stat,
+               pair_err);
+      last_pair_stat = pair_stat;
+      last_pair_err = pair_err;
+    }
     if (pair_stat == 2) {
       /*
        * Registration finished. Drop out of PIN/regist mode so the client can
        * open a Remote Play session immediately without waiting for page exit.
        */
-      LOG_DEBUG("[remote_play] pair_stat=2 paired — ending PIN session");
-      NotifyRemotePlayPaired();
+      LOG_INFO("[remote_play] pair_stat=2 paired; ending PIN session");
       terminal_reason = "pair_success";
+      should_return_to_previous_page = true;
+      back_reason = RemotePlayPageBackReason::PairingSucceeded;
       break;
     }
     /* Avoid busy-spinning sceRemoteplayConfirmDeviceRegist. */
@@ -269,9 +280,16 @@ void *confirm_regist_loop(void *) {
       g_session_active.exchange(false, std::memory_order_acq_rel)) {
     invalidate_pin_registration(terminal_reason);
     g_pairing_deadline_ms.store(0, std::memory_order_release);
+    if (back_reason == RemotePlayPageBackReason::PairingSucceeded)
+      NotifyRemotePlayPaired();
+    else if (should_return_to_previous_page)
+      NotifyRemotePlayPairingTimedOut();
+
+    if (should_return_to_previous_page)
+      RequestRemotePlayPageBack(back_reason);
   }
-  LOG_DEBUG("[remote_play] ConfirmRegistLoop exit reason=%s",
-            terminal_reason != nullptr ? terminal_reason : "requested");
+  LOG_INFO("[remote_play] ConfirmRegistLoop exit reason=%s",
+           terminal_reason != nullptr ? terminal_reason : "requested");
   return nullptr;
 }
 

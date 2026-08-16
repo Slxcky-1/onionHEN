@@ -7,6 +7,14 @@
 
 #include "remote_play_page.hpp"
 
+void OnActivated_Hook(MonoObject *instance, int transition) {
+  const bool is_remote_play = IsRemotePlayPage(instance);
+  if (oOnActivated)
+    oOnActivated(instance, transition);
+  if (shellui_hooks_are_ready() && is_remote_play)
+    ActivateRemotePlayPage(instance);
+}
+
 void OnDeactivating_Hook(MonoObject *instance, int transition) {
   const bool is_remote_play = IsRemotePlayPage(instance);
   if (oOnDeactivating)

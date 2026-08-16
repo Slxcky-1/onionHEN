@@ -13,9 +13,8 @@ enum class PagePhase : unsigned char {
 };
 
 struct PageObservation {
-  bool manager_active;
+  bool has_focus;
   bool is_current_page;
-  bool actual_visible;
 };
 
 enum class PageObservationAction : unsigned char {
@@ -28,22 +27,16 @@ enum class PageObservationAction : unsigned char {
 
 constexpr PageObservationAction
 classify_page_observation(PagePhase phase, PageObservation observation) {
-  const bool visible = observation.manager_active &&
-                       observation.is_current_page &&
-                       observation.actual_visible;
-
   if (phase == PagePhase::Inactive)
     return PageObservationAction::Wait;
   if (phase == PagePhase::Loading)
-    return visible ? PageObservationAction::MarkVisible
-                   : PageObservationAction::Wait;
-  if (!observation.manager_active)
-    return PageObservationAction::LeaveToolbox;
-  if (!observation.is_current_page)
-    return PageObservationAction::LeaveToPrevious;
-  if (!observation.actual_visible)
-    return PageObservationAction::LeaveToolbox;
-  return PageObservationAction::StayVisible;
+    return observation.has_focus ? PageObservationAction::MarkVisible
+                                 : PageObservationAction::Wait;
+  if (observation.has_focus)
+    return PageObservationAction::StayVisible;
+  return observation.is_current_page
+             ? PageObservationAction::LeaveToolbox
+             : PageObservationAction::LeaveToPrevious;
 }
 
 } // namespace remote_play

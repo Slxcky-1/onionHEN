@@ -212,23 +212,23 @@ static int test_remote_play_page_lifecycle(void) {
   using remote_play::classify_page_observation;
 
   TEST_ASSERT_TRUE(classify_page_observation(
-                       PagePhase::Loading, {true, true, false}) ==
+                       PagePhase::Loading, {false, true}) ==
                    PageObservationAction::Wait);
   TEST_ASSERT_TRUE(classify_page_observation(
-                       PagePhase::Loading, {true, true, true}) ==
+                       PagePhase::Loading, {true, true}) ==
                    PageObservationAction::MarkVisible);
   TEST_ASSERT_TRUE(classify_page_observation(
-                       PagePhase::Visible, {true, true, true}) ==
+                       PagePhase::Visible, {true, true}) ==
                    PageObservationAction::StayVisible);
   TEST_ASSERT_TRUE(classify_page_observation(
-                       PagePhase::Visible, {true, false, false}) ==
+                       PagePhase::Visible, {false, false}) ==
                    PageObservationAction::LeaveToPrevious);
   TEST_ASSERT_TRUE(classify_page_observation(
-                       PagePhase::Visible, {false, true, false}) ==
+                       PagePhase::Visible, {false, true}) ==
                    PageObservationAction::LeaveToolbox);
   TEST_ASSERT_TRUE(classify_page_observation(
-                       PagePhase::BackRequested, {true, true, false}) ==
-                   PageObservationAction::LeaveToolbox);
+                       PagePhase::BackRequested, {true, true}) ==
+                   PageObservationAction::StayVisible);
   return 0;
 }
 

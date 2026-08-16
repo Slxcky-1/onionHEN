@@ -320,6 +320,7 @@ result Invoke(MonoImage* Assembly_Image, MonoClass* klass, MonoObject* Instance,
 /* ================================= ORIG HOOKED MONO FUNCS ============================================= */
 extern int (*oOnPress)(MonoObject* Instance, MonoObject* element, MonoObject* e);
 extern int (*oOnPreCreate)(MonoObject* Instance, MonoObject* element);
+extern void (*oOnActivated)(MonoObject* Instance, int transition);
 extern void (*oOnDeactivating)(MonoObject* Instance, int transition);
 extern MonoString* (*CxmlUri)(MonoObject* obj,MonoString* uri);
 extern bool (*CheckRemotePlayRestriction_Orig)(MonoObject* instance);
@@ -363,6 +364,7 @@ MonoObject* New_Object(MonoClass* Klass);
 MonoString *GetString_Hook(MonoObject *Instance, MonoString *str);
 int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e);
 int OnPreCreate_Hook(MonoObject* Instance, MonoObject* element);
+void OnActivated_Hook(MonoObject* Instance, int transition);
 void OnDeactivating_Hook(MonoObject* Instance, int transition);
 MonoImage * getDLLimage(const char* dll_file);
 MonoString* CxmlUri_Hook(MonoObject* obj, MonoString* uri);

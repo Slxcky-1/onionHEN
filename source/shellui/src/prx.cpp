@@ -565,6 +565,9 @@ bool install_hooks(const ShellImages& img) {
       {"SettingPage.OnCreating", img.legacy, UI3_dec.c_str(), "SettingPage",
        "OnCreating", 1, reinterpret_cast<void*>(&OnPreCreate_Hook),
        reinterpret_cast<void**>(&oOnPreCreate), false},
+      {"SettingPage.OnActivated", img.legacy, UI3_dec.c_str(), "SettingPage",
+       "OnActivated", 1, reinterpret_cast<void*>(&OnActivated_Hook),
+       reinterpret_cast<void**>(&oOnActivated), false},
       {"SettingPage.OnDeactivating", img.legacy, UI3_dec.c_str(),
        "SettingPage", "OnDeactivating", 1,
        reinterpret_cast<void*>(&OnDeactivating_Hook),
@@ -585,8 +588,9 @@ bool install_hooks(const ShellImages& img) {
       return false;
   }
 
-  if (!InitializeRemotePlayPageLifecycle(img.legacy, img.pui))
-    LOG_WARN("[remote_play] visibility polling is unavailable");
+  InitializeRemotePlayPageLifecycle(img.legacy, img.pui);
+  LOG_INFO("[remote_play] lifecycle hooks activated=%d deactivating=%d",
+           oOnActivated ? 1 : 0, oOnDeactivating ? 1 : 0);
 
   // --- Optional diagnostics (log only) ---
   (void)install_optional_diag(
@@ -680,9 +684,15 @@ bool install_hooks(const ShellImages& img) {
    * while the installer is still compiling and committing other Mono hooks.
    */
   (void)install_mono_hook(
-      {"PUI.Application.Update", img.pui, "Sce.PlayStation.PUI", "Application",
-       "Update", 0, reinterpret_cast<void*>(&OnRender_Hook),
+      {"PUI.Application.Update", img.pui, "Sce.PlayStation.PUI",
+       "Application", "Update", 0, reinterpret_cast<void*>(&OnRender_Hook),
        reinterpret_cast<void**>(&OnRender_orig), false});
+  if (OnRender_orig) {
+    LOG_INFO("[remote_play] lifecycle UI polling enabled");
+  } else {
+    LOG_WARN("[remote_play] lifecycle UI polling unavailable; manual "
+             "OnDeactivating fallback remains active");
+  }
 
   return true;
 }
