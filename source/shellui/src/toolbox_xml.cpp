@@ -479,6 +479,11 @@ void generate_plapps_xml(std::string& new_xml) {
 
 namespace {
 
+/* Temporarily hide Remote Play from the toolbox homepage. Flip to 1 to restore. */
+#ifndef ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY
+#define ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY 0
+#endif
+
 constexpr const char* kIconPkg =
     "/user/data/OnionHEN/assets/icon_xml_package.png";
 constexpr const char* kIconPlugins =
@@ -486,8 +491,10 @@ constexpr const char* kIconPlugins =
 constexpr const char* kIconGame = "/user/data/OnionHEN/assets/icon_xml_game.png";
 constexpr const char* kIconMonitor =
     "/user/data/OnionHEN/assets/icon_xml_monitor.png";
+#if ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY
 constexpr const char* kIconAccount =
     "/user/data/OnionHEN/assets/icon_xml_account.png";
+#endif
 constexpr const char* kIconSettings =
     "/user/data/OnionHEN/assets/icon_xml_settings.png";
 constexpr const char* kIconShortcuts =
@@ -512,8 +519,10 @@ constexpr const char* kIconHardDrive =
     "/user/data/OnionHEN/assets/icon_xml_hardrive.png";
 constexpr const char* kIconDiscLicense =
     "/user/data/OnionHEN/assets/icon_xml_disc_license.png";
+#if ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY
 constexpr const char* kIconRemotePlay =
     "/user/data/OnionHEN/assets/icon_xml_remote_play.png";
+#endif
 constexpr const char* kIconDonations =
     "/user/data/OnionHEN/assets/icon_xml_donations.png";
 constexpr const char* kIconThanks =
@@ -613,11 +622,13 @@ void append_toolbox_display_group(ps5ui::Group& g) {
               kIconMenuOption);
 }
 
+#if ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY
 void append_toolbox_connection_group(ps5ui::Group& g) {
   g.link("remote_play", toolbox_i18n::tr("remote_play.link"),
          "remote_play.xml", toolbox_i18n::tr("remote_play.link.sub"),
          kIconRemotePlay);
 }
+#endif
 
 void append_toolbox_system_group(ps5ui::Group& g) {
   g.group(
@@ -875,11 +886,13 @@ void generate_toolbox_xml(std::string& new_xml) {
           [](ps5ui::Group& g) { append_toolbox_display_group(g); },
           toolbox_i18n::tr("group.display.sub"), kIconMonitor,
           "id_overlay_opts")
+#if ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY
       .group(
           "id_group_connection", toolbox_i18n::tr("group.connection"),
           [](ps5ui::Group& g) { append_toolbox_connection_group(g); },
           toolbox_i18n::tr("group.connection.sub"), kIconAccount,
           "remote_play")
+#endif
       .group(
           "id_group_system", toolbox_i18n::tr("group.system"),
           [](ps5ui::Group& g) { append_toolbox_system_group(g); },
