@@ -754,10 +754,14 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
   if (!onion_ready_wait(ONION_READY_UTIL, /*timeout_ms=*/15000, /*poll_ms=*/200))
     LOG_WARN("util ready timeout — continuing (process may still be starting)");
 
-  const bool skip_kstuff =
-      if_exists("/mnt/usb0/no_kstuff") || if_exists("/data/OnionHEN/no_kstuff");
+  onion::Settings boot_settings{};
+  (void)onion::settings_load(&boot_settings);
+  const bool skip_kstuff = if_exists("/mnt/usb0/no_kstuff") ||
+                           !boot_settings.kstuff_autoload;
   if (skip_kstuff) {
-    LOG_DEBUG("kstuff disabled via no_kstuff file");
+    LOG_DEBUG("kstuff disabled (%s)",
+              if_exists("/mnt/usb0/no_kstuff") ? "usb no_kstuff"
+                                               : "kstuff.autoload=false");
     onion_ready_signal(ONION_READY_KSTUFF);
   } else if (sys_ver.version >= 0x3000000) {
     if (kstuff_already_running()) {

@@ -100,3 +100,8 @@ cheats_menu=off
 # toolbox controls the shortcut that opens the OnionHEN Toolbox.
 # Available values: off, l2_r3, long_share, share
 toolbox=off
+
+[kstuff]
+# autoload loads kstuff when OnionHEN starts.
+# Available values: true, false
+autoload=true

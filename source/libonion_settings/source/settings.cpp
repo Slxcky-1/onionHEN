@@ -482,6 +482,8 @@ bool apply_parser(IniParser *parser, Settings *out) {
   out->toolbox_shortcut_opt =
       parse_toolbox_shortcut(ini_get(parser, "shortcuts.toolbox"),
                              out->toolbox_shortcut_opt);
+  out->kstuff_autoload =
+      parse_bool(ini_get(parser, "kstuff.autoload"), out->kstuff_autoload);
   return true;
 }
 
@@ -642,6 +644,11 @@ std::string settings_serialize(const Settings &in) {
   b += "# Available values: off, l2_r3, long_share, share\n";
   b += "toolbox=" + std::string(toolbox_shortcut_name(in.toolbox_shortcut_opt)) +
        "\n";
+  b += "\n";
+  b += "[kstuff]\n";
+  b += "# autoload loads kstuff when OnionHEN starts.\n";
+  b += "# Available values: true, false\n";
+  b += "autoload=" + bool_text(in.kstuff_autoload) + "\n";
   return b;
 }
 

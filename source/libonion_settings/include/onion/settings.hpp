@@ -119,6 +119,10 @@ struct Settings {
   int cheats_shortcut_opt = 0;
   int toolbox_shortcut_opt = 0;
 
+  // [kstuff]
+  // Load the embedded/override kstuff payload when OnionHEN starts.
+  bool kstuff_autoload = true;
+
   // [toolbox]
   // 0 = system (default), 1 = zh-Hans, 2 = English
   int ui_lang = kUiLanguageSystem;

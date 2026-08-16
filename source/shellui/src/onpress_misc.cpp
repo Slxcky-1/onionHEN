@@ -4,11 +4,18 @@
 #include <unistd.h>
 
 static OnPressResult id_kstuff_autoload(OnPressContext &ctx) {
-  if (atol(ctx.value.c_str())) {
+  const bool enabled = atol(ctx.value.c_str()) != 0;
+  if (enabled == g_settings.kstuff_autoload)
+    return OnPressResult::EarlyReturn;
+
+  g_settings.kstuff_autoload = enabled;
+  if (enabled) {
     unlink("/user/data/OnionHEN/no_kstuff");
+    unlink("/data/OnionHEN/no_kstuff");
     notify("Kstuff will be loaded on next boot");
   } else {
     touch_file("/user/data/OnionHEN/no_kstuff");
+    touch_file("/data/OnionHEN/no_kstuff");
     notify("Kstuff will NOT be loaded on next boot");
   }
   return OnPressResult::Handled;
