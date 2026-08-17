@@ -102,6 +102,11 @@ int parse_language(const char *s, int def) {
   if (streq_ci(s, "system")) {
     return kUiLanguageSystem;
   }
+  if (streq_ci(s, "zh-Hant") || streq_ci(s, "zh_hant") ||
+      streq_ci(s, "zh-TW") || streq_ci(s, "zh_tw") ||
+      streq_ci(s, "zh-HK") || streq_ci(s, "zh_hk")) {
+    return kUiLanguageZhHant;
+  }
   if (streq_ci(s, "zh-Hans") || streq_ci(s, "zh_hans") ||
       streq_ci(s, "zh")) {
     return kUiLanguageZhHans;
@@ -113,8 +118,54 @@ int parse_language(const char *s, int def) {
       streq_ci(s, "ar-SA") || streq_ci(s, "ar_sa")) {
     return kUiLanguageAr;
   }
+  if (streq_ci(s, "ja") || streq_ci(s, "japanese") ||
+      streq_ci(s, "ja-JP") || streq_ci(s, "ja_jp")) {
+    return kUiLanguageJa;
+  }
+  if (streq_ci(s, "fr") || streq_ci(s, "french") ||
+      streq_ci(s, "fr-FR") || streq_ci(s, "fr_fr") ||
+      streq_ci(s, "francais") || streq_ci(s, "français")) {
+    return kUiLanguageFr;
+  }
+  if (streq_ci(s, "de") || streq_ci(s, "german") ||
+      streq_ci(s, "de-DE") || streq_ci(s, "de_de") ||
+      streq_ci(s, "deutsch")) {
+    return kUiLanguageDe;
+  }
+  if (streq_ci(s, "ko") || streq_ci(s, "korean") ||
+      streq_ci(s, "ko-KR") || streq_ci(s, "ko_kr")) {
+    return kUiLanguageKo;
+  }
+  if (streq_ci(s, "es") || streq_ci(s, "spanish") ||
+      streq_ci(s, "es-ES") || streq_ci(s, "es_es") ||
+      streq_ci(s, "es-MX") || streq_ci(s, "es_mx") ||
+      streq_ci(s, "es-419") || streq_ci(s, "es_419")) {
+    return kUiLanguageEs;
+  }
+  if (streq_ci(s, "pt-BR") || streq_ci(s, "pt_br") ||
+      streq_ci(s, "pt-br") || streq_ci(s, "pt") ||
+      streq_ci(s, "portuguese") || streq_ci(s, "pt-PT") ||
+      streq_ci(s, "pt_pt")) {
+    return kUiLanguagePtBr;
+  }
+  if (streq_ci(s, "it") || streq_ci(s, "italian") ||
+      streq_ci(s, "it-IT") || streq_ci(s, "it_it") ||
+      streq_ci(s, "italiano")) {
+    return kUiLanguageIt;
+  }
+  if (streq_ci(s, "ru") || streq_ci(s, "russian") ||
+      streq_ci(s, "ru-RU") || streq_ci(s, "ru_ru")) {
+    return kUiLanguageRu;
+  }
+  if (streq_ci(s, "pl") || streq_ci(s, "polish") ||
+      streq_ci(s, "pl-PL") || streq_ci(s, "pl_pl") ||
+      streq_ci(s, "polski")) {
+    return kUiLanguagePl;
+  }
   return def;
 }
+
+} // namespace
 
 const char *language_name(int v) {
   switch (v) {
@@ -124,11 +175,33 @@ const char *language_name(int v) {
     return "en";
   case kUiLanguageAr:
     return "ar";
+  case kUiLanguageZhHant:
+    return "zh-Hant";
+  case kUiLanguageJa:
+    return "ja";
+  case kUiLanguageFr:
+    return "fr";
+  case kUiLanguageDe:
+    return "de";
+  case kUiLanguageKo:
+    return "ko";
+  case kUiLanguageEs:
+    return "es";
+  case kUiLanguagePtBr:
+    return "pt-BR";
+  case kUiLanguageIt:
+    return "it";
+  case kUiLanguageRu:
+    return "ru";
+  case kUiLanguagePl:
+    return "pl";
   case kUiLanguageSystem:
   default:
     return "system";
   }
 }
+
+namespace {
 
 int parse_startup_open_after_load(const char *s, int def) {
   if (streq_ci(s, "none")) {
@@ -547,7 +620,7 @@ std::string settings_serialize(const Settings &in) {
   b += "\n";
   b += "[toolbox]\n";
   b += "# language controls the Toolbox UI and notification language.\n";
-  b += "# Available values: system, zh-Hans, en, ar\n";
+  b += "# Available values: system, zh-Hans, zh-Hant, en, ja, ko, fr, de, it, es, pt-BR, pl, ru, ar\n";
   b += "# system follows the PS5 system language when it can be detected.\n";
   b += "language=" + std::string(language_name(in.ui_lang)) + "\n";
   b += "\n";

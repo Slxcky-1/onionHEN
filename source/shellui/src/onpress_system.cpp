@@ -88,17 +88,12 @@ static OnPressResult id_custom_game_opts(OnPressContext &ctx) {
 
 static OnPressResult id_ui_lang(OnPressContext &ctx) {
   int v = atoi(ctx.value.c_str());
-  if (v < onion::kUiLanguageSystem || v > onion::kUiLanguageAr)
+  if (v < onion::kUiLanguageSystem || v > onion::kUiLanguagePl)
     v = onion::kUiLanguageSystem;
   if (v == g_settings.ui_lang)
     return OnPressResult::EarlyReturn;
   g_settings.ui_lang = v;
-  const char *name = v == onion::kUiLanguageEn
-                         ? "en"
-                         : (v == onion::kUiLanguageZhHans
-                                ? "zh-Hans"
-                                : (v == onion::kUiLanguageAr ? "ar" : "system"));
-  LOG_DEBUG("UI language: %s", name);
+  LOG_DEBUG("UI language: %s", onion::language_name(v));
   toolbox_i18n::apply_system_or_ui_lang(v);
   /* Language is process-local. This only re-reads config.ini in daemon/util
      (LoadSettings); it does not inject or restart SceShellUI. Cheat toasts

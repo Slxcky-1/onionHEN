@@ -4,7 +4,7 @@
 
 <p align="center">
   <b>OnionHEN</b><br/>
-  面向 PlayStation 5 的一体化自制程序启用器与 Toolbox
+  面向 PlayStation 5 的一体化 HEN 与工具箱
 </p>
 
 <p align="center">
@@ -38,8 +38,8 @@
 </p>
 
 <p align="center">
-  OnionHEN 是一套模块化 PS5 payload 栈，将系统准备、ShellUI Toolbox、<br/>
-  payload 管理、游戏 overlay、金手指和运行时服务整合在同一个入口 payload 中。
+  OnionHEN 是一套模块化的 PS5 payload。一个入口 ELF 完成系统准备、注入<br/>
+  ShellUI 工具箱，再拉起监控条、金手指、用户 payload 和后台服务。
 </p>
 
 <p align="center">
@@ -58,22 +58,21 @@
 
 # 功能
 
-OnionHEN 致力于为已破解的 PS5 系统提供实用、可维护的自制程序运行环境。
+OnionHEN 面向已越狱的 PS5，提供一套能日常使用、也方便维护的自制环境。
 
-- **ShellUI Toolbox** — 注入 PS5 ShellUI 的集成设置界面
-- **系统准备** — 提权、文件系统重新挂载和系统更新分区阻断
-- **fSELF / fPKG 支持** — 由内嵌 `kstuff` payload 提供可选内核能力
-- **Payload 管理器** — 启动和停止裸 `.elf` payload，并支持自动启动
-- **游戏 Overlay** — 可配置 FPS、CPU、GPU、RAM、温度、占用率和网络信息
-- **金手指引擎** — 支持本地 JSON、SHN、MC4 和 ShnExt 文件及运行时开关
-- **主机工具** — Rest Mode、Remote Play、外置硬盘、Title ID、风扇、快捷键和游戏选项
-- **App Jailbreak** — 白名单自制程序可通过 daemon 沙盒 FIFO 请求提权
-- **高可用运行时** — critical 与 utility 守护进程分离，主守护进程可自动拉起 utility
-- **统一配置** — Toolbox 和守护进程共享同一套带版本号的 `config.ini` schema
+- **ShellUI 工具箱** — 注入 PS5 ShellUI 的设置页
+- **系统准备** — 提权、重新挂载文件系统、阻断系统更新分区
+- **fSELF / fPKG** — 内嵌 kstuff，用来跑自制 SELF / PKG；默认加载，可在工具箱关掉
+- **Payload 管理** — 启动和停止普通 `.elf` payload，可选自动启动
+- **游戏监控条** — 游戏中显示 FPS、CPU、GPU、内存、温度和网络信息
+- **金手指** — 本地 JSON、SHN、MC4、ShnExt 文件，运行中即可开关
+- **主机工具** — 休息模式、远程游玩、外接硬盘、Title ID、风扇、快捷键和游戏选项
+- **应用越狱** — 白名单自制软件可通过守护进程沙盒 FIFO 申请提权
+- **可恢复运行时** — 关键守护进程和工具守护进程分开；主进程可以拉起工具进程
+- **统一配置** — 工具箱和守护进程共用一份带版本号的 `config.ini`
 
-OnionHEN 不内置内核 exploit。它仍然需要外部 **9021** `elfldr` 完成首跳
-bootstrap，随后会启动自己的内置私有 **9020** loader，用于运行时 ELF 与用户
-payload 加载。
+OnionHEN 不内置内核漏洞。第一次引导仍需要外部 **9021** 上的 `elfldr`。
+之后会启动自己的私有 **9020** 加载器，用来加载后续 ELF 和用户 payload。
 
 <br>
 
@@ -81,23 +80,18 @@ payload 加载。
 
 ### 运行要求
 
-1. 一台运行兼容内核 exploit 的 PS5
-2. 一个监听 **9021** 端口、用于首跳 bootstrap 的外部 [PS5 `elfldr`](https://github.com/ps5-payload-dev/elfldr)
-3. 需要 fSELF / fPKG 功能时，准备与固件兼容的 `kstuff`
-
-> [!IMPORTANT]
-> 固件与 exploit 兼容性由 exploit 链、PS5 Payload SDK 和 `kstuff` 版本共同决定。
-> 不要假设为某一固件构建的 payload 可以安全地运行在其他固件上。
+1. 一台已越狱的 PS5
+2. 一个监听 **9021**、用于第一次引导的外部 [PS5 `elfldr`](https://github.com/ps5-payload-dev/elfldr)
 
 ### 加载 OnionHEN
 
-1. 运行内核 exploit，并启动外部 `elfldr` 服务。
-2. 通过 exploit host 提供的 loader 发送 `OnionHEN.elf`。
-3. 等待 utility daemon、`kstuff` 和 main daemon 依次启动。
-4. 打开 PS5 设置区域访问 OnionHEN Toolbox。
+1. 运行内核漏洞利用，并启动外部 `elfldr` 服务。
+2. 用漏洞加载端提供的加载器发送 `OnionHEN.elf`。
+3. 按顺序等待工具守护进程、`kstuff` 和主守护进程启动。
+4. 打开 PS5 设置，进入 OnionHEN 工具箱。
 
-运行时启动顺序经过有意串行化。bootstrap 之后，OnionHEN 会优先使用内置
-`onion_elfldr.elf` 的 **9020** 端口，并保留 **9021** 作为兼容 fallback。
+启动是按固定顺序进行的。第一次引导之后，OnionHEN 使用自己的
+`onion_elfldr.elf`（端口 **9020**），**9021** 只作为兼容回退。
 
 ```text
 OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstuff.elf → daemon.elf → Toolbox
@@ -105,18 +99,18 @@ OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstu
 
 ### Payload
 
-将独立 payload 放到：
+把独立 payload 放到：
 
 ```text
 /data/OnionHEN/payloads/
 ```
 
-仅支持裸 `.elf` payload。可以在 Toolbox 中启用自动启动；OnionHEN 会通过同名
-`.auto_start` 标记文件保存这个选择。
+只支持普通 `.elf`。可在工具箱里打开自动启动；OnionHEN 会在 ELF 旁边写一个
+同名的 `.auto_start` 文件记住这个选择。
 
 ### 金手指
 
-按照 Title ID 和游戏版本，将金手指文件放到 flat 目录：
+把金手指文件放到同一目录，文件名用 Title ID 和游戏版本：
 
 ```text
 /data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.json
@@ -125,7 +119,7 @@ OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstu
 /data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.ShnExt
 ```
 
-金手指文件从本地加载，文件变化后无需重启完整运行栈即可检测并重新载入。
+金手指从磁盘加载。文件有改动时会重新载入，不必重启整套进程。
 
 <br>
 
@@ -135,8 +129,8 @@ OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstu
 
 | 依赖 | 用途 |
 | --- | --- |
-| [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) | Prospero 编译器、目标头文件、运行库和 CMake wrapper |
-| CMake 3.20+ 与 Ninja | 配置并构建 payload 依赖图 |
+| [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) | Prospero 编译器、目标头文件、运行库和 CMake 封装 |
+| CMake 3.20+ 与 Ninja | 配置并构建整套 payload |
 | Clang / LLVM | 编译 `x86_64-sie-ps5` 目标 |
 | `lzma` 或 `xz` | 压缩 bootstrapper |
 | Git 与 `curl` 或 `wget` | 初始化 submodule 并获取外部 payload 输入 |
@@ -150,13 +144,12 @@ export PS5_PAYLOAD_SDK=/path/to/ps5-payload-sdk
 ./scripts/build.sh --jobs 8
 ```
 
-构建脚本会配置项目、同步外部依赖，并按照正确顺序完成整个嵌入链构建。
+脚本会配置项目、拉取外部依赖，并按所需顺序构建整条嵌入链。
 
 ### 常用选项
 
 | 选项 | 说明 |
 | --- | --- |
-| `--fw <hex>` | 设置 `PS5_FW_VERSION` / `V_FW` |
 | `--build-type Debug\|Release` | 选择 CMake 构建类型 |
 | `--build-dir <path>` | 覆盖默认的 `build/` 目录 |
 | `--cache-dir <path>` | 覆盖 `.cache/dependencies/` |
@@ -173,44 +166,44 @@ export PS5_PAYLOAD_SDK=/path/to/ps5-payload-sdk
 | `build/bin/OnionHEN.elf` | 发送到主机的最终 payload |
 | `build/bin/bootstrapper.elf` | 未压缩的 bootstrapper |
 | `build/bin/bootstrapper.elf.lzma` | 嵌入最终 payload 的 bootstrapper |
-| `build/bin/daemon.elf` | Critical daemon |
-| `build/bin/util.elf` | Utility daemon |
+| `build/bin/daemon.elf` | 关键守护进程 |
+| `build/bin/util.elf` | 工具守护进程 |
 | `build/bin/shellui.elf` | Toolbox 注入 payload |
-| `build/lib/*.a` | 第一方静态库 |
+| `build/lib/*.a` | 本仓库静态库 |
 
-所有生成文件都位于 `build/`；下载的输入缓存在 `.cache/dependencies/`。
-`source/` 不再作为构建产物目录使用。
+构建产物都在 `build/`。下载的依赖缓存在 `.cache/dependencies/`。
+不会往 `source/` 里写产物。
 
 ### 测试
 
-Host tests 覆盖配置、IPC framing、payload helper、金手指解析、指令重定位、Toolbox 路由和共享平台代码：
+主机侧测试覆盖配置、IPC、payload 辅助逻辑、金手指解析、重定位、工具箱路由和共享平台代码：
 
 ```shell
 make -C source/util/tests clean
 make -C source/util/tests test -j8
 ```
 
-Host tests 链接阶段要求通过 `KEYSTONE_PREFIX` 找到 Keystone，默认路径为 `/opt/homebrew`。
+链接主机侧测试时需要能通过 `KEYSTONE_PREFIX` 找到 Keystone，默认是 `/opt/homebrew`。
 
 <br>
 
 # 配置
 
-OnionHEN 通过以下两个运行时视图创建并共享同一套配置 schema：
+OnionHEN 在下面两处读写同一份配置：
 
 ```text
 /data/OnionHEN/config.ini
 /user/data/OnionHEN/config.ini
 ```
 
-大部分设置都可以直接在 Toolbox 中修改。新的语义化 schema 从
-`schema_version=1` 开始。如果没有配置文件，OnionHEN 会释放一份基于
-[`config.ini.example`](config.ini.example) 的带注释默认配置。
+大部分选项都可以在工具箱里改。配置格式是 `schema_version=1`。
+如果还没有配置文件，OnionHEN 会按 [`config.ini.example`](config.ini.example)
+写出一份带注释的默认文件。
 
 | 配置项 | 默认值 | 可用值 |
 | --- | --- | --- |
 | `meta.schema_version` | `1` | `1` |
-| `toolbox.language` | `system` | `system`, `zh-Hans`, `en`, `ar` |
+| `toolbox.language` | `system` | `system`, `zh-Hans`, `zh-Hant`, `en`, `ja`, `ko`, `fr`, `de`, `it`, `es`, `pt-BR`, `pl`, `ru`, `ar` |
 | `startup.open_after_load` | `none` | `none`, `home_menu` |
 | `home_screen.show_title_ids` | `false` | `true`, `false` |
 | `game_menu.show_onionhen_options` | `true` | `true`, `false` |
@@ -235,8 +228,8 @@ OnionHEN 通过以下两个运行时视图创建并共享同一套配置 schema�
 | 路径 | 用途 |
 | --- | --- |
 | `/data/OnionHEN/payloads/` | 用户 payload ELF |
-| `/data/OnionHEN/cheats/` | Flat 金手指文件 |
-| `/data/OnionHEN/kstuff.elf` | 可选的内嵌 `kstuff` 运行时覆盖文件 |
+| `/data/OnionHEN/cheats/` | 金手指文件 |
+| `/data/OnionHEN/kstuff.elf` | 可选，用来替换内嵌的 `kstuff` |
 | `/data/OnionHEN/OnionHEN.log` | 主运行日志 |
 | `/data/OnionHEN/OnionHEN_util_daemon.log` | Utility daemon 日志 |
 
@@ -246,8 +239,8 @@ OnionHEN 通过以下两个运行时视图创建并共享同一套配置 schema�
 
 | 工具 | 用途 |
 | --- | --- |
-| [`scripts/daemon_log.py`](scripts/daemon_log.py) | 从主机串流 daemon 日志 |
-| [`scripts/shutdown_onion.py`](scripts/shutdown_onion.py) | 关闭 OnionHEN userland 栈但不终止 `kstuff` |
+| [`scripts/daemon_log.py`](scripts/daemon_log.py) | 从主机拉取守护进程日志 |
+| [`scripts/shutdown_onion.py`](scripts/shutdown_onion.py) | 关闭 OnionHEN 用户态进程，但不结束 `kstuff` |
 | [`scripts/ps5_cmake.sh`](scripts/ps5_cmake.sh) | 通过 PS5 Payload SDK 运行 CMake |
 | [`scripts/sync_dependencies.sh`](scripts/sync_dependencies.sh) | 获取或构建外部 payload 输入 |
 
@@ -260,13 +253,13 @@ OnionHEN 通过以下两个运行时视图创建并共享同一套配置 schema�
 ├── assets/                    项目图片资源
 ├── docs/                      架构与技术文档
 ├── scripts/                   构建、依赖和主机侧辅助脚本
-├── source/                    第一方 PS5 源码树
+├── source/                    本仓库的 PS5 源码
 │   ├── bootstrapper/          启动与内嵌 payload 链
-│   ├── daemon/                Critical daemon 与 Toolbox 注入
-│   ├── util/                  Utility daemon、IPC 与金手指引擎
-│   ├── shellui/               Toolbox 与 ShellUI hooks
-│   ├── unpacker/              最终 OnionHEN payload wrapper
-│   ├── libonion_*/            第一方共享库
+│   ├── daemon/                关键守护进程与工具箱注入
+│   ├── util/                  工具守护进程、IPC 与金手指
+│   ├── shellui/               工具箱与 ShellUI 挂钩
+│   ├── unpacker/              最终 OnionHEN payload 包装
+│   ├── libonion_*/            本仓库共享库
 │   ├── common/                共享底层实现
 │   └── platform/ps5/stubs/    PS5 系统库链接 stub
 ├── third_party/               外部源码、预编译库和 submodule
@@ -281,20 +274,17 @@ OnionHEN 通过以下两个运行时视图创建并共享同一套配置 schema�
 
 # 故障排查
 
-1. 加载 OnionHEN 前确认外部首跳 `elfldr` 服务可通过 **9021** 端口访问。
-2. 确认 payload 使用完整 PS5 Payload SDK 为目标固件构建。
-3. Toolbox 没有出现时，请等待串行的 `util → kstuff → daemon` 启动链并检查日志。
-4. 完整构建无法获取 `kstuff.elf` 时，重试 `./scripts/sync_dependencies.sh` 或初始化 submodule。
-5. 报告问题时请附带固件、exploit host、SDK 版本、构建类型、日志和稳定复现步骤。
+1. 加载 OnionHEN 前，确认外部 `elfldr` 能从 **9021** 连上。
+2. 确认这份 payload 是用完整的 PS5 Payload SDK、按当前固件构建的。
+3. 工具箱没出现时，等 `util → kstuff → daemon` 启动完，再看日志。
+4. 构建拿不到 `kstuff.elf` 时，再跑一次 `./scripts/sync_dependencies.sh`，或初始化 submodule。
+5. 报问题时请附上固件、漏洞加载端、SDK 版本、构建类型、日志和复现步骤。
 
 <br>
 
 # 参与贡献
 
-- 保持改动聚焦，并遵循现有 snake_case 命名约定。
-- 同步上游代码时保留第三方文件名。
-- 提交 pull request 前运行完整 PS5 构建和 host tests。
-- 修改模块职责、IPC、运行时路径或依赖时同步更新 `docs/arch.md`。
+见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 <br>
 
@@ -302,20 +292,35 @@ OnionHEN 通过以下两个运行时视图创建并共享同一套配置 schema�
 
 <a href="https://ko-fi.com/0xp0co"><img src="https://img.shields.io/badge/Ko--fi-Support-FF6433?style=for-the-badge&logo=kofi&logoColor=white" alt="在 Ko-fi 上支持 OnionHEN"/></a>
 
-如果您觉得这个项目对您有所帮助，请考虑支持它的持续开发。感谢您的支持！
+如果 OnionHEN 对你有用，欢迎支持后续开发。谢谢。
 
 <br>
 
 # 致谢
 
-OnionHEN 离不开 PS5 自制程序与逆向工程社区的共同努力。
+OnionHEN 离不开 PS5 自制软件与逆向工程社区。
 
-- [etaHEN](https://github.com/LightningMods/etaHEN) — LightningMods 与贡献者；本项目最初的开源基础
-- [GoldHEN](https://github.com/GoldHEN/GoldHEN) — SiSTR0 与贡献者；成熟一体化 HEN 的灵感来源
-- [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) 与 PS5 payload 开发社区
-- [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch、sleirsgoevy 与贡献者
-- [cJSON](https://github.com/DaveGamble/cJSON)、[7-Zip SDK](https://www.7-zip.org/sdk.html) 与 Keystone
-- 所有 OnionHEN 贡献者、测试者、研究人员，以及提供有效反馈的用户
+### 来源
+
+- [etaHEN](https://github.com/LightningMods/etaHEN) — LightningMods 与贡献者；本仓库的源码基线
+- [GoldHEN](https://github.com/GoldHEN/GoldHEN) — SiSTR0 与贡献者；PS4 一体化 HEN，本项目沿这条路走
+
+### 实际使用或内嵌
+
+- [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) — Prospero 工具链与头文件
+- [elfldr](https://github.com/ps5-payload-dev/elfldr) — 端口 9021 的首次引导加载器；不打进 payload
+- [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch、sleirsgoevy 与贡献者；可选的 `kstuff.elf`
+- [libhijacker](https://github.com/astrelsky/libhijacker) — astrelsky；进程劫持与内核读写
+- [NineS](https://github.com/buzzer-re/NineS) — buzzer-re；注入 ShellUI
+- [cJSON](https://github.com/DaveGamble/cJSON) — JSON 解析
+- [7-Zip LZMA SDK](https://www.7-zip.org/sdk.html) — unpacker 解压
+- [miniz](https://github.com/richgel999/miniz) — 金手指文件解压
+
+### 测试人员
+
+即食面、雨之声、大饼电玩、安定区、随风、麒麟、尼克库尔曼、云、啊烦、小小蔡、B站谢锡榆、荆枫
+
+也感谢其他参与测试、研究和给出有效反馈的人。
 
 <br>
 
@@ -324,5 +329,5 @@ OnionHEN 离不开 PS5 自制程序与逆向工程社区的共同努力。
 本项目基于 [GNU General Public License v3.0](LICENSE) 发布。
 第三方组件保留各自的许可证与声明。
 
-> OnionHEN 是非官方自制程序项目，与 Sony Interactive Entertainment 无隶属关系。
-> 请仅在你拥有的硬件上使用，风险由使用者自行承担。本项目不提供任何担保。
+> OnionHEN 是非官方自制项目，与 Sony Interactive Entertainment 无关。
+> 请只在你自己的主机上使用，风险自负。本项目不提供任何担保。

@@ -55,6 +55,16 @@ inline constexpr int kUiLanguageSystem = 0;
 inline constexpr int kUiLanguageZhHans = 1;
 inline constexpr int kUiLanguageEn = 2;
 inline constexpr int kUiLanguageAr = 3;
+inline constexpr int kUiLanguageZhHant = 4;
+inline constexpr int kUiLanguageJa = 5;
+inline constexpr int kUiLanguageFr = 6;
+inline constexpr int kUiLanguageDe = 7;
+inline constexpr int kUiLanguageKo = 8;
+inline constexpr int kUiLanguageEs = 9;
+inline constexpr int kUiLanguagePtBr = 10;
+inline constexpr int kUiLanguageIt = 11;
+inline constexpr int kUiLanguageRu = 12;
+inline constexpr int kUiLanguagePl = 13;
 
 inline constexpr int kStartupOpenNone = 0;
 inline constexpr int kStartupOpenHomeMenu = 1;
@@ -139,7 +149,9 @@ struct Settings {
   bool kstuff_autoload = true;
 
   // [toolbox]
-  // 0 = system (default), 1 = zh-Hans, 2 = English, 3 = Arabic
+  // 0 = system (default), 1 = zh-Hans, 2 = en, 3 = ar, 4 = zh-Hant,
+  // 5 = ja, 6 = fr, 7 = de, 8 = ko, 9 = es, 10 = pt-BR, 11 = it,
+  // 12 = ru, 13 = pl
   int ui_lang = kUiLanguageSystem;
 
   // [logging]
@@ -190,6 +202,9 @@ bool settings_load(Settings *out);
 // Load/save a single explicit path (host tests and tooling).
 bool settings_load_file(const char *path, Settings *out);
 bool settings_save_file(const char *path, const Settings &in);
+
+// Canonical toolbox.language token for a stored ui_lang value.
+const char *language_name(int ui_lang);
 
 // Serialize full schema to annotated INI text (no I/O).
 std::string settings_serialize(const Settings &in);
