@@ -30,7 +30,7 @@ static int test_default_zh(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("fan.enable.sub"),
                                "关闭时使用系统默认风扇策略") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("account.warning"),
-                               "激活账号后，现有游戏存档可能会失效。"
+                               "激活账号后，你可能会丢失现有存档（账号 ID 会改变）。"
                                "请确认你接受这个风险后再继续。") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "为 %s 启用/禁用 %s") == 0);
@@ -64,9 +64,9 @@ static int test_en(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("sc.off"), "Off (no shortcut)") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("account.link"), "Account activation") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("account.warning"),
-                               "Activating this account may make existing game "
-                               "saves unusable. Continue only if you accept "
-                               "that risk.") == 0);
+                               "You may lose your existing game saves because "
+                               "the account ID will change. Continue only if "
+                               "you accept that risk.") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "Enable/disable %s for %s") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("payload.start_stop_fmt"),
