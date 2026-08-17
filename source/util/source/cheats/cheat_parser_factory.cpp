@@ -7,6 +7,7 @@
 #include <string>
 
 #include "cheats/cheat_engine_internal.h"
+#include "cheats/runtime.h"
 
 
 namespace onion::cheats {
@@ -29,14 +30,6 @@ std::string normalizeFormat(std::string format) {
   return format;
 }
 
-std::string extensionOf(const std::string &path) {
-  const auto pos = path.find_last_of('.');
-  if (pos == std::string::npos || pos + 1 >= path.size()) {
-    return {};
-  }
-  return path.substr(pos + 1);
-}
-
 } // namespace
 
 std::unique_ptr<ICheatParser>
@@ -57,7 +50,11 @@ CheatParserFactory::createByFormat(const std::string &format) {
 
 std::unique_ptr<ICheatParser>
 CheatParserFactory::createByPath(const std::string &path) {
-  return createByFormat(extensionOf(path));
+  char format[16];
+  if (!onion_cheat_match_ext(path.c_str(), format, sizeof(format))) {
+    return createByFormat({});
+  }
+  return createByFormat(format);
 }
 
 int CheatParserFactory::loadBuffer(const std::string &format,
