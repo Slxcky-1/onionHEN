@@ -69,6 +69,18 @@ inline constexpr int kLogLevelInfo = 3;
 inline constexpr int kLogLevelDebug = 4;
 inline constexpr int kLogLevelTrace = 5;
 
+inline constexpr int kFanThresholdMinCelsius = 0;
+inline constexpr int kFanThresholdMaxCelsius = 100;
+inline constexpr int kFanAutomaticThresholdCelsius = 77;
+
+inline constexpr int clamp_fan_threshold(int celsius) {
+  if (celsius < kFanThresholdMinCelsius)
+    return kFanThresholdMinCelsius;
+  if (celsius > kFanThresholdMaxCelsius)
+    return kFanThresholdMaxCelsius;
+  return celsius;
+}
+
 inline constexpr std::size_t kMaxAppJailbreakExactTitleIds = 20;
 inline constexpr std::size_t kMaxAppJailbreakTitleIdPrefixes = 20;
 
@@ -102,7 +114,7 @@ struct Settings {
 
   // [cooling]
   bool enable_fan_speed = false;
-  int fan_threshold = 77;
+  int fan_threshold = kFanAutomaticThresholdCelsius;
 
   // [overlay]
   /** Master visibility switch for the complete ShellUI game monitor bar. */

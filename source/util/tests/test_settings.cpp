@@ -389,6 +389,23 @@ static int test_log_level_invalid_falls_back(void) {
   return 0;
 }
 
+static int test_clamp_fan_threshold(void) {
+  TEST_ASSERT_EQ_INT(onion::kFanAutomaticThresholdCelsius,
+                     onion::Settings{}.fan_threshold);
+  TEST_ASSERT_EQ_INT(onion::kFanThresholdMinCelsius,
+                     onion::clamp_fan_threshold(-5));
+  TEST_ASSERT_EQ_INT(onion::kFanThresholdMinCelsius,
+                     onion::clamp_fan_threshold(onion::kFanThresholdMinCelsius));
+  TEST_ASSERT_EQ_INT(onion::kFanAutomaticThresholdCelsius,
+                     onion::clamp_fan_threshold(
+                         onion::kFanAutomaticThresholdCelsius));
+  TEST_ASSERT_EQ_INT(onion::kFanThresholdMaxCelsius,
+                     onion::clamp_fan_threshold(onion::kFanThresholdMaxCelsius));
+  TEST_ASSERT_EQ_INT(onion::kFanThresholdMaxCelsius,
+                     onion::clamp_fan_threshold(140));
+  return 0;
+}
+
 extern "C" int test_settings_suite(void) {
   int failures = 0;
   failures += onion_test_run("settings_defaults_serialize", test_defaults_and_serialize_keys);
@@ -407,5 +424,7 @@ extern "C" int test_settings_suite(void) {
   failures += onion_test_run("settings_config_mtime_helpers", test_config_mtime_helpers);
   failures += onion_test_run("settings_log_level_invalid",
                              test_log_level_invalid_falls_back);
+  failures += onion_test_run("settings_clamp_fan_threshold",
+                             test_clamp_fan_threshold);
   return failures;
 }

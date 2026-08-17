@@ -44,6 +44,10 @@ int get_shellui_pid();
 int get_game_pid();
 void ForceKillProc(int pid);
 bool set_fan_threshold(int temp);
+/** Write the stock 77 C threshold used when manual control is turned off. */
+bool restore_automatic_fan();
+/** Periodic /dev/icc_fan rewrite while manual threshold is enabled. */
+void *fan_maintenance_thread(void *args) noexcept;
 
 /**
  * Tear down OnionHEN userland (does not return). Caller should reply to IPC first.

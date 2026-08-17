@@ -460,7 +460,8 @@ bool apply_parser(IniParser *parser, Settings *out) {
                         out->enable_fan_speed);
   out->fan_threshold =
       parse_int_range(ini_get(parser, "cooling.temperature_threshold_celsius"),
-                      out->fan_threshold, 0, 100);
+                      out->fan_threshold, kFanThresholdMinCelsius,
+                      kFanThresholdMaxCelsius);
   out->overlay_enabled =
       parse_bool(ini_get(parser, "overlay.enabled"), out->overlay_enabled);
   out->overlay_background = parse_bool(

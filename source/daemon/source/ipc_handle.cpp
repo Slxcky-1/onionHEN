@@ -240,7 +240,8 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     int speed = onion_cjson::int_item(my_json.get(), "speed");
     int enabled = onion_cjson::int_item(my_json.get(), "enabled");
     LOG_INFO("Adjusting Fan Speed to: %d", speed);
-    if (speed < 0 || speed > 100) {
+    if (speed < onion::kFanThresholdMinCelsius ||
+        speed > onion::kFanThresholdMaxCelsius) {
       onion_notify(true, "Invalid fan speed: %d. Must be between 0 and 100.", speed);
       reply(sender_app, true);
       break;
@@ -248,7 +249,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
 
     if (!enabled) {
       onion_notify(true, "Fan speed adjustment is disabled.");
-      set_fan_threshold(77);
+      restore_automatic_fan();
       const onion::Settings saved = g_settings.update([](onion::Settings &s) {
         s.enable_fan_speed = false;
       });

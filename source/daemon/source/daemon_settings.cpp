@@ -72,12 +72,12 @@ bool LoadSettings(bool force) {
   g_settings.store(s);
   app_jailbreak_set_enabled(s.app_jailbreak_enabled);
 
-  /* Fan maintenance used to run inside the app-jailbreak poller. Keep the
-     features independent by applying fan state at the configuration boundary. */
+  /* Immediate apply on config change. fan_maintenance_thread keeps rewriting
+     the threshold so firmware cannot silently restore its own curve. */
   if (s.enable_fan_speed) {
     (void)set_fan_threshold(s.fan_threshold);
   } else if (config_state.ever_loaded && previous.enable_fan_speed) {
-    (void)set_fan_threshold(77);
+    (void)restore_automatic_fan();
   }
 
   int system_language = 1;
