@@ -427,6 +427,9 @@ static int test_language_new_locales_roundtrip(void) {
       {onion::kUiLanguageJa, "ja", "ja-JP"},
       {onion::kUiLanguageFr, "fr", "fr-FR"},
       {onion::kUiLanguageDe, "de", "deutsch"},
+      {onion::kUiLanguageKo, "ko", "ko-KR"},
+      {onion::kUiLanguageEs, "es", "es-MX"},
+      {onion::kUiLanguagePtBr, "pt-BR", "portuguese"},
   };
 
   for (const auto &c : cases) {

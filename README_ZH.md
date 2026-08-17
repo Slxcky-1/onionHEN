@@ -210,7 +210,7 @@ OnionHEN 通过以下两个运行时视图创建并共享同一套配置 schema�
 | 配置项 | 默认值 | 可用值 |
 | --- | --- | --- |
 | `meta.schema_version` | `1` | `1` |
-| `toolbox.language` | `system` | `system`, `zh-Hans`, `zh-Hant`, `en`, `ja`, `fr`, `de`, `ar` |
+| `toolbox.language` | `system` | `system`, `zh-Hans`, `zh-Hant`, `en`, `ja`, `ko`, `fr`, `de`, `es`, `pt-BR`, `ar` |
 | `startup.open_after_load` | `none` | `none`, `home_menu` |
 | `home_screen.show_title_ids` | `false` | `true`, `false` |
 | `game_menu.show_onionhen_options` | `true` | `true`, `false` |

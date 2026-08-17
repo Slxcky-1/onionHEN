@@ -155,6 +155,41 @@ static int test_de(void) {
   return 0;
 }
 
+static int test_ko(void) {
+  set_lang(Lang::Ko);
+  TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★OnionHEN 툴박스") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.link"), "치트") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("rest.group"), "휴식 모드") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("lang.ko"), "한국어") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
+                               "%s의 %s 사용/해제") == 0);
+  return 0;
+}
+
+static int test_es(void) {
+  set_lang(Lang::Es);
+  TEST_ASSERT_TRUE(
+      std::strcmp(tr("root.title"), "★Caja de herramientas OnionHEN") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.link"), "Trucos") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("rest.group"), "Modo de reposo") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("lang.es"), "Español") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
+                               "Para %s, activar/desactivar %s") == 0);
+  return 0;
+}
+
+static int test_pt_br(void) {
+  set_lang(Lang::PtBr);
+  TEST_ASSERT_TRUE(
+      std::strcmp(tr("root.title"), "★Caixa de ferramentas OnionHEN") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.link"), "Cheats") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("rest.group"), "Modo de repouso") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("lang.pt_br"), "Português (Brasil)") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
+                               "Para %s, ativar/desativar %s") == 0);
+  return 0;
+}
+
 static int test_apply_ui_lang(void) {
   apply_ui_lang(2);
   TEST_ASSERT_TRUE(active_lang() == Lang::En);
@@ -177,6 +212,15 @@ static int test_apply_ui_lang(void) {
   apply_ui_lang(7);
   TEST_ASSERT_TRUE(active_lang() == Lang::De);
   TEST_ASSERT_EQ_INT(7, active_ui_lang_value());
+  apply_ui_lang(8);
+  TEST_ASSERT_TRUE(active_lang() == Lang::Ko);
+  TEST_ASSERT_EQ_INT(8, active_ui_lang_value());
+  apply_ui_lang(9);
+  TEST_ASSERT_TRUE(active_lang() == Lang::Es);
+  TEST_ASSERT_EQ_INT(9, active_ui_lang_value());
+  apply_ui_lang(10);
+  TEST_ASSERT_TRUE(active_lang() == Lang::PtBr);
+  TEST_ASSERT_EQ_INT(10, active_ui_lang_value());
   apply_ui_lang(99); /* invalid → zh */
   TEST_ASSERT_TRUE(active_lang() == Lang::ZhHans);
   return 0;
@@ -219,6 +263,15 @@ static int test_format(void) {
   set_lang(Lang::De);
   TEST_ASSERT_TRUE(format("cheats.enable_fmt", "Game", "God") ==
                    "Für Game: God ein-/ausschalten");
+  set_lang(Lang::Ko);
+  TEST_ASSERT_TRUE(format("cheats.enable_fmt", "Game", "God") ==
+                   "Game의 God 사용/해제");
+  set_lang(Lang::Es);
+  TEST_ASSERT_TRUE(format("cheats.enable_fmt", "Game", "God") ==
+                   "Para Game, activar/desactivar God");
+  set_lang(Lang::PtBr);
+  TEST_ASSERT_TRUE(format("cheats.enable_fmt", "Game", "God") ==
+                   "Para Game, ativar/desativar God");
   return 0;
 }
 
@@ -231,6 +284,9 @@ extern "C" int test_toolbox_i18n_suite(void) {
   fails += onion_test_run("i18n.ja", test_ja);
   fails += onion_test_run("i18n.fr", test_fr);
   fails += onion_test_run("i18n.de", test_de);
+  fails += onion_test_run("i18n.ko", test_ko);
+  fails += onion_test_run("i18n.es", test_es);
+  fails += onion_test_run("i18n.pt_br", test_pt_br);
   fails += onion_test_run("i18n.apply_ui_lang", test_apply_ui_lang);
   fails += onion_test_run("i18n.system_lang_host_fallback",
                           test_system_lang_host_fallback);

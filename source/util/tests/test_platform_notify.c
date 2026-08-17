@@ -62,6 +62,12 @@ static int test_notify_language_resolution(void) {
                      onion_notify_resolve_language(6, 1));
   TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_DE,
                      onion_notify_resolve_language(7, 1));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_KO,
+                     onion_notify_resolve_language(8, 1));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_ES,
+                     onion_notify_resolve_language(9, 1));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_PT_BR,
+                     onion_notify_resolve_language(10, 1));
   TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_AR,
                      onion_notify_resolve_language(0, 21));
   TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_JA,
@@ -78,6 +84,16 @@ static int test_notify_language_resolution(void) {
                      onion_notify_resolve_language(0, 11));
   TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_EN,
                      onion_notify_resolve_language(0, 1));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_KO,
+                     onion_notify_resolve_language(0, 9));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_ES,
+                     onion_notify_resolve_language(0, 3));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_ES,
+                     onion_notify_resolve_language(0, 20));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_PT_BR,
+                     onion_notify_resolve_language(0, 17));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_PT_BR,
+                     onion_notify_resolve_language(0, 7));
   return 0;
 }
 
@@ -105,6 +121,15 @@ static int test_notify_format_localized(void) {
   format_msg(out, sizeof(out), 1, "notify.priv.unable");
   TEST_ASSERT_STREQ("[OnionHEN] Berechtigungen konnten nicht erhöht werden",
                     out);
+  onion_notify_set_language(ONION_NOTIFY_LANG_KO);
+  format_msg(out, sizeof(out), 1, "notify.priv.unable");
+  TEST_ASSERT_STREQ("[OnionHEN] 권한을 올릴 수 없습니다", out);
+  onion_notify_set_language(ONION_NOTIFY_LANG_ES);
+  format_msg(out, sizeof(out), 1, "notify.priv.unable");
+  TEST_ASSERT_STREQ("[OnionHEN] No se pudieron elevar los privilegios", out);
+  onion_notify_set_language(ONION_NOTIFY_LANG_PT_BR);
+  format_msg(out, sizeof(out), 1, "notify.priv.unable");
+  TEST_ASSERT_STREQ("[OnionHEN] Não foi possível elevar os privilégios", out);
   return 0;
 }
 

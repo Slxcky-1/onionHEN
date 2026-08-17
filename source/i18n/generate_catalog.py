@@ -28,8 +28,11 @@ FILENAME_IDS = {
     "zh-CN.json": ("zh-Hans", False),
     "zh-TW.json": ("zh-Hant", False),
     "ja-JP.json": ("ja", False),
+    "ko-KR.json": ("ko", False),
     "fr-FR.json": ("fr", False),
     "de-DE.json": ("de", False),
+    "es-ES.json": ("es", False),
+    "pt-BR.json": ("pt-BR", False),
     "ar-SA.json": ("ar", False),
 }
 

@@ -132,6 +132,22 @@ int parse_language(const char *s, int def) {
       streq_ci(s, "deutsch")) {
     return kUiLanguageDe;
   }
+  if (streq_ci(s, "ko") || streq_ci(s, "korean") ||
+      streq_ci(s, "ko-KR") || streq_ci(s, "ko_kr")) {
+    return kUiLanguageKo;
+  }
+  if (streq_ci(s, "es") || streq_ci(s, "spanish") ||
+      streq_ci(s, "es-ES") || streq_ci(s, "es_es") ||
+      streq_ci(s, "es-MX") || streq_ci(s, "es_mx") ||
+      streq_ci(s, "es-419") || streq_ci(s, "es_419")) {
+    return kUiLanguageEs;
+  }
+  if (streq_ci(s, "pt-BR") || streq_ci(s, "pt_br") ||
+      streq_ci(s, "pt-br") || streq_ci(s, "pt") ||
+      streq_ci(s, "portuguese") || streq_ci(s, "pt-PT") ||
+      streq_ci(s, "pt_pt")) {
+    return kUiLanguagePtBr;
+  }
   return def;
 }
 
@@ -153,6 +169,12 @@ const char *language_name(int v) {
     return "fr";
   case kUiLanguageDe:
     return "de";
+  case kUiLanguageKo:
+    return "ko";
+  case kUiLanguageEs:
+    return "es";
+  case kUiLanguagePtBr:
+    return "pt-BR";
   case kUiLanguageSystem:
   default:
     return "system";
@@ -578,7 +600,7 @@ std::string settings_serialize(const Settings &in) {
   b += "\n";
   b += "[toolbox]\n";
   b += "# language controls the Toolbox UI and notification language.\n";
-  b += "# Available values: system, zh-Hans, zh-Hant, en, ja, fr, de, ar\n";
+  b += "# Available values: system, zh-Hans, zh-Hant, en, ja, ko, fr, de, es, pt-BR, ar\n";
   b += "# system follows the PS5 system language when it can be detected.\n";
   b += "language=" + std::string(language_name(in.ui_lang)) + "\n";
   b += "\n";

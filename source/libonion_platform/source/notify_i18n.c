@@ -13,7 +13,7 @@ static atomic_int gLanguage = ATOMIC_VAR_INIT(ONION_NOTIFY_LANG_EN);
 
 static int language_is_known(onion_notify_language_t language) {
   return language >= ONION_NOTIFY_LANG_ZH_HANS &&
-         language <= ONION_NOTIFY_LANG_DE;
+         language <= ONION_NOTIFY_LANG_PT_BR;
 }
 
 static const char *locale_id_for_language(onion_notify_language_t language) {
@@ -30,6 +30,12 @@ static const char *locale_id_for_language(onion_notify_language_t language) {
     return "fr";
   case ONION_NOTIFY_LANG_DE:
     return "de";
+  case ONION_NOTIFY_LANG_KO:
+    return "ko";
+  case ONION_NOTIFY_LANG_ES:
+    return "es";
+  case ONION_NOTIFY_LANG_PT_BR:
+    return "pt-BR";
   case ONION_NOTIFY_LANG_EN:
   default:
     return "en";
@@ -75,6 +81,12 @@ onion_notify_language_t onion_notify_resolve_language(int ui_language,
     return ONION_NOTIFY_LANG_FR;
   case 7:
     return ONION_NOTIFY_LANG_DE;
+  case 8:
+    return ONION_NOTIFY_LANG_KO;
+  case 9:
+    return ONION_NOTIFY_LANG_ES;
+  case 10:
+    return ONION_NOTIFY_LANG_PT_BR;
   default:
     break;
   }
@@ -86,8 +98,16 @@ onion_notify_language_t onion_notify_resolve_language(int ui_language,
   case 2:  /* French */
   case 22: /* French (Canada) */
     return ONION_NOTIFY_LANG_FR;
+  case 3:  /* Spanish */
+  case 20: /* Spanish (Latin America) */
+    return ONION_NOTIFY_LANG_ES;
   case 4: /* German */
     return ONION_NOTIFY_LANG_DE;
+  case 7:  /* Portuguese (Portugal) */
+  case 17: /* Portuguese (Brazil) */
+    return ONION_NOTIFY_LANG_PT_BR;
+  case 9: /* Korean */
+    return ONION_NOTIFY_LANG_KO;
   case 10: /* Traditional Chinese */
     return ONION_NOTIFY_LANG_ZH_HANT;
   case 11: /* Simplified Chinese */
