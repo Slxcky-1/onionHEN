@@ -626,7 +626,7 @@ std::string settings_serialize(const Settings &in) {
   b += "\n";
   b += "[toolbox]\n";
   b += "# language controls the Toolbox UI and notification language.\n";
-  b += "# Available values: system, zh-Hans, zh-Hant, en, ja, ko, fr, de, it, es, pt-BR, pl, ru, ar\n";
+  b += "# Available values: system, zh-Hans, zh-Hant, en, ja, ko, fr, de, it, es, pt-BR, pl, ru, ar, th\n";
   b += "# system follows the PS5 system language when it can be detected.\n";
   b += "language=" + std::string(language_name(in.ui_lang)) + "\n";
   b += "\n";

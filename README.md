@@ -208,7 +208,7 @@ default from [`config.ini.example`](config.ini.example).
 | Key | Default | Values |
 | --- | --- | --- |
 | `meta.schema_version` | `1` | `1` |
-| `toolbox.language` | `system` | `system`, `zh-Hans`, `zh-Hant`, `en`, `ja`, `ko`, `fr`, `de`, `it`, `es`, `pt-BR`, `pl`, `ru`, `ar` |
+| `toolbox.language` | `system` | `system`, `zh-Hans`, `zh-Hant`, `en`, `ja`, `ko`, `fr`, `de`, `it`, `es`, `pt-BR`, `pl`, `ru`, `ar`, `th` |
 | `startup.open_after_load` | `none` | `none`, `home_menu` |
 | `home_screen.show_title_ids` | `false` | `true`, `false` |
 | `game_menu.show_onionhen_options` | `true` | `true`, `false` |
