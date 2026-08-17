@@ -289,10 +289,7 @@ See [the architecture document](docs/arch.md) for the complete module and IPC ma
 
 # Contributing
 
-- Keep changes focused and follow the existing snake_case naming convention.
-- Preserve third-party file names when syncing upstream code.
-- Run the full PS5 build and host tests before submitting a pull request.
-- Update `docs/arch.md` when changing module responsibilities, IPC, runtime paths, or dependencies.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 <br>
 

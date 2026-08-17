@@ -284,10 +284,7 @@ OnionHEN 在下面两处读写同一份配置：
 
 # 参与贡献
 
-- 保持改动聚焦，并遵循现有 snake_case 命名约定。
-- 同步上游代码时保留第三方文件名。
-- 提交 pull request 前跑完整 PS5 构建和主机侧测试。
-- 修改模块职责、IPC、运行时路径或依赖时同步更新 `docs/arch.md`。
+见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 <br>
 
