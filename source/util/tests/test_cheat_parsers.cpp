@@ -308,11 +308,13 @@ int test_factory_extension_routing() {
   auto shn = CheatParserFactory::createByFormat(".shn");
   auto mc4 = CheatParserFactory::createByFormat("MC4");
   auto shnext = CheatParserFactory::createByFormat("ShnExt");
+  auto shnext_path = CheatParserFactory::createByPath("demo.SHNEXT");
 
   TEST_ASSERT_STREQ("json", json->name());
   TEST_ASSERT_STREQ("shn", shn->name());
   TEST_ASSERT_STREQ("mc4", mc4->name());
   TEST_ASSERT_STREQ("ShnExt", shnext->name());
+  TEST_ASSERT_STREQ("ShnExt", shnext_path->name());
   return 0;
 }
 

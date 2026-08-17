@@ -9,6 +9,7 @@ REPO_ROOT := $(abspath $(UTIL_ROOT)/../..)
 THIRD_PARTY_ROOT := $(REPO_ROOT)/third_party
 BUILD_DIR := $(UTIL_ROOT)/build/host-tests
 BIN := $(BUILD_DIR)/onion-host-tests
+TEST_DATA_ROOT := $(BUILD_DIR)/runtime
 
 HOST_CC ?= cc
 HOST_CXX ?= c++
@@ -20,6 +21,7 @@ KEYSTONE_LDFLAGS := -L$(KEYSTONE_PREFIX)/lib -lkeystone
 DEPFLAGS := -MMD -MP
 COMMON_FLAGS := -Wall -Wextra -g -O0 $(DEPFLAGS) -DONION_HOST_TEST=1 -DCBC=1 \
 	-DONION_TEST_DIR=\"$(CURDIR)\" \
+	-DONION_DATA_ROOT=\"$(TEST_DATA_ROOT)\" \
 	-I$(UTIL_ROOT)/include \
 	-I$(UTIL_ROOT)/tests \
 	-I$(REPO_ROOT)/source/include \
@@ -68,6 +70,7 @@ PROD_CXX_SRCS := \
 	$(UTIL_ROOT)/source/cheats/mc4_cheat_parser.cpp \
 	$(UTIL_ROOT)/source/cheats/shn_ext_cheat_parser.cpp \
 	$(UTIL_ROOT)/source/cheats/cheat_parser_factory.cpp \
+	$(UTIL_ROOT)/source/cheats/cheat_repository.cpp \
 	$(UTIL_ROOT)/source/http_github.cpp \
 	$(THIRD_PARTY_ROOT)/cjson/cJSON.cpp \
 	$(REPO_ROOT)/source/libonion_settings/source/settings.cpp \
@@ -98,6 +101,7 @@ TEST_C_SRCS := \
 
 TEST_CXX_SRCS := \
 	test_cheat_parsers.cpp \
+	test_cheat_repository.cpp \
 	test_settings.cpp \
 	test_msg_protocol.cpp \
 	test_app_jailbreak_policy.cpp \
