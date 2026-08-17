@@ -102,6 +102,11 @@ int parse_language(const char *s, int def) {
   if (streq_ci(s, "system")) {
     return kUiLanguageSystem;
   }
+  if (streq_ci(s, "zh-Hant") || streq_ci(s, "zh_hant") ||
+      streq_ci(s, "zh-TW") || streq_ci(s, "zh_tw") ||
+      streq_ci(s, "zh-HK") || streq_ci(s, "zh_hk")) {
+    return kUiLanguageZhHant;
+  }
   if (streq_ci(s, "zh-Hans") || streq_ci(s, "zh_hans") ||
       streq_ci(s, "zh")) {
     return kUiLanguageZhHans;
@@ -113,8 +118,24 @@ int parse_language(const char *s, int def) {
       streq_ci(s, "ar-SA") || streq_ci(s, "ar_sa")) {
     return kUiLanguageAr;
   }
+  if (streq_ci(s, "ja") || streq_ci(s, "japanese") ||
+      streq_ci(s, "ja-JP") || streq_ci(s, "ja_jp")) {
+    return kUiLanguageJa;
+  }
+  if (streq_ci(s, "fr") || streq_ci(s, "french") ||
+      streq_ci(s, "fr-FR") || streq_ci(s, "fr_fr") ||
+      streq_ci(s, "francais") || streq_ci(s, "français")) {
+    return kUiLanguageFr;
+  }
+  if (streq_ci(s, "de") || streq_ci(s, "german") ||
+      streq_ci(s, "de-DE") || streq_ci(s, "de_de") ||
+      streq_ci(s, "deutsch")) {
+    return kUiLanguageDe;
+  }
   return def;
 }
+
+} // namespace
 
 const char *language_name(int v) {
   switch (v) {
@@ -124,11 +145,21 @@ const char *language_name(int v) {
     return "en";
   case kUiLanguageAr:
     return "ar";
+  case kUiLanguageZhHant:
+    return "zh-Hant";
+  case kUiLanguageJa:
+    return "ja";
+  case kUiLanguageFr:
+    return "fr";
+  case kUiLanguageDe:
+    return "de";
   case kUiLanguageSystem:
   default:
     return "system";
   }
 }
+
+namespace {
 
 int parse_startup_open_after_load(const char *s, int def) {
   if (streq_ci(s, "none")) {
@@ -547,7 +578,7 @@ std::string settings_serialize(const Settings &in) {
   b += "\n";
   b += "[toolbox]\n";
   b += "# language controls the Toolbox UI and notification language.\n";
-  b += "# Available values: system, zh-Hans, en, ar\n";
+  b += "# Available values: system, zh-Hans, zh-Hant, en, ja, fr, de, ar\n";
   b += "# system follows the PS5 system language when it can be detected.\n";
   b += "language=" + std::string(language_name(in.ui_lang)) + "\n";
   b += "\n";

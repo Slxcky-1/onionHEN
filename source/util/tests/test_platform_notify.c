@@ -54,10 +54,30 @@ static int test_notify_language_resolution(void) {
                      onion_notify_resolve_language(2, 11));
   TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_AR,
                      onion_notify_resolve_language(3, 1));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_ZH_HANT,
+                     onion_notify_resolve_language(4, 1));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_JA,
+                     onion_notify_resolve_language(5, 1));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_FR,
+                     onion_notify_resolve_language(6, 1));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_DE,
+                     onion_notify_resolve_language(7, 1));
   TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_AR,
                      onion_notify_resolve_language(0, 21));
-  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_EN,
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_JA,
                      onion_notify_resolve_language(0, 0));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_FR,
+                     onion_notify_resolve_language(0, 2));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_FR,
+                     onion_notify_resolve_language(0, 22));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_DE,
+                     onion_notify_resolve_language(0, 4));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_ZH_HANT,
+                     onion_notify_resolve_language(0, 10));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_ZH_HANS,
+                     onion_notify_resolve_language(0, 11));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_EN,
+                     onion_notify_resolve_language(0, 1));
   return 0;
 }
 
@@ -72,6 +92,19 @@ static int test_notify_format_localized(void) {
   onion_notify_set_language(ONION_NOTIFY_LANG_AR);
   format_msg(out, sizeof(out), 1, "notify.priv.unable");
   TEST_ASSERT_STREQ("[OnionHEN] تعذّر رفع الامتيازات", out);
+  onion_notify_set_language(ONION_NOTIFY_LANG_ZH_HANT);
+  format_msg(out, sizeof(out), 1, "notify.priv.unable");
+  TEST_ASSERT_STREQ("[OnionHEN] 無法提升權限", out);
+  onion_notify_set_language(ONION_NOTIFY_LANG_JA);
+  format_msg(out, sizeof(out), 1, "notify.priv.unable");
+  TEST_ASSERT_STREQ("[OnionHEN] 権限を昇格できません", out);
+  onion_notify_set_language(ONION_NOTIFY_LANG_FR);
+  format_msg(out, sizeof(out), 1, "notify.priv.unable");
+  TEST_ASSERT_STREQ("[OnionHEN] Impossible d’élever les privilèges", out);
+  onion_notify_set_language(ONION_NOTIFY_LANG_DE);
+  format_msg(out, sizeof(out), 1, "notify.priv.unable");
+  TEST_ASSERT_STREQ("[OnionHEN] Berechtigungen konnten nicht erhöht werden",
+                    out);
   return 0;
 }
 

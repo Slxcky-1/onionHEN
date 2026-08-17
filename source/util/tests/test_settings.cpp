@@ -414,6 +414,46 @@ static int test_language_ar_roundtrip(void) {
   return 0;
 }
 
+static int test_language_new_locales_roundtrip(void) {
+  const std::string path = temp_ini_path();
+  TEST_ASSERT_TRUE(!path.empty());
+
+  struct {
+    int value;
+    const char *canonical;
+    const char *alias;
+  } const cases[] = {
+      {onion::kUiLanguageZhHant, "zh-Hant", "zh-TW"},
+      {onion::kUiLanguageJa, "ja", "ja-JP"},
+      {onion::kUiLanguageFr, "fr", "fr-FR"},
+      {onion::kUiLanguageDe, "de", "deutsch"},
+  };
+
+  for (const auto &c : cases) {
+    onion::Settings in{};
+    in.ui_lang = c.value;
+    const std::string text = onion::settings_serialize(in);
+    TEST_ASSERT_TRUE(text.find(std::string("language=") + c.canonical) !=
+                     std::string::npos);
+    TEST_ASSERT_TRUE(onion::settings_save_file(path.c_str(), in));
+
+    onion::Settings out{};
+    TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
+    TEST_ASSERT_EQ_INT(c.value, out.ui_lang);
+
+    FILE *f = fopen(path.c_str(), "w");
+    TEST_ASSERT_TRUE(f != nullptr);
+    fprintf(f, "[meta]\nschema_version=1\n\n[toolbox]\nlanguage=%s\n",
+            c.alias);
+    fclose(f);
+    TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
+    TEST_ASSERT_EQ_INT(c.value, out.ui_lang);
+  }
+
+  unlink(path.c_str());
+  return 0;
+}
+
 static int test_clamp_fan_threshold(void) {
   TEST_ASSERT_EQ_INT(onion::kFanAutomaticThresholdCelsius,
                      onion::Settings{}.fan_threshold);
@@ -450,6 +490,8 @@ extern "C" int test_settings_suite(void) {
   failures += onion_test_run("settings_log_level_invalid",
                              test_log_level_invalid_falls_back);
   failures += onion_test_run("settings_language_ar", test_language_ar_roundtrip);
+  failures += onion_test_run("settings_language_new_locales",
+                             test_language_new_locales_roundtrip);
   failures += onion_test_run("settings_clamp_fan_threshold",
                              test_clamp_fan_threshold);
   return failures;

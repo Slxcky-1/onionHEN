@@ -26,6 +26,10 @@ PRINTF_CONVERSION = re.compile(
 FILENAME_IDS = {
     "en-US.json": ("en", True),
     "zh-CN.json": ("zh-Hans", False),
+    "zh-TW.json": ("zh-Hant", False),
+    "ja-JP.json": ("ja", False),
+    "fr-FR.json": ("fr", False),
+    "de-DE.json": ("de", False),
     "ar-SA.json": ("ar", False),
 }
 
