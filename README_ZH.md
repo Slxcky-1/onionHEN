@@ -62,7 +62,7 @@ OnionHEN 面向已越狱的 PS5，提供一套能日常使用、也方便维护�
 
 - **ShellUI 工具箱** — 注入 PS5 ShellUI 的设置页
 - **系统准备** — 提权、重新挂载文件系统、阻断系统更新分区
-- **fSELF / fPKG** — 内嵌 `kstuff`，用来跑自制 SELF / PKG；默认会加载，可在工具箱里关掉
+- **fSELF / fPKG** — 内嵌 kstuff，用来跑自制 SELF / PKG；默认加载，可在工具箱关掉
 - **Payload 管理** — 启动和停止普通 `.elf` payload，可选自动启动
 - **游戏监控条** — 游戏中显示 FPS、CPU、GPU、内存、温度和网络信息
 - **金手指** — 本地 JSON、SHN、MC4、ShnExt 文件，运行中即可开关

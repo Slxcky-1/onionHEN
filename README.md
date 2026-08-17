@@ -63,7 +63,7 @@ OnionHEN is a practical homebrew stack for jailbroken PS5 consoles.
 
 - **ShellUI Toolbox** — a settings page injected into the PS5 ShellUI
 - **System preparation** — raise privileges, remount filesystems, and block the update partition
-- **fSELF / fPKG** — bundled `kstuff` so fake SELF and PKG can run; it loads by default and can be turned off in the Toolbox
+- **fSELF / fPKG** — bundled kstuff for homebrew SELF / PKG; loads by default, can be turned off in the Toolbox
 - **Payload manager** — start and stop plain `.elf` payloads, with optional auto-start
 - **Game overlay** — an in-game bar for FPS, CPU, GPU, RAM, temperatures, and network info
 - **Cheat engine** — local JSON, SHN, MC4, and ShnExt files that can be toggled at runtime
