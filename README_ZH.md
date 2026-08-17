@@ -22,6 +22,8 @@
   ·
   <b><a href="#配置">配置</a></b>
   ·
+  <b><a href="#赞助">赞助</a></b>
+  ·
   <b><a href="#致谢">致谢</a></b>
 </p>
 
@@ -293,6 +295,14 @@ OnionHEN 通过以下两个运行时视图创建并共享同一套配置 schema�
 - 同步上游代码时保留第三方文件名。
 - 提交 pull request 前运行完整 PS5 构建和 host tests。
 - 修改模块职责、IPC、运行时路径或依赖时同步更新 `docs/arch.md`。
+
+<br>
+
+# 赞助
+
+<a href="https://ko-fi.com/0xp0co"><img src="https://img.shields.io/badge/Ko--fi-Support-FF6433?style=for-the-badge&logo=kofi&logoColor=white" alt="在 Ko-fi 上支持 OnionHEN"/></a>
+
+如果您觉得这个项目对您有所帮助，请考虑支持它的持续开发。感谢您的支持！
 
 <br>
 

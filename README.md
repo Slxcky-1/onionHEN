@@ -22,6 +22,8 @@
   ·
   <b><a href="#configuration">Configuration</a></b>
   ·
+  <b><a href="#support">Support</a></b>
+  ·
   <b><a href="#credits">Credits</a></b>
 </p>
 
@@ -298,6 +300,14 @@ See [the architecture document](docs/arch.md) for the complete module and IPC ma
 - Preserve third-party file names when syncing upstream code.
 - Run the full PS5 build and host tests before submitting a pull request.
 - Update `docs/arch.md` when changing module responsibilities, IPC, runtime paths, or dependencies.
+
+<br>
+
+# Support
+
+<a href="https://ko-fi.com/0xp0co"><img src="https://img.shields.io/badge/Ko--fi-Support-FF6433?style=for-the-badge&logo=kofi&logoColor=white" alt="Support OnionHEN on Ko-fi"/></a>
+
+If you find this project helpful, please consider supporting its continued development. Your support is greatly appreciated!
 
 <br>
 
