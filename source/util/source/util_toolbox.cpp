@@ -30,7 +30,7 @@ bool enable_toolbox() {
         break;
       }
       if (wait == 20) {
-        onion_notify(true, "Failed to load the OnionHEN toolbox");
+        onion_notify(true, "notify.toolbox.load_failed");
         return false;
       }
       sleep(1);
@@ -84,13 +84,13 @@ void patch_checker(bool rest_resume) {
                      static_cast<unsigned long long>(cfg.rest_mode_delay_seconds));
         sleep(static_cast<unsigned int>(cfg.rest_mode_delay_seconds));
         onion_notify(true,
-                     "Coming out of Rest Mode — re-activating the OnionHEN toolbox...");
+                     "notify.rest.reactivating");
     } else {
         LOG_INFO("toolbox reinject (not rest resume)");
     }
 
     if (!enable_toolbox()) {
-        onion_notify(true, "Failed to inject toolbox");
+        onion_notify(true, "notify.toolbox.inject_failed");
     }
 
     if (rest_resume) {

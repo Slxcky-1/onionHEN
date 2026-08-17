@@ -69,6 +69,29 @@ static const char kLegacyOldAppErrorSource[] =
 /* Module 231 forwards iconId directly to PUI Button.icon. */
 static const char kLegacyNewAppErrorSourcePrefix[] =
     "var h=(0,u().memo)((function(){var e=(0,f.useInteractivePress)({link:\"OnionHEN?NavUI=1\"});return u().default.createElement(d.default,{iconId:{uri:\"/system_ex/vsh_asset/onionhen.png\"},onPress:e,title:\"\",__source:{fileName:_,lineNumber:80}})}));t.ApplicationErrorEventTrigger=h;";
+/* 2.30/2.50 predate Fps/AppError system icons; reuse a debug-only Startup slot. */
+static const unsigned char kLegacy2xOldIconOrder[] =
+    "[\"StartupAnimation\",\"HiddenStartupAnimation\",\"Search\",\"Settings\",\"Profile\"]";
+static const unsigned char kLegacy2xNewIconOrder[] =
+    "[\"OnionHEN\",\"Search\",\"Settings\",\"Profile\"]"
+    "                                 ";
+static const unsigned char kLegacy2xOldExportAlias[] =
+    "t.StartupAnimation=_;";
+static const unsigned char kLegacy2xNewExportAlias[] =
+    "t.OnionHEN=_        ;";
+static const char kLegacy2xOldButtonSource[] =
+    "var _=(0,s().memo)((function(){var e=(0,s().useContext)(o().AppConfigContext).appConfig,t=(0,c.useInteractivePress)({action:\"click ani\",link:\"pshomeui:navigateToHome?intro=login\"});return e.isEnabled(\"showStartupButton\")?s().default.createElement(l.default,{iconId:\"trophy_rarity1_ultrarare\",onPress:function(){t()},title:\"Trigger Startup\",__source:{fileName:f,lineNumber:48}}):null}));";
+static const char kLegacy2xNewButtonSourcePrefix[] =
+    "var _=(0,s().memo)((function(){var e=(0,c.useInteractivePress)({link:\"OnionHEN?NavUI=1\"});return s().default.createElement(l.default,{iconId:{uri:\"/system_ex/vsh_asset/onionhen.png\"},onPress:e,title:\"\",__source:{fileName:f,lineNumber:48}})}));";
+/* 3.00 through 3.21 use different minified identifiers than 4.x. */
+static const unsigned char kLegacy3xOldExportAlias[] = {
+    't', '.', 'F', 'p', 's', '=', 'S'};
+static const unsigned char kLegacy3xNewExportAlias[] = {
+    't', '.', 'A', 'p', 'p', '=', 'E'};
+static const char kLegacy3xOldAppErrorSource[] =
+    "var E=(0,s().memo)((function(){var e=(0,c.default)().sendClientApplicationErrorEvent;return s().default.createElement(f.default,{iconId:\"download_error\",onPress:function(){var t=new Error(\"homeui ApplicationErrorEvent test\");e({errorMessage:t.message,stack:t.stack,severity:\"info\"})},title:\"Trigger AppError\",__source:{fileName:d,lineNumber:77}})}));t.ApplicationErrorEventTrigger=E;";
+static const char kLegacy3xNewAppErrorSourcePrefix[] =
+    "var E=(0,s().memo)((function(){var e=(0,l.useInteractivePress)({link:\"OnionHEN?NavUI=1\"});return s().default.createElement(f.default,{iconId:{uri:\"/system_ex/vsh_asset/onionhen.png\"},onPress:e,title:\"\",__source:{fileName:d,lineNumber:77}})}));t.ApplicationErrorEventTrigger=E;";
 /* 5.10 through 7.61 share this minified SystemIcon module shape. */
 static const unsigned char kLegacy5x7xOldExportAlias[] = {
     't', '.', 'F', 'p', 's', '=', 'h'};
@@ -120,6 +143,26 @@ struct SourceHomeUiProfile {
   const SourcePatchStrategy *strategy;
 };
 
+static const SourcePatchStrategy kLegacy2xSourceStrategy = {
+    kLegacy2xOldExportAlias,
+    kLegacy2xNewExportAlias,
+    sizeof(kLegacy2xOldExportAlias) - 1,
+    kLegacy2xOldButtonSource,
+    kLegacy2xNewButtonSourcePrefix,
+    sizeof(kLegacy2xOldButtonSource) - 1,
+    sizeof(kLegacy2xNewButtonSourcePrefix) - 1,
+};
+
+static const SourcePatchStrategy kLegacy3xSourceStrategy = {
+    kLegacy3xOldExportAlias,
+    kLegacy3xNewExportAlias,
+    sizeof(kLegacy3xOldExportAlias),
+    kLegacy3xOldAppErrorSource,
+    kLegacy3xNewAppErrorSourcePrefix,
+    sizeof(kLegacy3xOldAppErrorSource) - 1,
+    sizeof(kLegacy3xNewAppErrorSourcePrefix) - 1,
+};
+
 static const SourcePatchStrategy kLegacy4xSourceStrategy = {
     kLegacyOldExportAlias,
     kLegacyNewExportAlias,
@@ -151,13 +194,41 @@ static const SourcePatchStrategy kPlainJsSourceStrategy = {
 };
 
 /*
- * 4.x-7.x contain a pre-Hermes RNPS bundle. 8.x contains plain minified JS.
+ * 2.x-7.x contain a pre-Hermes RNPS bundle. 8.x contains plain minified JS.
  * The patch operation is identical; only the bundle prefix and source shape
  * differ. Keep offsets together so adding a firmware is a single table edit.
  */
 static const SourceHomeUiProfile kSourceHomeUiProfiles[] = {
     {
-        /* name */ "4.03/4.50/4.51 NPXS40002 legacy HomeUI",
+        /* name */ "2.30/2.50 NPXS40002 legacy HomeUI",
+        /* kind */ SourceBundleKind::LegacyRnps,
+        /* payload_size */ 0x1631e0,
+        /* offsets */ {
+            /* title_id */ 0x157069,
+            /* app_error_event_trigger */ 0x0,
+            /* navigate_to_home */ 0x4b8b4,
+            /* icon_order */ 0xc0a75,
+            /* app_error_source */ 0x11261c,
+            /* export_alias */ 0x11279e,
+        },
+        /* strategy */ &kLegacy2xSourceStrategy,
+    },
+    {
+        /* name */ "3.00/3.10/3.20/3.21 NPXS40002 legacy HomeUI",
+        /* kind */ SourceBundleKind::LegacyRnps,
+        /* payload_size */ 0x150130,
+        /* offsets */ {
+            /* title_id */ 0x6b460,
+            /* app_error_event_trigger */ 0xa7fbb,
+            /* navigate_to_home */ 0x3ce58,
+            /* icon_order */ 0xa7ef4,
+            /* app_error_source */ 0x102baf,
+            /* export_alias */ 0x102e83,
+        },
+        /* strategy */ &kLegacy3xSourceStrategy,
+    },
+    {
+        /* name */ "4.00/4.02/4.03/4.50/4.51 NPXS40002 legacy HomeUI",
         /* kind */ SourceBundleKind::LegacyRnps,
         /* payload_size */ 0x152990,
         /* offsets */ {
@@ -171,7 +242,21 @@ static const SourceHomeUiProfile kSourceHomeUiProfiles[] = {
         /* strategy */ &kLegacy4xSourceStrategy,
     },
     {
-        /* name */ "5.10 NPXS40002 legacy HomeUI",
+        /* name */ "5.00/5.02 NPXS40002 legacy HomeUI",
+        /* kind */ SourceBundleKind::LegacyRnps,
+        /* payload_size */ 0x17a690,
+        /* offsets */ {
+            /* title_id */ 0x6b123,
+            /* app_error_event_trigger */ 0xae18e,
+            /* navigate_to_home */ 0x3b28b,
+            /* icon_order */ 0xae0c7,
+            /* app_error_source */ 0x119be8,
+            /* export_alias */ 0x119edc,
+        },
+        /* strategy */ &kLegacy5x7xSourceStrategy,
+    },
+    {
+        /* name */ "5.10/5.50 NPXS40002 legacy HomeUI",
         /* kind */ SourceBundleKind::LegacyRnps,
         /* payload_size */ 0x185c30,
         /* offsets */ {
@@ -229,6 +314,12 @@ static const SourceHomeUiProfile kSourceHomeUiProfiles[] = {
 };
 
 static_assert(sizeof(kLegacyOldIconOrder) == sizeof(kLegacyNewIconOrder));
+static_assert(sizeof(kLegacy2xOldIconOrder) ==
+              sizeof(kLegacy2xNewIconOrder));
+static_assert(sizeof(kLegacy2xOldExportAlias) ==
+              sizeof(kLegacy2xNewExportAlias));
+static_assert(sizeof(kLegacy3xOldExportAlias) ==
+              sizeof(kLegacy3xNewExportAlias));
 static_assert(sizeof(kLegacyOldExportAlias) == sizeof(kLegacyNewExportAlias));
 static_assert(sizeof(kLegacy5x7xOldExportAlias) ==
               sizeof(kLegacy5x7xNewExportAlias));
@@ -236,6 +327,10 @@ static_assert(sizeof(kPlainJsOldExportAlias) ==
               sizeof(kPlainJsNewExportAlias));
 static_assert(sizeof(kLegacyNewAppErrorSourcePrefix) <=
               sizeof(kLegacyOldAppErrorSource));
+static_assert(sizeof(kLegacy2xNewButtonSourcePrefix) <=
+              sizeof(kLegacy2xOldButtonSource));
+static_assert(sizeof(kLegacy3xNewAppErrorSourcePrefix) <=
+              sizeof(kLegacy3xOldAppErrorSource));
 static_assert(sizeof(kLegacy5x7xNewAppErrorSourcePrefix) <=
               sizeof(kLegacy5x7xOldAppErrorSource));
 static_assert(sizeof(kPlainJsNewAppErrorSourcePrefix) <=
@@ -846,11 +941,12 @@ find_source_homeui_profile(const SourceBundleView &bundle,
             bundle, offsets.title_id,
             reinterpret_cast<const unsigned char *>("NPXS40002"),
             sizeof("NPXS40002") - 1) ||
-        !source_bytes_at(
-            bundle, offsets.app_error_event_trigger,
-            reinterpret_cast<const unsigned char *>(
-                "ApplicationErrorEventTrigger"),
-            sizeof("ApplicationErrorEventTrigger") - 1) ||
+        (offsets.app_error_event_trigger != 0 &&
+         !source_bytes_at(
+             bundle, offsets.app_error_event_trigger,
+             reinterpret_cast<const unsigned char *>(
+                 "ApplicationErrorEventTrigger"),
+             sizeof("ApplicationErrorEventTrigger") - 1)) ||
         !source_bytes_at(
             bundle, offsets.navigate_to_home,
             reinterpret_cast<const unsigned char *>("pshomeui:navigateToHome"),
@@ -874,10 +970,18 @@ static bool patch_source_homeui_top_nav(const SourceBundleView &bundle,
   }
 
   const SourcePatchStrategy &strategy = *profile->strategy;
+  const bool uses_legacy2x_layout =
+      profile->strategy == &kLegacy2xSourceStrategy;
+  const unsigned char *old_icon_order =
+      uses_legacy2x_layout ? kLegacy2xOldIconOrder : kLegacyOldIconOrder;
+  const unsigned char *new_icon_order =
+      uses_legacy2x_layout ? kLegacy2xNewIconOrder : kLegacyNewIconOrder;
+  const size_t icon_order_size =
+      uses_legacy2x_layout ? sizeof(kLegacy2xOldIconOrder) - 1
+                           : sizeof(kLegacyOldIconOrder);
   const BytePatch patches[] = {
       {"source home icon order", profile->offsets.icon_order,
-       kLegacyOldIconOrder, nullptr, nullptr, kLegacyNewIconOrder,
-       sizeof(kLegacyOldIconOrder)},
+       old_icon_order, nullptr, nullptr, new_icon_order, icon_order_size},
       {"source App export alias", profile->offsets.export_alias,
        strategy.old_export_alias, nullptr, nullptr, strategy.new_export_alias,
        strategy.export_alias_size},

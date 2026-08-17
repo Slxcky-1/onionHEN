@@ -58,7 +58,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   onion_cjson::Root my_json(inputStr);
   if (!my_json) {
     LOG_ERROR("Error parsing JSON");
-    onion_notify(true, "Error parsing JSON");
+    onion_notify(true, "notify.ipc.json_parse");
     reply(sender_app, true);
     return;
   }
@@ -89,7 +89,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   case BREW_UTIL_GET_GAME_VER: {
     auto tid = std::string(onion_cjson::string_item(my_json.get(), "tid", ""));
     if (tid.empty()) {
-      onion_notify(true, "Failed to get tid");
+      onion_notify(true, "notify.game.tid_failed");
       reply(sender_app, true);
       break;
     }
@@ -108,7 +108,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
           tmp = "/system_ex/app/" + tid + "/sce_sys/param.json";
           if (!if_exists(tmp.c_str())) {
             LOG_INFO("%s: json %s does not exist", tid.c_str(), tmp.c_str());
-            onion_notify(true, "Failed to get game version");
+            onion_notify(true, "notify.game.version_failed");
             reply(sender_app, true);
             break;
           }
@@ -117,7 +117,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
 
       game_version = GetPS5Version(tmp);
       if (game_version.empty()) {
-        onion_notify(true, "Failed to get game version");
+        onion_notify(true, "notify.game.version_failed");
         LOG_ERROR("Failed to get game version for PS5 Game");
         reply(sender_app, true);
         break;
@@ -130,7 +130,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
         tmp = "/system_data/priv/appmeta/external/" + tid + "/param.sfo";
         if (!if_exists(tmp.c_str())) {
           LOG_INFO("%s: sfo %s does not exist", tid.c_str(), tmp.c_str());
-          onion_notify(true, "Failed to get game version");
+          onion_notify(true, "notify.game.version_failed");
           reply(sender_app, true);
           break;
         }
@@ -138,7 +138,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
 
       std::vector<uint8_t> sfo_data = readFile(tmp);
       if (sfo_data.empty()) {
-        onion_notify(true, "Failed to read SFO file");
+        onion_notify(true, "notify.game.sfo_failed");
         reply(sender_app, true);
         break;
       }
@@ -173,12 +173,12 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     LOG_INFO("Launching payload %s (key: %s)", payload_path.c_str(),
                  title_id.c_str());
     if (!load_payload(payload_path.c_str())) {
-      onion_notify(true, "Failed to load payload\nPath: %s\nKey: %s",
+      onion_notify(true, "notify.payload.load_failed",
                    payload_path.c_str(), title_id.c_str());
       reply(sender_app, true);
       break;
     }
-    onion_notify(true, "Payload launched\nPath: %s\nKey: %s",
+    onion_notify(true, "notify.payload.launched",
                  payload_path.c_str(), title_id.c_str());
     reply(sender_app, false);
     break;
@@ -198,7 +198,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     if (cheats.exportList(title_id, version, pid, appid, shm_path) == 0) {
       reply(sender_app, false, shm_path);
     } else {
-      onion_notify(true, "No cheats available for %s version %s!", title_id.c_str(),
+      onion_notify(true, "notify.cheats.none", title_id.c_str(),
              version.c_str());
       reply(sender_app, true);
     }
@@ -262,12 +262,12 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   }
   case BREW_RELOAD_SETTINGS: {
     LoadSettings();
-    //onion_notify(true, "Reloaded Settings");
+    //onion_notify(true, "notify.settings.reloaded");
     reply(sender_app, false);
     break;
   }
   default:
-    onion_notify(true, "Unknown command 0x%X", command);
+    onion_notify(true, "notify.ipc.unknown_command", command);
     reply(sender_app, true);
     break;
   }

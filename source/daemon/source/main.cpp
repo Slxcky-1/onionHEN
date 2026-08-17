@@ -45,14 +45,10 @@ along with this program; see the file COPYING. If not, see
 #include "globalconf.hpp"
 #include "launcher.hpp"
 #include "ipc.hpp"
+#include "startup_navigation.hpp"
 #include "welcome_toast.hpp"
 #include <onion/debug_settings_route_policy.hpp>
 #include <onion/ready.h>
-#include <onion/integrity.h>
-#include <onion/obf_str.h>
-#if defined(ONION_ENABLE_BETA_TRIAL)
-#include <onion/trial.h>
-#endif
 
 #define MSG_NOSIGNAL 0x20000 /* do not generate SIGPIPE on EOF. */
 pthread_t cheat_thr = nullptr;
@@ -91,7 +87,6 @@ extern "C" {
     int sceKernelSendNotificationRequest(int32_t device,
         OrbisNotificationRequest *req,
         size_t size, int32_t blocking);
-    int sceSystemServiceNavigateToGoHome(void);
     int sceUserServiceGetUserName(const int userId, char *userName, const size_t size);
     uint64_t sceKernelGetProcessTime();
     int sceSystemServiceGetAppId(const char *title_id);
@@ -105,8 +100,6 @@ extern "C" {
     int sceSysmoduleLoadModuleInternal(int id);
     int sceNetCtlInit();
     int sceUserServiceInitialize(const int *);
-    int sceKernelLoadStartModule(const char *name, size_t argc, const void *argv, 
-                                uint32_t flags, void *unknown, int *result);
     int sceKernelDlsym(uint32_t lib, const char *name, void **fun);
     int scePadClose(int handle);
     int sceSystemStateMgrEnterStandby(void);
@@ -160,6 +153,9 @@ void start_worker_threads(pthread_t* fifo_thr, pthread_t* msg_thr) {
   pthread_t supervisor_thr = nullptr;
   pthread_create(&supervisor_thr, nullptr, runtime_supervisor_thread, nullptr);
   pthread_detach(supervisor_thr);
+  pthread_t fan_thr = nullptr;
+  pthread_create(&fan_thr, nullptr, fan_maintenance_thread, nullptr);
+  pthread_detach(fan_thr);
 }
 
 /** Keep IPC_loop alive: rejoin + restart on exit. */
@@ -200,7 +196,7 @@ int launchApp(const char *titleId) {
         break;
     case SCE_LNC_ERROR_APP_NOT_FOUND:
         LOG_ERROR("app %s not found", titleId);
-        onion_notify(true, "app %s not found", titleId);
+        onion_notify(true, "notify.app.not_found", titleId);
         break;
     default:
         LOG_ERROR("[LA] unknown error 0x%x", (uint32_t)err);
@@ -215,9 +211,7 @@ void sig_handler(int signo) {
         LOG_WARN("Signal handler is disabled, ignoring signal %d", signo);
         return;
     }
-    onion_notify(true,
-          "OnionHEN has crashed ...\n\nPlease send /data/OnionHEN/OnionHEN_crash.log "
-          "to the PKG-Zone discord: https://discord.gg/BduZHudWGj");
+    onion_notify(true, "notify.crash.main");
     LOG_ERROR("main OnionHEN has crashed ...");
     exit(1);
 }
@@ -241,35 +235,8 @@ int main() {
   sceUserServiceInitialize(&DEFAULT_PRIORITY);
   LOG_DEBUG("daemon entered");
 
-  /*
-   * Settings (incl. notify i18n language) before any user-facing toast so the
-   * integrity / trial gates can use onion_notify_debug + catalogs.
-   */
+  /* Settings (incl. notify i18n language) before any user-facing toast. */
   LoadSettings();
-
-  /*
-   * ELF self-integrity (libonion_integrity). When protection is compiled out
-   * this is a no-op. Runs before trial/services so a patched image cannot skip
-   * the check by only touching later gates.
-   */
-  if (onion_self_integrity_verify() != 0) {
-    LOG_ERROR("ELF self-integrity verification failed");
-    /* Obfuscated en/zh — not plain C strings in .rodata (shared with bootstrapper). */
-    onion_notify_debug_integrity_failed();
-    for (;;)
-      sleep(3600);
-  }
-  onion_self_integrity_start_monitor();
-
-#if defined(ONION_ENABLE_BETA_TRIAL)
-  /* Defense-in-depth only: bootstrapper already gated and toasted. Quiet on OK
-   * so we do not re-show remaining-days or redistribution notices. */
-  if (onion_trial_gate_ex(/*notify_ok=*/0) != 0) {
-    LOG_ERROR("beta trial gate failed; daemon will idle");
-    for (;;)
-      sleep(3600);
-  }
-#endif
 
   OrbisKernelSwVersion sys_ver;
   sceKernelGetProsperoSystemSwVersion(&sys_ver);
@@ -310,14 +277,18 @@ int main() {
   LOG_INFO("is toolbox only: %s | ver: %x", toolbox_only ? "Yes" : "No",
                sys_ver.version);
 
-  /* Always inject toolbox into ShellUI; do not auto-open any settings page. */
+  /* Toolbox injection is independent from the optional post-load navigation. */
   cmd_enable_toolbox();
+
+  const onion::Settings boot_settings = g_settings.snapshot();
 
   const std::string welcome_toast_json = onion::daemon::make_welcome_toast_json(
       debug_settings_route.toolbox_uri(
           onion::debug_settings_route::UriKind::Simple));
   sceNotificationSend(0xFE, true, welcome_toast_json.c_str());
   LOG_INFO("StartUp thread created!! - welcome to OnionHEN");
+
+  onion::daemon::apply_startup_destination(boot_settings);
 
   ipc_supervisor_loop(&msg_thr);
   // unreachable

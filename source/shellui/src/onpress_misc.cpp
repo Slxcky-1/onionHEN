@@ -4,12 +4,19 @@
 #include <unistd.h>
 
 static OnPressResult id_kstuff_autoload(OnPressContext &ctx) {
-  if (atol(ctx.value.c_str())) {
+  const bool enabled = atol(ctx.value.c_str()) != 0;
+  if (enabled == g_settings.kstuff_autoload)
+    return OnPressResult::EarlyReturn;
+
+  g_settings.kstuff_autoload = enabled;
+  if (enabled) {
     unlink("/user/data/OnionHEN/no_kstuff");
-    notify("Kstuff will be loaded on next boot");
+    unlink("/data/OnionHEN/no_kstuff");
+    notify("notify.kstuff.next_boot_on");
   } else {
     touch_file("/user/data/OnionHEN/no_kstuff");
-    notify("Kstuff will NOT be loaded on next boot");
+    touch_file("/data/OnionHEN/no_kstuff");
+    notify("notify.kstuff.next_boot_off");
   }
   return OnPressResult::Handled;
 }
@@ -17,14 +24,14 @@ static OnPressResult id_kstuff_autoload(OnPressContext &ctx) {
 static OnPressResult id_delete_kstuff(OnPressContext &ctx) {
   (void)ctx;
   unlink("/user/data/OnionHEN/kstuff.elf");
-  notify("The external kstuff has been deleted");
+  notify("notify.kstuff.deleted");
   return OnPressResult::Handled;
 }
 
 static OnPressResult id_save_rp_info(OnPressContext &ctx) {
   (void)ctx;
   if (usbpath() == -1) {
-    notify("Failed to save Remote Play info, USB not found");
+    notify("notify.rp.usb_missing");
     return OnPressResult::EarlyReturn;
   }
   std::string usb_rp_path =
@@ -32,12 +39,12 @@ static OnPressResult id_save_rp_info(OnPressContext &ctx) {
   LOG_DEBUG("Saving Remote Play info to %s", usb_rp_path.c_str());
   std::ofstream rp_file(usb_rp_path);
   if (!rp_file.is_open()) {
-    notify("Failed to open Remote Play info file");
+    notify("notify.rp.save_open_failed");
     return OnPressResult::EarlyReturn;
   }
   rp_file << g_ui.remote_play_info;
   rp_file.close();
-  notify("Remote Play info saved to /mnt%s", usb_rp_path.c_str());
+  notify("notify.rp.saved", usb_rp_path.c_str());
   return OnPressResult::Handled;
 }
 

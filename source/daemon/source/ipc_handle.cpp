@@ -45,7 +45,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   onion_cjson::Root my_json(inputStr);
   if (!my_json) {
     LOG_ERROR("Error parsing JSON");
-    onion_notify(true, "Error parsing JSON");
+    onion_notify(true, "notify.ipc.json_parse");
     reply(sender_app, true);
     return;
   }
@@ -90,7 +90,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     LOG_INFO("change dir selected, %s", path_buf2.c_str());
 
     if(path_buf.rfind("/user") == std::string::npos && path_buf.length() <= strlen("/system_ex/app/")) {
-      onion_notify(true, "Invalid path of size %d", path_buf.length());
+      onion_notify(true, "notify.ipc.invalid_path", path_buf.length());
       reply(sender_app, true);
       break;
     }
@@ -107,7 +107,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
           LOG_ERROR("retrying attempt unmounting %d | prev. error %s", retries, strerror(errno));
 
         if (retries >= 20) {
-          onion_notify(true, "Failed to unmount | error %s",
+          onion_notify(true, "notify.fs.unmount",
                  strerror(errno));
           reply(sender_app, true);
           break;
@@ -125,7 +125,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
         unmount(path_buf.c_str(), MNT_FORCE);
       }
       if (!remount(path_buf2.c_str(), path_buf.c_str(), MNT_UPDATE)) {
-        onion_notify(true, "remount error: %s\nPath: %s", strerror(errno),
+        onion_notify(true, "notify.fs.remount", strerror(errno),
                path_buf2.c_str());
         LOG_ERROR("remount error: %s Path: %s", strerror(errno),
                    path_buf2.c_str());
@@ -232,7 +232,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   }
   case BREW_UNUSED_1: {
     // This command is not used anymore but kept for backwards compatibility
-    onion_notify(true, "This command is not used anymore");
+    onion_notify(true, "notify.ipc.unused");
     reply(sender_app, true);
     break;
   }
@@ -240,15 +240,16 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     int speed = onion_cjson::int_item(my_json.get(), "speed");
     int enabled = onion_cjson::int_item(my_json.get(), "enabled");
     LOG_INFO("Adjusting Fan Speed to: %d", speed);
-    if (speed < 0 || speed > 100) {
-      onion_notify(true, "Invalid fan speed: %d. Must be between 0 and 100.", speed);
+    if (speed < onion::kFanThresholdMinCelsius ||
+        speed > onion::kFanThresholdMaxCelsius) {
+      onion_notify(true, "notify.fan.invalid_speed", speed);
       reply(sender_app, true);
       break;
     }
 
     if (!enabled) {
-      onion_notify(true, "Fan speed adjustment is disabled.");
-      set_fan_threshold(77);
+      onion_notify(true, "notify.fan.disabled");
+      restore_automatic_fan();
       const onion::Settings saved = g_settings.update([](onion::Settings &s) {
         s.enable_fan_speed = false;
       });
@@ -262,7 +263,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     }
 
     if (set_fan_threshold(speed)) {
-      onion_notify(true, "Fan threshold adjusted to %i°C.", speed);
+      onion_notify(true, "notify.fan.adjusted", speed);
       const onion::Settings saved = g_settings.update([speed](onion::Settings &s) {
         s.enable_fan_speed = true;
         s.fan_threshold = speed;
@@ -274,7 +275,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
       }
       reply(sender_app, false);
     } else {
-      onion_notify(true, "Failed to adjust fan speed.");
+      onion_notify(true, "notify.fan.adjust_failed");
       reply(sender_app, true);
     }
     break;
@@ -310,7 +311,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   }
   case BREW_RELOAD_SETTINGS: {
     LoadSettings(/*force=*/true);
-    onion_notify(true, "Reloaded Settings");
+    onion_notify(true, "notify.settings.reloaded");
     reply(sender_app, false);
     break;
   }
@@ -328,7 +329,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     break;
   }
   default:
-    onion_notify(true, "Unknown command 0x%X", command);
+    onion_notify(true, "notify.ipc.unknown_command", command);
     reply(sender_app, true);
     break;
   }

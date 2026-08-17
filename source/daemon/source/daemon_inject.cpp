@@ -100,19 +100,19 @@ bool cmd_enable_toolbox(){
                    static_cast<int>(outcome.pid));
       return true;
     case onion::ToolboxInjectionResult::TargetNotFound:
-      onion_notify(true, "Failed to get shellui pid");
+      onion_notify(true, "notify.toolbox.no_shellui_pid");
       return false;
     case onion::ToolboxInjectionResult::InjectFailed:
       /* Do NOT ForceKill ShellUI — that loops home menu / coredumps. */
-      onion_notify(true, "Failed to inject toolbox");
+      onion_notify(true, "notify.toolbox.inject_failed");
       return false;
     case onion::ToolboxInjectionResult::ReadyTimeout:
       onion_notify(true,
-                   "Failed to load the OnionHEN toolbox (timeout, ShellUI left running)");
+                   "notify.toolbox.load_timeout");
       return false;
     case onion::ToolboxInjectionResult::TargetChanged:
       onion_notify(true,
-                   "SceShellUI restarted while loading the OnionHEN toolbox");
+                   "notify.toolbox.shellui_restarted");
       return false;
     }
 

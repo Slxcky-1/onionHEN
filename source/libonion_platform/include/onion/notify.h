@@ -47,8 +47,8 @@ void onion_notify_v(int show_watermark, const char *fmt, va_list ap);
 void onion_notify(int show_watermark, const char *fmt, ...);
 /**
  * Debug-style toast (SDK notify_debug): text only, no system icon.
- * Uses the same English-source + onion_notify_tr i18n path as onion_notify.
- * Pass English format strings that exist under i18n notifications catalogs.
+ * Uses the same key + onion_notify_tr i18n path as onion_notify.
+ * Pass stable notify.* keys from the i18n notifications catalog.
  */
 void onion_notify_debug_v(const char *fmt, va_list ap);
 void onion_notify_debug(const char *fmt, ...);
@@ -57,7 +57,7 @@ void onion_notify_rich(const char *message, const char *sub_message,
                        const char *notification_id);
 
 /**
- * Format a notification body: onion_notify_tr(fmt) then vsnprintf.
+ * Format a notification body: onion_notify_tr(key) then vsnprintf.
  * show_watermark non-zero prefixes "[OnionHEN] ".
  */
 void onion_notify_format(char *out, size_t out_sz, int show_watermark,

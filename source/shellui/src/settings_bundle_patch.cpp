@@ -49,12 +49,25 @@ struct LegacySettingsProfile {
 };
 
 static constexpr LegacySettingsProfile kLegacySettingsProfiles[] = {
-    {"4.03 NPXS40008 Settings", 0x483280, 0x234a17, 0x24db26},
+    /* 3.00, 3.10, 3.20 and 3.21 NPXS40008 are byte-identical. */
+    {"3.00/3.10/3.20/3.21 NPXS40008 Settings", 0x457210, 0x21142c,
+     0x2379d6},
+    /* 4.00, 4.02 and 4.03 NPXS40008 are byte-identical. */
+    {"4.00/4.02/4.03 NPXS40008 Settings", 0x483280, 0x234a17,
+     0x24db26},
     /* 4.50 and 4.51 NPXS40008 are byte-identical. */
     {"4.50/4.51 NPXS40008 Settings", 0x483fc0, 0x234f2d, 0x24e03c},
+    /* 5.00 and 5.02 NPXS40008 are byte-identical. */
+    {"5.00/5.02 NPXS40008 Settings", 0x4b8770, 0x242d07, 0x25c1dc},
     {"5.10 NPXS40008 Settings", 0x4b8ac0, 0x2436c2, 0x25cb97},
+    {"5.50 NPXS40008 Settings", 0x4b9e50, 0x243cfa, 0x25d1cf},
     /* 6.00 and 6.02 NPXS40008 are byte-identical. */
     {"6.00/6.02 NPXS40008 Settings", 0x5524a0, 0x27f5dc, 0x299152},
+    {"6.50 NPXS40008 Settings", 0x555280, 0x280ac0, 0x29a636},
+    /* 7.00, 7.01 and 7.01.01 NPXS40008 are byte-identical. */
+    {"7.00/7.01/7.01.01 NPXS40008 Settings", 0x5e7540, 0x2babdf,
+     0x2d5634},
+    {"7.20 NPXS40008 Settings", 0x5e7940, 0x2babdf, 0x2d5634},
     /* 7.40 and 7.61 NPXS40008 are byte-identical. */
     {"7.40/7.61 NPXS40008 Settings", 0x5e9d20, 0x2bac8c, 0x2d56e1},
     {"8.00 NPXS40008 Settings", 0x64bb80, 0x2e75c9, 0x302a6f},

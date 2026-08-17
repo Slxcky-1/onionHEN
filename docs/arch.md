@@ -137,7 +137,7 @@ OnionHEN/
 4. 各子 ELF 启动后把主线程名设为稳定进程名（`onion_util.elf` / `kstuff.elf` / `onion_daemon.elf`）
 5. 仅在 9020 健康时加载 `/data/OnionHEN/payloads/` 下带 `.auto_start` 的 `.elf`；必须取得精确 PID，否则该 Payload 直接失败
 
-可用 `/data/OnionHEN/no_kstuff` 或 `/mnt/usb0/no_kstuff` 跳过 kstuff。
+可用 Toolbox「启动时自动加载 Kstuff」（默认开启）关闭，或放 `/mnt/usb0/no_kstuff` 跳过 kstuff。
 
 ### 2.3 `daemon` → `daemon.elf`（Critical 守护进程）
 

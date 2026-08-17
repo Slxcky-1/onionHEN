@@ -264,13 +264,13 @@ void *runtime_supervisor_thread(void *args) noexcept {
 
       if (!loader_outage_notified) {
         onion_notify(true,
-                     "OnionHEN runtime loader :9020 is unavailable; recovering via :9021...");
+                     "notify.loader.recovering");
         loader_outage_notified = true;
       }
 
       const RecoveryResult recovered = recover_private_loader(busy_timed_out);
       if (recovered == RecoveryResult::Ready) {
-        onion_notify(true, "OnionHEN runtime loader recovered on :9020");
+        onion_notify(true, "notify.loader.recovered");
         loader_check_failures = 0;
         loader_recovery_failures = 0;
         loader_outage_notified = false;
@@ -285,7 +285,7 @@ void *runtime_supervisor_thread(void *args) noexcept {
                      loader_recovery_failures);
         if (loader_recovery_failures == 3) {
           onion_notify(true,
-                       "Failed to recover runtime loader :9020; external elfldr :9021 is required");
+                       "notify.loader.recover_failed");
         }
         sleep(recovery_backoff(loader_recovery_failures));
         continue;
@@ -299,13 +299,13 @@ void *runtime_supervisor_thread(void *args) noexcept {
 
     if (!util_running()) {
       if (!util_outage_notified) {
-        onion_notify(true, "OnionHEN Utility is not running, restarting...");
+        onion_notify(true, "notify.util.restarting");
         util_outage_notified = true;
       }
 
       if (restart_util_via_private_loader()) {
         LOG_INFO("runtime supervisor: util recovered through private :9020");
-        onion_notify(true, "OnionHEN Utility services successfully restarted");
+        onion_notify(true, "notify.util.restarted");
         util_recovery_failures = 0;
         util_outage_notified = false;
       } else {
@@ -314,7 +314,7 @@ void *runtime_supervisor_thread(void *args) noexcept {
                      util_recovery_failures);
         if (util_recovery_failures == 3) {
           onion_notify(true,
-                       "OnionHEN Utility services failed to restart — private elfldr :9020 unavailable");
+                       "notify.util.restart_failed");
         }
         sleep(recovery_backoff(util_recovery_failures));
         continue;

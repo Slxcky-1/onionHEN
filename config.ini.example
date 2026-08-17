@@ -11,9 +11,14 @@ schema_version=1
 
 [toolbox]
 # language controls the Toolbox UI and notification language.
-# Available values: system, zh-Hans, en
+# Available values: system, zh-Hans, en, ar
 # system follows the PS5 system language when it can be detected.
 language=system
+
+[startup]
+# open_after_load chooses which page opens after OnionHEN finishes loading.
+# Available values: none, home_menu
+open_after_load=none
 
 [logging]
 # level controls how much OnionHEN records to its log files.
@@ -69,6 +74,9 @@ temperature_threshold_celsius=77
 # enabled shows or hides the complete game monitor bar.
 # Available values: true, false
 enabled=true
+# background controls the translucent panel behind the monitor bar.
+# Available values: true, false
+background=true
 # edge chooses the screen edge used by the monitor bar.
 # Available values: top, bottom
 edge=top
@@ -95,3 +103,8 @@ cheats_menu=off
 # toolbox controls the shortcut that opens the OnionHEN Toolbox.
 # Available values: off, l2_r3, long_share, share
 toolbox=off
+
+[kstuff]
+# autoload loads kstuff when OnionHEN starts.
+# Available values: true, false
+autoload=true

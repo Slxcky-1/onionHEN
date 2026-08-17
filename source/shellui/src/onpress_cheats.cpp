@@ -16,7 +16,7 @@ static OnPressResult prefix_id_cheat(OnPressContext &ctx) {
   ctx.dirty = false;
 
   if (!g_ui.is_current_game_open) {
-    notify("The Game is not running, to activate cheats launch the game first");
+    notify("notify.cheats.game_not_running");
     LOG_ERROR("Failed to activate %s, game is not running", ctx.id.c_str());
     return OnPressResult::Consumed;
   }
@@ -27,7 +27,7 @@ static OnPressResult prefix_id_cheat(OnPressContext &ctx) {
   LOG_DEBUG("Getting PID for %s", ctx.id.c_str());
   int pid = onion_find_pid_ex(tid, false, true, true);
   if (pid < 0) {
-    notify("[ERROR] Failed to activate %s\nfailed to find game pid",
+    notify("notify.cheats.no_pid",
            cheat_name.c_str());
     LOG_ERROR("Failed to get pid for %s", tid);
     return OnPressResult::Consumed;
@@ -38,10 +38,10 @@ static OnPressResult prefix_id_cheat(OnPressContext &ctx) {
     (void)g_ui.reset_cheats_if_tid_changed(tid);
     const bool enabled = ctx.value == "1";
     g_ui.set_cheat_enabled(cheat_id, enabled);
-    notify("★ %s [%s] ★", cheat_name.c_str(),
-           onion_notify_tr(enabled ? "ON" : "OFF"));
+    notify("notify.cheats.toggle_banner", cheat_name.c_str(),
+           onion_notify_tr(enabled ? "notify.common.on" : "notify.common.off"));
   } else {
-    notify("[ERROR] Failed to activate %s", cheat_name.c_str());
+    notify("notify.cheats.activate_failed", cheat_name.c_str());
   }
   // Consumed: stock SettingPage.OnPressed null-derefs unknown dynamic ids
   // (id_cheat_<TID>_<n> + toggle_switch) after our IPC/notify path.

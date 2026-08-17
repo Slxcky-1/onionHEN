@@ -13,7 +13,9 @@ from __future__ import annotations
 import hashlib
 import re
 import struct
+import subprocess
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 
@@ -22,19 +24,59 @@ DUMP_ROOT = Path("/Users/chenpy/Projects/Person/ps5-kylin/Sony Dumps")
 SETTINGS_CPP = (
     REPO / "source/shellui/src/settings_bundle_patch.cpp"
 ).read_text()
-HERMES_VERSIONS = ("9.00", "fw9.4", "fw9.6", "11.6")
-LEGACY_VERSIONS = (
-    "4.03",
-    "4.50",
-    "4.51",
-    "5.1",
-    "6.0",
-    "6.02",
-    "7.4",
-    "7.61",
-    "8.0",
-    "8.4",
-    "fw8.6",
+EMPTY_SETTINGS_DUMPS = (
+    ("2.30", "2.3厚机.rar", "NPXS40008.bin"),
+    ("2.50", "2.5厚机.rar", "NPXS40008.bin"),
+)
+LEGACY_DUMPS = (
+    ("3.00", "3.0厚机.rar", "NPXS40008.bin"),
+    ("3.10", "03.10厚机.rar", "NPXS40008.bin"),
+    ("3.20", "03.20厚机.rar", "NPXS40008.bin"),
+    ("3.21", "03.21厚机.rar", "NPXS40008.bin"),
+    ("4.00", "4.0厚机.rar", "4.0厚机/NPXS40008.bin"),
+    ("4.02", "4.02厚机.rar", "4.02厚机/NPXS40008.bin"),
+    ("4.03", "4.03", None),
+    ("4.50", "4.50", None),
+    ("4.51", "4.51", None),
+    ("5.00", "5.00厚机", None),
+    ("5.02", "5.02厚机", None),
+    ("5.10", "5.1", None),
+    ("5.50", "5.50厚机", None),
+    ("6.00", "6.0", None),
+    ("6.02", "6.02", None),
+    ("6.50", "6.50厚机", None),
+    ("7.00", "7.00厚机", None),
+    ("7.01", "7.01厚机", None),
+    ("7.01.01", "7.01.01厚机", None),
+    ("7.20", "7.20厚机", None),
+    ("7.40", "7.4", None),
+    ("7.60", "7.60厚机", None),
+    ("7.61", "7.61", None),
+    ("8.00", "8.0", None),
+    ("8.20", "8.2厚机", None),
+    ("8.20.02", "fw8.20.02", None),
+    ("8.40", "8.4", None),
+    ("8.60", "fw8.6", None),
+)
+HERMES_DUMPS = (
+    ("9.00", "9.00", None),
+    ("9.40", "fw9.4", None),
+    ("9.60", "fw9.6", None),
+    ("10.00", "fw10.0", None),
+    ("10.01", "10.01", None),
+    ("10.20", "10.2", None),
+    ("10.40", "10.4", None),
+    ("10.60", "10.6", None),
+    ("11.00", "11.0", None),
+    ("11.20", "11.2", None),
+    ("11.40", "11.4", None),
+    ("11.60", "11.6", None),
+    ("12.00", "12.0", None),
+    ("12.02", "12.02", None),
+    ("12.20", "12.2", None),
+    ("12.40", "12.4", None),
+    ("12.60", "12.6", None),
+    ("12.70", "12.7", None),
 )
 HERMES_MAGIC = bytes.fromhex("c61fbc03c103191f")
 LEGACY_MAGIC = bytes.fromhex("e5d10bfb")
@@ -52,14 +94,27 @@ VERSION_PROTECTED_STRINGS = {
     "9.00": (
         b"assets/src/modules/devices/hunt/buttonAssignments/assets/icon",
     ),
-    "fw9.4": (
+    "9.40": (
         b"assets/src/modules/devices/hunt/buttonAssignments/assets/icon",
     ),
-    "fw9.6": (
+    "9.60": (
         b"assets/src/modules/devices/hunt/buttonAssignments/assets/icon",
     ),
-    "11.6": (b"avatar-appear-offline-icon",),
+    "11.60": (b"avatar-appear-offline-icon",),
 }
+
+
+@lru_cache(maxsize=None)
+def read_dump_app(source: str, archive_member: str | None, app_id: str) -> bytes:
+    path = DUMP_ROOT / source
+    if archive_member is None:
+        return (path / f"{app_id}.bin").read_bytes()
+    result = subprocess.run(
+        ["unar", "-q", "-o", "-", str(path), archive_member],
+        check=True,
+        stdout=subprocess.PIPE,
+    )
+    return result.stdout
 
 
 def load_legacy_profiles() -> list[dict]:
@@ -101,9 +156,9 @@ def find_all(data: bytes, needle: bytes) -> list[int]:
         start = offset + 1
 
 
-def load_hbc(version: str) -> bytearray:
-    path = DUMP_ROOT / version / "NPXS40008.bin"
-    raw = path.read_bytes()
+def load_hbc(dump: tuple[str, str, str | None]) -> bytearray:
+    version, source, archive_member = dump
+    raw = read_dump_app(source, archive_member, "NPXS40008")
     hbc_offset = raw.find(HERMES_MAGIC)
     if hbc_offset < 0:
         raise ValueError(f"{version}: Hermes magic not found")
@@ -131,17 +186,17 @@ def apply_settings_patch(hbc: bytearray) -> bool:
     return True
 
 
-def verify_hermes_version(version: str) -> list[str]:
+def verify_hermes_version(dump: tuple[str, str, str | None]) -> list[str]:
+    version = dump[0]
     errors: list[str] = []
-    original = load_hbc(version)
+    original = load_hbc(dump)
     if not footer_is_valid(original):
         errors.append("stock footer SHA-1 is invalid")
     if original.count(OLD_LABEL) != 1:
         errors.append(f"stock label count is {original.count(OLD_LABEL)}, expected 1")
 
-    protected_strings = (
-        COMMON_PROTECTED_STRINGS + VERSION_PROTECTED_STRINGS[version]
-    )
+    version_protected = VERSION_PROTECTED_STRINGS.get(version, ())
+    protected_strings = COMMON_PROTECTED_STRINGS + version_protected
     protected_offsets = {
         needle: find_all(original, needle) for needle in protected_strings
     }
@@ -151,7 +206,7 @@ def verify_hermes_version(version: str) -> list[str]:
 
     icon_offset = original.find(b"icon_setting")
     icon_range = range(icon_offset, icon_offset + len(b"icon_setting"))
-    for collateral in VERSION_PROTECTED_STRINGS[version] + (b"_settingInstance",):
+    for collateral in version_protected + (b"_settingInstance",):
         collateral_offset = original.find(collateral)
         collateral_range = range(
             collateral_offset, collateral_offset + len(collateral)
@@ -251,10 +306,10 @@ def apply_legacy_settings(
     return profile, payload_offset, label_count, 0
 
 
-def verify_legacy_version(version: str) -> list[str]:
+def verify_legacy_version(dump: tuple[str, str, str | None]) -> list[str]:
+    version, source, archive_member = dump
     errors: list[str] = []
-    path = DUMP_ROOT / version / "NPXS40008.bin"
-    original = path.read_bytes()
+    original = read_dump_app(source, archive_member, "NPXS40008")
     payload_offset = locate_legacy_payload(original)
     if payload_offset is None:
         return ["legacy payload not found"]
@@ -360,16 +415,28 @@ def verify_source_contract() -> list[str]:
 
 def main() -> int:
     all_errors = verify_source_contract()
-    for version in LEGACY_VERSIONS:
+    for dump in EMPTY_SETTINGS_DUMPS:
+        version, source, archive_member = dump
         try:
-            errors = verify_legacy_version(version)
-        except (OSError, ValueError, struct.error) as exc:
+            raw = read_dump_app(source, archive_member, "NPXS40008")
+            errors = [] if not raw else [f"expected empty dump, got {len(raw)} bytes"]
+        except (OSError, subprocess.CalledProcessError) as exc:
+            errors = [str(exc)]
+        if not errors:
+            print(f"[SKIP] {version} NPXS40008 dump is empty")
+        all_errors.extend(f"{version}: {error}" for error in errors)
+    for dump in LEGACY_DUMPS:
+        version = dump[0]
+        try:
+            errors = verify_legacy_version(dump)
+        except (OSError, ValueError, struct.error, subprocess.CalledProcessError) as exc:
             errors = [str(exc)]
         all_errors.extend(f"{version}: {error}" for error in errors)
-    for version in HERMES_VERSIONS:
+    for dump in HERMES_DUMPS:
+        version = dump[0]
         try:
-            errors = verify_hermes_version(version)
-        except (OSError, ValueError, struct.error) as exc:
+            errors = verify_hermes_version(dump)
+        except (OSError, ValueError, struct.error, subprocess.CalledProcessError) as exc:
             errors = [str(exc)]
         all_errors.extend(f"{version}: {error}" for error in errors)
 

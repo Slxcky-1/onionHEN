@@ -21,7 +21,6 @@ along with this program; see the file COPYING. If not, see
 MonoDomain* Root_Domain = nullptr;
 
 /* ====================================== Dynamic SystemService Symbols ===================================*/
-int (*sceSystemServiceNavigateToGoHome)(void) = nullptr;
 int (*sceSystemServiceGetAppIdOfRunningBigApp)(void) = nullptr;
 // Global function pointers
 SceLncUtilLaunchAppType sceLncUtilLaunchApp_dyn = nullptr;

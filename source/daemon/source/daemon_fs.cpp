@@ -18,7 +18,6 @@
 #include <signal.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
-#include <sys/ioctl.h>
 
 extern "C" {
 int nmount(struct iovec *iov, unsigned int niov, int flags);
@@ -369,30 +368,7 @@ static void shutdown_restart_shellui(void) {
   shutdown_restart_shellui();
 
   LOG_INFO("shutdown[3/3]: exit daemon (kstuff intentionally left running)");
-  onion_notify(true, "OnionHEN stack shutdown (util + ShellUI + daemon; kstuff remains)");
+  onion_notify(true, "notify.stack.shutdown");
   usleep(200 * 1000);
   exit(0);
-}
-
-bool set_fan_threshold(int THRESHOLDTEMP) {
-
-   if(THRESHOLDTEMP > 100){
-     THRESHOLDTEMP = 100;
-   }
-
-   int fd = open("/dev/icc_fan", O_RDONLY, 0);
-   if (fd <= 0) {
-     onion_notify(true, "Unable to Open Fan Settings!");
-     return false;
-   }
-
-    char data[10] = {0x00, 0x00, 0x00, 0x00, 0x00, static_cast<char>(THRESHOLDTEMP), 0x00, 0x00, 0x00, 0x00};
-    if(ioctl(fd, 0xC01C8F07, data) < 0) {
-        onion_notify(true, "Unable to Set Fan Speed!");
-        close(fd);
-        return false;
-    }
-    close(fd);
-    //LOG_INFO("Fan speed set to %d%% THRESHOLDTEMP", THRESHOLDTEMP);
-    return true;
 }

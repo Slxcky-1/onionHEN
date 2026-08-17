@@ -54,6 +54,10 @@ inline constexpr int kSettingsSchemaVersion = 1;
 inline constexpr int kUiLanguageSystem = 0;
 inline constexpr int kUiLanguageZhHans = 1;
 inline constexpr int kUiLanguageEn = 2;
+inline constexpr int kUiLanguageAr = 3;
+
+inline constexpr int kStartupOpenNone = 0;
+inline constexpr int kStartupOpenHomeMenu = 1;
 
 // Mirrors onion_log_level from <onion/log.h>. Duplicated rather than included
 // so libonion_settings stays independent of libonion_platform; the processes
@@ -65,6 +69,18 @@ inline constexpr int kLogLevelWarn = 2;
 inline constexpr int kLogLevelInfo = 3;
 inline constexpr int kLogLevelDebug = 4;
 inline constexpr int kLogLevelTrace = 5;
+
+inline constexpr int kFanThresholdMinCelsius = 0;
+inline constexpr int kFanThresholdMaxCelsius = 100;
+inline constexpr int kFanAutomaticThresholdCelsius = 77;
+
+inline constexpr int clamp_fan_threshold(int celsius) {
+  if (celsius < kFanThresholdMinCelsius)
+    return kFanThresholdMinCelsius;
+  if (celsius > kFanThresholdMaxCelsius)
+    return kFanThresholdMaxCelsius;
+  return celsius;
+}
 
 inline constexpr std::size_t kMaxAppJailbreakExactTitleIds = 20;
 inline constexpr std::size_t kMaxAppJailbreakTitleIdPrefixes = 20;
@@ -80,6 +96,10 @@ struct AppJailbreakAllowlist {
 };
 
 struct Settings {
+  // [startup]
+  // Page to open after OnionHEN finishes loading.
+  int startup_open_after_load = kStartupOpenNone;
+
   // [rest_mode]
   uint64_t rest_mode_delay_seconds = 10;
 
@@ -95,11 +115,13 @@ struct Settings {
 
   // [cooling]
   bool enable_fan_speed = false;
-  int fan_threshold = 77;
+  int fan_threshold = kFanAutomaticThresholdCelsius;
 
   // [overlay]
   /** Master visibility switch for the complete ShellUI game monitor bar. */
   bool overlay_enabled = true;
+  /** Show the translucent background panel behind the game monitor bar. */
+  bool overlay_background = true;
   bool overlay_ram = true;
   bool overlay_cpu = true;
   bool overlay_gpu = true;
@@ -112,8 +134,12 @@ struct Settings {
   int cheats_shortcut_opt = 0;
   int toolbox_shortcut_opt = 0;
 
+  // [kstuff]
+  // Load the embedded/override kstuff payload when OnionHEN starts.
+  bool kstuff_autoload = true;
+
   // [toolbox]
-  // 0 = system (default), 1 = zh-Hans, 2 = English
+  // 0 = system (default), 1 = zh-Hans, 2 = English, 3 = Arabic
   int ui_lang = kUiLanguageSystem;
 
   // [logging]

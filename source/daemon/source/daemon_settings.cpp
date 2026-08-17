@@ -39,7 +39,7 @@ bool LoadSettings(bool force) {
   if (newest == 0) {
     LOG_ERROR("[Daemon] Config file not found. Creating default schema...");
     if (onion::settings_ensure_default()) {
-      onion_notify(true, "OnionHEN config created! @ /data/OnionHEN/config.ini");
+      onion_notify(true, "notify.settings.created");
     }
   }
 
@@ -47,7 +47,7 @@ bool LoadSettings(bool force) {
   onion::Settings s{};
   const bool from_file = onion::settings_load(&s);
   if (!from_file && newest != 0) {
-    onion_notify(true, "Failed to Read the Settings file");
+    onion_notify(true, "notify.settings.read_failed");
     return false;
   }
 
@@ -72,12 +72,12 @@ bool LoadSettings(bool force) {
   g_settings.store(s);
   app_jailbreak_set_enabled(s.app_jailbreak_enabled);
 
-  /* Fan maintenance used to run inside the app-jailbreak poller. Keep the
-     features independent by applying fan state at the configuration boundary. */
+  /* Immediate apply on config change. fan_maintenance_thread keeps rewriting
+     the threshold so firmware cannot silently restore its own curve. */
   if (s.enable_fan_speed) {
     (void)set_fan_threshold(s.fan_threshold);
   } else if (config_state.ever_loaded && previous.enable_fan_speed) {
-    (void)set_fan_threshold(77);
+    (void)restore_automatic_fan();
   }
 
   int system_language = 1;

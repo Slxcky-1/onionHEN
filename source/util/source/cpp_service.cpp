@@ -57,7 +57,7 @@ void check_addr_change(void) {
 
   bool ip_changed = strcmp(&ip_address[0], &func_ip_address[0]) != 0;
   if (ip_changed) {
-    onion_notify(true, "IP Address changed to %s", func_ip_address);
+    onion_notify(true, "notify.net.ip_changed", func_ip_address);
     /* Clear rest-mode side flags; toolbox reinject is handled on the
      * network-down path / ShellUI standby, not via TCP CMD. */
     (void)rest_mode_action;

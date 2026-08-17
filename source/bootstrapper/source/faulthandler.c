@@ -67,7 +67,7 @@ static void fault_handler(int sig) {
 void fault_handler_init(void (*cleanup_handler)(void)) {
 
 	if (setjmp(g_catch_buf) != 0) {
-		notify("The Fatal error has been successfully resolved\n\nyou have nothing to worry about");
+		notify("notify.crash.resolved");
 	}
 	g_cleanup_handler = cleanup_handler;
 	signal(SIGSEGV, fault_handler);

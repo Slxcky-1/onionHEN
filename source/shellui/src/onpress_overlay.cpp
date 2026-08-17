@@ -35,6 +35,10 @@ static OnPressResult id_overlay_enabled(OnPressContext &ctx) {
   return toggle_overlay_flag(ctx, g_settings.overlay_enabled);
 }
 
+static OnPressResult id_overlay_background(OnPressContext &ctx) {
+  return toggle_overlay_flag(ctx, g_settings.overlay_background);
+}
+
 static OnPressResult id_overlay_gpu(OnPressContext &ctx) {
   return toggle_overlay_flag(ctx, g_settings.overlay_gpu);
 }
@@ -44,7 +48,7 @@ static OnPressResult id_overlay_cpu(OnPressContext &ctx) {
     return OnPressResult::EarlyReturn;
   }
   if (!atoi(ctx.value.c_str()) && g_settings.all_cpu_usage) {
-    notify("To disable CPU overlay, please disable the All CPU usage option first");
+    notify("notify.overlay.disable_cpu_first");
     return OnPressResult::EarlyReturn;
   }
   g_settings.overlay_cpu = !g_settings.overlay_cpu;
@@ -65,7 +69,7 @@ static OnPressResult id_all_cpu_usage(OnPressContext &ctx) {
     return OnPressResult::EarlyReturn;
   }
   if (!g_settings.overlay_cpu) {
-    notify("To change CPU overlay mode, please enable the CPU overlay first");
+    notify("notify.overlay.enable_cpu_first");
     return OnPressResult::EarlyReturn;
   }
   /* Persisted via settings_commit as overlay.cpu_usage_mode in config.ini. */
@@ -85,6 +89,7 @@ static OnPressResult id_overlay_change_pos(OnPressContext &ctx) {
 
 static const OnPressExactEntry kExact[] = {
     {"id_overlay_enabled", id_overlay_enabled},
+    {"id_overlay_background", id_overlay_background},
     {"id_overlay_gpu", id_overlay_gpu},
     {"id_overlay_cpu", id_overlay_cpu},
     {"id_overlay_ram", id_overlay_ram},

@@ -22,6 +22,8 @@
   ·
   <b><a href="#configuration">Configuration</a></b>
   ·
+  <b><a href="#support">Support</a></b>
+  ·
   <b><a href="#credits">Credits</a></b>
 </p>
 
@@ -213,7 +215,8 @@ annotated default based on [`config.ini.example`](config.ini.example).
 | Key | Default | Values |
 | --- | --- | --- |
 | `meta.schema_version` | `1` | `1` |
-| `toolbox.language` | `system` | `system`, `zh-Hans`, `en` |
+| `toolbox.language` | `system` | `system`, `zh-Hans`, `en`, `ar` |
+| `startup.open_after_load` | `none` | `none`, `home_menu` |
 | `home_screen.show_title_ids` | `false` | `true`, `false` |
 | `game_menu.show_onionhen_options` | `true` | `true`, `false` |
 | `rest_mode.resume_reinject_delay_seconds` | `0` | seconds |
@@ -223,6 +226,8 @@ annotated default based on [`config.ini.example`](config.ini.example).
 | `app_jailbreak.debug_notifications` | `false` | `true`, `false` |
 | `cooling.fan_control` | `automatic` | `automatic`, `temperature_threshold` |
 | `cooling.temperature_threshold_celsius` | `77` | `0` through `100` |
+| `overlay.enabled` | `true` | `true`, `false` |
+| `overlay.background` | `true` | `true`, `false` |
 | `overlay.edge` | `top` | `top`, `bottom` |
 | `overlay.show_cpu` / `overlay.show_gpu` / `overlay.show_memory` | `true` | `true`, `false` |
 | `overlay.cpu_usage_mode` | `average` | `average`, `per_core` |
@@ -295,6 +300,14 @@ See [the architecture document](docs/arch.md) for the complete module and IPC ma
 - Preserve third-party file names when syncing upstream code.
 - Run the full PS5 build and host tests before submitting a pull request.
 - Update `docs/arch.md` when changing module responsibilities, IPC, runtime paths, or dependencies.
+
+<br>
+
+# Support
+
+<a href="https://ko-fi.com/0xp0co"><img src="https://img.shields.io/badge/Ko--fi-Support-FF6433?style=for-the-badge&logo=kofi&logoColor=white" alt="Support OnionHEN on Ko-fi"/></a>
+
+If you find this project helpful, please consider supporting its continued development. Your support is greatly appreciated!
 
 <br>
 

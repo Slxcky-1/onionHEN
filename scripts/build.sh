@@ -290,138 +290,17 @@ clean_build_artifacts() {
   ok "old build outputs removed"
 }
 
-# ELF self-signing (libonion_integrity / tools/elf_sign). Default ON.
-# Seed: $HOME/.config/onionhen/elf-signing-seed.hex (or ONION_ELF_SIGNING_SEED_HEX).
-ONION_ENABLE_ELF_PROTECTION="${ONION_ENABLE_ELF_PROTECTION:-ON}"
-ONION_ELF_SIGNING_KEY_FILE="${ONION_ELF_SIGNING_KEY_FILE:-${HOME}/.config/onionhen/elf-signing-seed.hex}"
-ONION_ELF_SIGNING_SEED_HEX="${ONION_ELF_SIGNING_SEED_HEX:-}"
-ONION_ELF_SIGNING_PUBLIC_KEY_HEX="${ONION_ELF_SIGNING_PUBLIC_KEY_HEX:-}"
-ELF_SIGNING_KEY_SOURCE=""
-
-prepare_elf_signing() {
-  local seed="${ONION_ELF_SIGNING_SEED_HEX}"
-  local configured_public_key="${ONION_ELF_SIGNING_PUBLIC_KEY_HEX}"
-  local derived_public_key
-  local enable="${ONION_ENABLE_ELF_PROTECTION}"
-
-  case "${enable}" in
-    0|OFF|off|Off|FALSE|false|False|N|n|NO|no)
-      ONION_ENABLE_ELF_PROTECTION=OFF
-      ONION_ELF_SIGNING_SEED_HEX=""
-      ONION_ELF_SIGNING_PUBLIC_KEY_HEX=""
-      ELF_SIGNING_KEY_SOURCE="disabled"
-      return
-      ;;
-    1|ON|on|On|TRUE|true|True|Y|y|YES|yes)
-      ONION_ENABLE_ELF_PROTECTION=ON
-      ;;
-    *)
-      die "ONION_ENABLE_ELF_PROTECTION must be ON or OFF (got ${enable})"
-      ;;
-  esac
-
-  if [[ -n "${seed}" ]]; then
-    ELF_SIGNING_KEY_SOURCE="environment"
-  else
-    if [[ ! -f "${ONION_ELF_SIGNING_KEY_FILE}" ]]; then
-      local key_dir key_tmp
-      command -v openssl >/dev/null 2>&1 || die "openssl required to generate ELF signing seed"
-      key_dir="$(dirname "${ONION_ELF_SIGNING_KEY_FILE}")"
-      key_tmp="${ONION_ELF_SIGNING_KEY_FILE}.tmp.$$"
-      mkdir -p "${key_dir}"
-      umask 077
-      openssl rand -hex 32 > "${key_tmp}"
-      mv "${key_tmp}" "${ONION_ELF_SIGNING_KEY_FILE}"
-      chmod 600 "${ONION_ELF_SIGNING_KEY_FILE}"
-      ok "generated ELF signing key: ${ONION_ELF_SIGNING_KEY_FILE}"
-    fi
-    chmod 600 "${ONION_ELF_SIGNING_KEY_FILE}"
-    seed="$(tr -d '[:space:]' < "${ONION_ELF_SIGNING_KEY_FILE}")"
-    ELF_SIGNING_KEY_SOURCE="${ONION_ELF_SIGNING_KEY_FILE}"
-  fi
-
-  if [[ ! "${seed}" =~ ^[0-9A-Fa-f]{64}$ ]]; then
-    die "ELF signing seed must be exactly 64 hex characters"
-  fi
-  seed="$(printf '%s' "${seed}" | tr '[:upper:]' '[:lower:]')"
-
-  make -C "${ROOT}/tools/elf_sign" -j"${JOBS}" >/dev/null
-  derived_public_key="$(
-    "${ROOT}/build/tools/sign-elf" --public-key "${seed}"
-  )"
-  if [[ -n "${configured_public_key}" ]]; then
-    local want
-    want="$(printf '%s' "${configured_public_key}" | tr '[:upper:]' '[:lower:]')"
-    if [[ "${want}" != "${derived_public_key}" ]]; then
-      die "ONION_ELF_SIGNING_PUBLIC_KEY_HEX does not match the signing seed"
-    fi
-  fi
-
-  ONION_ELF_SIGNING_SEED_HEX="${seed}"
-  ONION_ELF_SIGNING_PUBLIC_KEY_HEX="${derived_public_key}"
-}
-
-sign_daemon_elf() {
-  local elf="${BIN}/daemon.elf"
-  local signed="${elf}.signed"
-
-  if [[ "${ONION_ENABLE_ELF_PROTECTION}" != "ON" ]]; then
-    return
-  fi
-  [[ -f "${elf}" ]] || die "missing ${elf} to sign"
-  make -C "${ROOT}/tools/elf_sign" -j"${JOBS}" >/dev/null
-  "${ROOT}/build/tools/sign-elf" \
-    "${ONION_ELF_SIGNING_SEED_HEX}" \
-    "${elf}" \
-    "${signed}" \
-    "${ONION_ELF_SIGNING_PUBLIC_KEY_HEX}"
-  mv "${signed}" "${elf}"
-  "${ROOT}/build/tools/verify-signed-elf" \
-    "${ONION_ELF_SIGNING_PUBLIC_KEY_HEX}" \
-    "${elf}" >/dev/null
-  ok "signed + verified daemon.elf (ELF self-integrity)"
-}
-
 configure() {
   log "Configure (${BUILD_TYPE})"
   mkdir -p "${BUILD}"
-  local -a extra_cmake=()
-  # Temporary beta trial gate (libonion_trial/README.md).
-  # Seal params are optional: CMake auto-fills not_before/after (14d), build_id, state key.
-  # Accept legacy ONION_ENABLE_BETA_ACTIVATION as an alias for ONION_ENABLE_BETA_TRIAL.
-  if [[ -n "${ONION_ENABLE_BETA_TRIAL:-}" ]]; then
-    extra_cmake+=("-DONION_ENABLE_BETA_TRIAL=${ONION_ENABLE_BETA_TRIAL}")
-  elif [[ -n "${ONION_ENABLE_BETA_ACTIVATION:-}" ]]; then
-    warn "ONION_ENABLE_BETA_ACTIVATION is deprecated; use ONION_ENABLE_BETA_TRIAL"
-    extra_cmake+=("-DONION_ENABLE_BETA_TRIAL=${ONION_ENABLE_BETA_ACTIVATION}")
-  fi
-  for _beta_var in ONION_BETA_NOT_BEFORE ONION_BETA_NOT_AFTER ONION_BETA_BUILD_ID \
-                   ONION_BETA_STATE_KEY_HEX ONION_BETA_SKEW_SEC; do
-    if [[ -n "${!_beta_var:-}" ]]; then
-      extra_cmake+=("-D${_beta_var}=${!_beta_var}")
-    fi
-  done
-  unset _beta_var
 
-  prepare_elf_signing
-  extra_cmake+=("-DONION_ENABLE_ELF_PROTECTION=${ONION_ENABLE_ELF_PROTECTION}")
-  if [[ "${ONION_ENABLE_ELF_PROTECTION}" == "ON" ]]; then
-    extra_cmake+=("-DONION_ELF_SIGNING_PUBLIC_KEY_HEX=${ONION_ELF_SIGNING_PUBLIC_KEY_HEX}")
-    log "ELF protection ON (key: ${ELF_SIGNING_KEY_SOURCE})"
-  else
-    log "ELF protection OFF"
-  fi
-
-  # Bash 3.2 (macOS) + set -u: empty "${arr[@]}" is "unbound variable".
-  # ${arr[@]+"${arr[@]}"} expands to nothing when empty, or the elements when set.
   "${CMAKE[@]}" \
     -S "${SOURCE}" \
     -B "${BUILD}" \
     -G Ninja \
     -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
     -DONIONHEN_KSTUFF_ELF="${CACHE}/kstuff.elf" \
-    -DPS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}" \
-    ${extra_cmake[@]+"${extra_cmake[@]}"}
+    -DPS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}"
   ok "configured -> ${BUILD}"
 }
 
@@ -480,9 +359,6 @@ main() {
     [[ -f "${BIN}/${f}" ]] || die "missing ${BIN}/${f} after phase 3"
     ok "built ${f}"
   done
-
-  # Sign daemon after strip (CMake post-build). Must precede bootstrapper embed.
-  sign_daemon_elf
 
   # Phase 4 — bootstrapper (embeds daemon/util + kstuff + assets; post-build lzma)
   log "Phase 4/5: bootstrapper"

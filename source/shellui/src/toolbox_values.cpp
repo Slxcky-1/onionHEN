@@ -27,8 +27,14 @@ struct ExactValueEntry {
 
 const ExactValueEntry kExactValues[] = {
     {"id_lm_test", +[]() -> std::string { return "0"; }},
+    {"id_start_opt",
+     +[]() -> std::string {
+       return int_str(g_settings.startup_open_after_load);
+     }},
     {"id_overlay_enabled",
      +[]() -> std::string { return bool_str(g_settings.overlay_enabled); }},
+    {"id_overlay_background",
+     +[]() -> std::string { return bool_str(g_settings.overlay_background); }},
     {"id_overlay_gpu",
      +[]() -> std::string { return bool_str(g_settings.overlay_gpu); }},
     {"id_overlay_ip",
@@ -40,9 +46,7 @@ const ExactValueEntry kExactValues[] = {
     {"id_overlay_ram",
      +[]() -> std::string { return bool_str(g_settings.overlay_ram); }},
     {"id_kstuff_autoload",
-     +[]() -> std::string {
-       return bool_str(!if_exists("/user/data/OnionHEN/no_kstuff"));
-     }},
+     +[]() -> std::string { return bool_str(g_settings.kstuff_autoload); }},
     {"id_disp_titleids",
      +[]() -> std::string { return bool_str(g_settings.display_tids); }},
     {"id_enable_fan_speed",

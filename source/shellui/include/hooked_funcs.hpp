@@ -320,10 +320,11 @@ result Invoke(MonoImage* Assembly_Image, MonoClass* klass, MonoObject* Instance,
 /* ================================= ORIG HOOKED MONO FUNCS ============================================= */
 extern int (*oOnPress)(MonoObject* Instance, MonoObject* element, MonoObject* e);
 extern int (*oOnPreCreate)(MonoObject* Instance, MonoObject* element);
+extern void (*oOnActivated)(MonoObject* Instance, int transition);
+extern void (*oOnDeactivating)(MonoObject* Instance, int transition);
 extern MonoString* (*CxmlUri)(MonoObject* obj,MonoString* uri);
 extern bool (*CheckRemotePlayRestriction_Orig)(MonoObject* instance);
 extern void (*oTerminate)(void);
-extern void (*UpdateImposeStatusFlag_Orig)(MonoObject* scene, MonoObject* frontActiveScene);
 
 extern bool (*boot_orig)(MonoString* uri, int opt, MonoString* titleIdForBootAction);
 extern bool (*boot_orig_2)(MonoString* uri, int opt);
@@ -361,9 +362,10 @@ MonoObject* CreateLabel(const char* name, float x, float y, const char* text, Mo
 void Widget_Append_Child(MonoObject* widget, MonoObject* child);
 MonoObject* New_Object(MonoClass* Klass);
 MonoString *GetString_Hook(MonoObject *Instance, MonoString *str);
-void UpdateImposeStatusFlag_hook(MonoObject* scene, MonoObject* frontActiveScene);
 int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e);
 int OnPreCreate_Hook(MonoObject* Instance, MonoObject* element);
+void OnActivated_Hook(MonoObject* Instance, int transition);
+void OnDeactivating_Hook(MonoObject* Instance, int transition);
 MonoImage * getDLLimage(const char* dll_file);
 MonoString* CxmlUri_Hook(MonoObject* obj, MonoString* uri);
 MonoObject* InvokeByDesc(MonoClass* p_Class, const char* p_MethodDesc, void* p_Instance, void* p_Args);

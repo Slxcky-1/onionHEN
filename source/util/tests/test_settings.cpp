@@ -28,6 +28,8 @@ static int test_defaults_and_serialize_keys(void) {
   TEST_ASSERT_TRUE(text.find("schema_version=1") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("[toolbox]") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("language=system") != std::string::npos);
+  TEST_ASSERT_TRUE(text.find("[startup]") != std::string::npos);
+  TEST_ASSERT_TRUE(text.find("open_after_load=none") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("[logging]") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("level=info") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("temperature_threshold_celsius=77") !=
@@ -46,10 +48,13 @@ static int test_defaults_and_serialize_keys(void) {
                                  "# Available values: true, false\n"
                                  "enabled=true\n") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("edge=top") != std::string::npos);
+  TEST_ASSERT_TRUE(text.find("background=true") != std::string::npos);
   TEST_ASSERT_TRUE(
       text.find("exact_title_ids=ITEM00001,NPXS39041,PKGI13337,PKGI12345,"
                 "TOOL00001") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("title_id_prefixes=LAPY") != std::string::npos);
+  TEST_ASSERT_TRUE(text.find("[kstuff]\n") != std::string::npos);
+  TEST_ASSERT_TRUE(text.find("autoload=true") != std::string::npos);
   return 0;
 }
 
@@ -61,6 +66,7 @@ static int test_roundtrip_file(void) {
   in.fan_threshold = 55;
   in.cheats_shortcut_opt = 2;
   in.rest_mode_delay_seconds = 7;
+  in.startup_open_after_load = onion::kStartupOpenHomeMenu;
   in.ui_lang = onion::kUiLanguageEn;
   in.log_level = onion::kLogLevelDebug;
 
@@ -72,6 +78,8 @@ static int test_roundtrip_file(void) {
   TEST_ASSERT_EQ_INT(55, out.fan_threshold);
   TEST_ASSERT_EQ_INT(2, out.cheats_shortcut_opt);
   TEST_ASSERT_EQ_U64(7, out.rest_mode_delay_seconds);
+  TEST_ASSERT_EQ_INT(onion::kStartupOpenHomeMenu,
+                     out.startup_open_after_load);
   TEST_ASSERT_EQ_INT(onion::kUiLanguageEn, out.ui_lang);
   TEST_ASSERT_EQ_INT(onion::kLogLevelDebug, out.log_level);
   TEST_ASSERT_EQ_INT(onion::kSettingsSchemaVersion, out.schema_version);
@@ -96,6 +104,7 @@ static int test_full_schema_roundtrip(void) {
   TEST_ASSERT_TRUE(!path.empty());
 
   onion::Settings in{};
+  in.startup_open_after_load = onion::kStartupOpenHomeMenu;
   in.rest_mode_delay_seconds = 42;
   in.libhijacker_cheats = true;
   in.app_jailbreak_enabled = false;
@@ -105,6 +114,7 @@ static int test_full_schema_roundtrip(void) {
   in.enable_fan_speed = true;
   in.fan_threshold = 90;
   in.overlay_enabled = false;
+  in.overlay_background = false;
   in.overlay_ram = false;
   in.overlay_cpu = false;
   in.overlay_gpu = false;
@@ -114,6 +124,7 @@ static int test_full_schema_roundtrip(void) {
   in.cheats_shortcut_opt = 4;
   in.toolbox_shortcut_opt = 2;
   in.ui_lang = onion::kUiLanguageZhHans;
+  in.kstuff_autoload = false;
   in.app_jailbreak_allowlist.exact_title_ids = {};
   in.app_jailbreak_allowlist.exact_title_ids[0] = "ITEM00001";
   in.app_jailbreak_allowlist.exact_title_ids[1] = "CUSA12345";
@@ -127,6 +138,7 @@ static int test_full_schema_roundtrip(void) {
   TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
 
   TEST_ASSERT_EQ_U64(in.rest_mode_delay_seconds, out.rest_mode_delay_seconds);
+  TEST_ASSERT_EQ_INT(in.startup_open_after_load, out.startup_open_after_load);
   TEST_ASSERT_TRUE(out.libhijacker_cheats == in.libhijacker_cheats);
   TEST_ASSERT_TRUE(out.app_jailbreak_enabled == in.app_jailbreak_enabled);
   TEST_ASSERT_TRUE(out.debug_app_jb_msg == in.debug_app_jb_msg);
@@ -135,6 +147,7 @@ static int test_full_schema_roundtrip(void) {
   TEST_ASSERT_TRUE(out.enable_fan_speed == in.enable_fan_speed);
   TEST_ASSERT_EQ_INT(in.fan_threshold, out.fan_threshold);
   TEST_ASSERT_TRUE(out.overlay_enabled == in.overlay_enabled);
+  TEST_ASSERT_TRUE(out.overlay_background == in.overlay_background);
   TEST_ASSERT_TRUE(out.overlay_ram == in.overlay_ram);
   TEST_ASSERT_TRUE(out.overlay_cpu == in.overlay_cpu);
   TEST_ASSERT_TRUE(out.overlay_gpu == in.overlay_gpu);
@@ -144,6 +157,7 @@ static int test_full_schema_roundtrip(void) {
   TEST_ASSERT_EQ_INT(in.cheats_shortcut_opt, out.cheats_shortcut_opt);
   TEST_ASSERT_EQ_INT(in.toolbox_shortcut_opt, out.toolbox_shortcut_opt);
   TEST_ASSERT_EQ_INT(in.ui_lang, out.ui_lang);
+  TEST_ASSERT_TRUE(out.kstuff_autoload == in.kstuff_autoload);
   TEST_ASSERT_EQ_U64(
       in.app_jailbreak_allowlist.exact_title_id_count,
       out.app_jailbreak_allowlist.exact_title_id_count);
@@ -175,9 +189,12 @@ static int test_partial_ini_keeps_defaults(void) {
   TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
   /* Removed keys are ignored; unspecified keys stay at defaults. */
   TEST_ASSERT_EQ_U64(10, out.rest_mode_delay_seconds);
+  TEST_ASSERT_EQ_INT(onion::kStartupOpenNone, out.startup_open_after_load);
   TEST_ASSERT_EQ_INT(77, out.fan_threshold);
   TEST_ASSERT_TRUE(out.overlay_enabled);
+  TEST_ASSERT_TRUE(out.overlay_background);
   TEST_ASSERT_TRUE(out.app_jailbreak_enabled);
+  TEST_ASSERT_TRUE(out.kstuff_autoload);
   TEST_ASSERT_EQ_U64(5, out.app_jailbreak_allowlist.exact_title_id_count);
   TEST_ASSERT_STREQ("ITEM00001",
                     out.app_jailbreak_allowlist.exact_title_ids[0].c_str());
@@ -189,15 +206,48 @@ static int test_partial_ini_keeps_defaults(void) {
   return 0;
 }
 
+static int test_startup_open_after_load_parse_policy(void) {
+  std::string path = temp_ini_path();
+  TEST_ASSERT_TRUE(!path.empty());
+
+  FILE *f = fopen(path.c_str(), "w");
+  TEST_ASSERT_TRUE(f != nullptr);
+  fputs("[meta]\nschema_version=1\n\n[startup]\n"
+        "open_after_load=home_menu\n",
+        f);
+  fclose(f);
+
+  onion::Settings configured{};
+  TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &configured));
+  TEST_ASSERT_EQ_INT(onion::kStartupOpenHomeMenu,
+                     configured.startup_open_after_load);
+
+  f = fopen(path.c_str(), "w");
+  TEST_ASSERT_TRUE(f != nullptr);
+  fputs("[meta]\nschema_version=1\n\n[startup]\n"
+        "open_after_load=settings\n",
+        f);
+  fclose(f);
+
+  onion::Settings invalid{};
+  TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &invalid));
+  TEST_ASSERT_EQ_INT(onion::kStartupOpenNone, invalid.startup_open_after_load);
+
+  unlink(path.c_str());
+  return 0;
+}
+
 static int test_serialize_contains_overlay_keys(void) {
   onion::Settings s{};
   s.overlay_enabled = false;
+  s.overlay_background = false;
   s.overlay_ip = true;
   s.all_cpu_usage = true;
   s.overlay_pos = 2;
   std::string text = onion::settings_serialize(s);
   TEST_ASSERT_TRUE(text.find("overlay_fps=") == std::string::npos);
   TEST_ASSERT_TRUE(text.find("enabled=false") != std::string::npos);
+  TEST_ASSERT_TRUE(text.find("background=false") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("show_ip_address=true") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("cpu_usage_mode=per_core") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("edge=bottom") != std::string::npos);
@@ -339,6 +389,48 @@ static int test_log_level_invalid_falls_back(void) {
   return 0;
 }
 
+static int test_language_ar_roundtrip(void) {
+  const std::string path = temp_ini_path();
+  TEST_ASSERT_TRUE(!path.empty());
+
+  onion::Settings in{};
+  in.ui_lang = onion::kUiLanguageAr;
+  TEST_ASSERT_TRUE(onion::settings_serialize(in).find("language=ar") !=
+                   std::string::npos);
+  TEST_ASSERT_TRUE(onion::settings_save_file(path.c_str(), in));
+
+  onion::Settings out{};
+  TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
+  TEST_ASSERT_EQ_INT(onion::kUiLanguageAr, out.ui_lang);
+
+  FILE *f = fopen(path.c_str(), "w");
+  TEST_ASSERT_TRUE(f != nullptr);
+  fputs("[meta]\nschema_version=1\n\n[toolbox]\nlanguage=ar-SA\n", f);
+  fclose(f);
+  TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
+  TEST_ASSERT_EQ_INT(onion::kUiLanguageAr, out.ui_lang);
+
+  unlink(path.c_str());
+  return 0;
+}
+
+static int test_clamp_fan_threshold(void) {
+  TEST_ASSERT_EQ_INT(onion::kFanAutomaticThresholdCelsius,
+                     onion::Settings{}.fan_threshold);
+  TEST_ASSERT_EQ_INT(onion::kFanThresholdMinCelsius,
+                     onion::clamp_fan_threshold(-5));
+  TEST_ASSERT_EQ_INT(onion::kFanThresholdMinCelsius,
+                     onion::clamp_fan_threshold(onion::kFanThresholdMinCelsius));
+  TEST_ASSERT_EQ_INT(onion::kFanAutomaticThresholdCelsius,
+                     onion::clamp_fan_threshold(
+                         onion::kFanAutomaticThresholdCelsius));
+  TEST_ASSERT_EQ_INT(onion::kFanThresholdMaxCelsius,
+                     onion::clamp_fan_threshold(onion::kFanThresholdMaxCelsius));
+  TEST_ASSERT_EQ_INT(onion::kFanThresholdMaxCelsius,
+                     onion::clamp_fan_threshold(140));
+  return 0;
+}
+
 extern "C" int test_settings_suite(void) {
   int failures = 0;
   failures += onion_test_run("settings_defaults_serialize", test_defaults_and_serialize_keys);
@@ -346,6 +438,8 @@ extern "C" int test_settings_suite(void) {
   failures += onion_test_run("settings_missing_file_defaults", test_missing_file_defaults);
   failures += onion_test_run("settings_full_schema_roundtrip", test_full_schema_roundtrip);
   failures += onion_test_run("settings_partial_ini_defaults", test_partial_ini_keeps_defaults);
+  failures += onion_test_run("settings_startup_open_after_load",
+                             test_startup_open_after_load_parse_policy);
   failures += onion_test_run("settings_serialize_overlay_keys", test_serialize_contains_overlay_keys);
   failures += onion_test_run("settings_empty_file_defaults", test_empty_file_loads_defaults);
   failures += onion_test_run("settings_app_jailbreak_allowlist",
@@ -355,5 +449,8 @@ extern "C" int test_settings_suite(void) {
   failures += onion_test_run("settings_config_mtime_helpers", test_config_mtime_helpers);
   failures += onion_test_run("settings_log_level_invalid",
                              test_log_level_invalid_falls_back);
+  failures += onion_test_run("settings_language_ar", test_language_ar_roundtrip);
+  failures += onion_test_run("settings_clamp_fan_threshold",
+                             test_clamp_fan_threshold);
   return failures;
 }

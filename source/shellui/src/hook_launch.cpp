@@ -4,6 +4,7 @@
 #include "hooked_funcs.hpp"
 #include "ipc.hpp"
 #include "external_symbols.hpp"
+#include "toolbox_i18n.hpp"
 #include <onion/platform.h>
 #include <onion/system_tmp.h>
 #include <string>
@@ -11,6 +12,7 @@
 #include <sys/stat.h>
 
 #include "shellui_state.hpp"
+#include "remote_play_page.hpp"
 #include <cstring>
 
 void save_appid(int value, const char* filename) {
@@ -31,7 +33,7 @@ int LaunchApp(MonoString* titleId, uint64_t* args, int argsSize, LaunchAppParam 
 	  unsigned int ret = LaunchApp_orig(titleId, args, argsSize, param);
       if (ret < 0) {
          #if SHELL_DEBUG == 1
-         notify("LaunchApp failed with error code: %d", ret);
+         notify("notify.app.launch_failed", ret);
          #endif
          return ret;
       }
@@ -44,12 +46,12 @@ int LaunchApp(MonoString* titleId, uint64_t* args, int argsSize, LaunchAppParam 
 #if SHELL_DEBUG == 1
   LOG_DEBUG("LaunchApp called with titleId: %s, argsSize: %d, param->size: %d", mono_string_to_utf8(titleId), argsSize, param->size);
 #endif
-  notify("Launching app: %s checking for patches ...", mono_string_to_utf8(titleId));
+  notify("notify.app.launching", mono_string_to_utf8(titleId));
 
   unsigned int ret = LaunchApp_orig(titleId, args, argsSize, param);
   if (ret < 0) {
     #if SHELL_DEBUG == 1
-    notify("LaunchApp failed with error code: %d", ret);
+    notify("notify.app.launch_failed", ret);
     #endif
     return ret;
   }
@@ -57,7 +59,7 @@ int LaunchApp(MonoString* titleId, uint64_t* args, int argsSize, LaunchAppParam 
   app_launched = true;
 
  #if SHELL_DEBUG == 1
-  notify("LaunchApp returned: %d", ret);
+  notify("notify.app.launch_returned", ret);
   #endif
 
   save_appid(ret, ONION_SYSTEM_TMP_APP_LAUNCHED);
@@ -192,7 +194,12 @@ void createJson_hook(MonoObject* inst, MonoObject* array, MonoString* id, MonoSt
     }
     if(id_str == "MENU_ID_CHECK_PATCH"){  
       //createJson_hook: 8815fec90 id: MENU_ID_CHECK_PATCH, label: , actionUrl: pspatchcheck:check-for-update?titleid=CUSA01127, actionId: , messageId: msgid_check_update
-        createJson(inst, array, mono_string_new(Root_Domain, "MENU_ID_CHEATS"), mono_string_new(Root_Domain, "★ OnionHEN 金手指"), mono_string_new(Root_Domain, "OnionHEN?Cheats_not_open"), actionId, nullptr, subMenu, enable);
+        createJson(inst, array,
+                   mono_string_new(Root_Domain, "MENU_ID_CHEATS"),
+                   mono_string_new(Root_Domain,
+                                   toolbox_i18n::tr("cheats.game_menu")),
+                   mono_string_new(Root_Domain, "OnionHEN?Cheats_not_open"),
+                   actionId, nullptr, subMenu, enable);
         return;
     }
 
@@ -207,6 +214,7 @@ void Terminate() {
     }
 
     LOG_DEBUG("******************************\nShellUI is exiting\n*****************************");
+    EndRemotePlayPageSession("shellui_terminate");
     LOG_DEBUG("Sending Action");
     IPC_Client& ipc = IPC_Client::getInstance(true);
     ipc.SendRestModeAction();

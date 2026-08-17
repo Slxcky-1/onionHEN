@@ -14,7 +14,6 @@
 #include "toolbox_values.hpp"
 #include "onion_cjson.hpp"
 
-#define PIN_CODE_SIZE 64
 #define ACCOUNT_ID_BASE64_SIZE 16
 
 #include <dirent.h>
@@ -42,49 +41,6 @@ void escapeXML(std::string& input) {
 }
 
 namespace {
-
-#if defined(ONION_ENABLE_BETA_TRIAL)
-/*
- * Beta banner format strings (zh/en) are not plain C string literals.
- * Blob: enc[i] = (plain[i] ^ key[i%k]) + (i*17 + 31)  (mod 256)
- * Key:  base64(kBannerXorKeyB64), same material as prx version banner.
- * Regenerate: python3 source/shellui/assets/encrypt_banner.py
- */
-constexpr const char *kBannerXorKeyB64 = "U0lTVFIwX0lfU0VFX1lPVQ==";
-
-/* Obfuscated zh-Hans format (printf %s = ONIONHEN_VERSION). */
-constexpr unsigned char kBetaBannerZhEnc[] = {
-    0xd0, 0x01, 0x17, 0xc6, 0x1a, 0x2a, 0x5f, 0x45, 0x91, 0x90, 0x2e, 0x3a,
-    0x17, 0x75, 0x9a, 0x00, 0xa2, 0xee, 0x46, 0x37, 0x27, 0x21, 0x92, 0x52,
-    0xb2, 0x8d, 0x7a, 0xe3, 0xfa, 0x85, 0xaa, 0x10, 0xb2, 0xf1, 0x39, 0x63,
-    0x39, 0x1f, 0x6c, 0x57, 0xb2, 0xc2, 0x96, 0xeb, 0xfd, 0xd9, 0x23, 0x23,
-    0x0a, 0x46, 0x55, 0x3f, 0x65, 0x54, 0x6e, 0xab, 0xb8, 0x5b, 0xa0, 0xe7,
-    0xf5};
-
-/* Obfuscated en-US format (printf %s = ONIONHEN_VERSION). */
-constexpr unsigned char kBetaBannerEnEnc[] = {
-    0xd0, 0x01, 0x17, 0xc6, 0x73, 0xe9, 0x90, 0x9e, 0x26, 0x2e, 0xff, 0x3f,
-    0x88, 0xea, 0x7c, 0x2f, 0x4b, 0xa9, 0x6e, 0x7d, 0x79, 0x94, 0xa2, 0xb2,
-    0xd2, 0xe2, 0xef, 0xfb, 0x08, 0x1c, 0x2a, 0x2e, 0x46, 0x5c, 0xd4, 0x08,
-    0x68, 0xa4, 0xbb, 0xe5, 0x46, 0xfb, 0x0d, 0x26, 0x46, 0x91, 0x9c, 0x65,
-    0x85, 0x98, 0x97, 0xb3, 0xb4, 0xe8, 0x34, 0xee, 0x56, 0x09, 0x19, 0x2d,
-    0x45, 0x63, 0x68, 0xc3, 0x10, 0x41, 0x57};
-
-std::string decode_beta_banner_fmt(const unsigned char *enc, size_t n) {
-  const std::string key = base64_decode(kBannerXorKeyB64);
-  if (key.empty() || n == 0)
-    return {};
-  std::string out(n, '\0');
-  for (size_t i = 0; i < n; ++i) {
-    unsigned char b = enc[i];
-    b = static_cast<unsigned char>(b -
-                                   static_cast<unsigned char>(i * 17u + 31u));
-    b ^= static_cast<unsigned char>(key[i % key.size()]);
-    out[i] = static_cast<char>(b);
-  }
-  return out;
-}
-#endif
 
 /** Payload .elf only (OnionHEN no longer supports .plugin packages). */
 template <typename G>
@@ -114,16 +70,11 @@ void append_payload_entry(G& page, const std::string& directory, const char* fil
   const std::string id_prefix = list_page ? "id_payload_" : "id_auto_payload_";
   const std::string id = id_prefix + std::to_string(next_id++);
 
-  std::string second;
-  if (list_page) {
-    second = std::string(toolbox_i18n::tr("payload.start_stop")) + filename +
-             toolbox_i18n::tr("payload.path") + shown_path + ") (" + elf_key +
-             ")";
-  } else {
-    second = std::string(toolbox_i18n::tr("payload.autostart_enable")) +
-             filename + toolbox_i18n::tr("payload.autostart_suffix") +
-             shown_path + ")";
-  }
+  const std::string second =
+      list_page ? toolbox_i18n::format("payload.start_stop_fmt", filename,
+                                      shown_path.c_str(), elf_key)
+                : toolbox_i18n::format("payload.autostart_fmt", filename,
+                                      shown_path.c_str());
 
   page.toggle(id, filename, /*on=*/false, second);
 
@@ -166,7 +117,7 @@ void append_homebrew_game(G& page, const std::string& game_dir, const char* dir_
   g_ui.games_list.push_back(game);
 
   page.button(game.id, "(" + title_id + ") " + title,
-              shown_path + toolbox_i18n::tr("plapps.version") + ver,
+              toolbox_i18n::format("plapps.version_fmt", shown_path.c_str(), ver.c_str()),
               std::nullopt, icon_path);
 }
 
@@ -237,8 +188,8 @@ void append_cheat_entries(G& page, cJSON* root, const std::string& tid,
       page.toggle(id_attr, name, enabled, std::nullopt, desc, "tex_game_icon");
     } else {
       page.button(id_attr, name,
-                  std::string(toolbox_i18n::tr("cheats.enable_for")) +
-                      game_name + toolbox_i18n::tr("cheats.enable_mid") + name,
+                  toolbox_i18n::format("cheats.enable_fmt", game_name.c_str(),
+                            name.c_str()),
                   desc, "tex_game_icon");
     }
     g_ui.set_cheat_enabled(id, enabled);
@@ -248,17 +199,14 @@ void append_cheat_entries(G& page, cJSON* root, const std::string& tid,
 } // namespace
 
 void generate_remote_play_xml(std::string& xml_buffer) {
-  char pin_code[PIN_CODE_SIZE] = {0};
   char AccountID[ACCOUNT_ID_BASE64_SIZE] = {0};
   uint64_t dec_account_id = 0;
   bool activated_now = false;
   bzero(AccountID, ACCOUNT_ID_BASE64_SIZE);
 
   LOG_DEBUG("Starting remote play");
-  static bool remote_play_initialized = false;
-  if (!remote_play_initialized) {
-    remote_play_initialized = InitRemotePlay();
-  }
+  StopConfirmRegistLoop();
+  const bool remote_play_initialized = InitRemotePlay();
 
   ps5ui::Page page("remote_play_pin_display", toolbox_i18n::tr("rp.title"));
   page.root_style(ps5ui::Style::Center);
@@ -291,21 +239,19 @@ void generate_remote_play_xml(std::string& xml_buffer) {
   const std::string decoded_account_id = account_id_stream.str();
 
   g_ui.remote_play_info =
-      std::string(toolbox_i18n::tr("rp.account_id")) + AccountID;
+      toolbox_i18n::format("rp.account_id_fmt", AccountID);
   g_ui.remote_play_info +=
-      std::string("\n") + toolbox_i18n::tr("rp.account_id_decoded") +
-      decoded_account_id;
+      std::string("\n") +
+      toolbox_i18n::format("rp.account_id_decoded_fmt", decoded_account_id.c_str());
 
   uint32_t pinCode = 0;
   const bool pin_ready = GeneratePINCode(pinCode);
   std::string pin_display;
   if (pin_ready) {
     LOG_DEBUG("Pin code => %u", pinCode);
-    snprintf(pin_code, sizeof(pin_code), "%s%04u %04u    ",
-             toolbox_i18n::tr("rp.pin"), pinCode / 10000u,
-             pinCode % 10000u);
-    pin_display = pin_code;
-    LOG_DEBUG("Pin code str => %s", pin_code);
+    pin_display = toolbox_i18n::format("rp.pin_fmt", pinCode / 10000u,
+                                      pinCode % 10000u);
+    LOG_DEBUG("Pin code str => %s", pin_display.c_str());
   } else {
     pin_display = toolbox_i18n::tr("rp.pin_error");
   }
@@ -313,11 +259,10 @@ void generate_remote_play_xml(std::string& xml_buffer) {
 
   page.label("id_pin", pin_display, ps5ui::Style::Center)
       .label("base64_account_id",
-             std::string(toolbox_i18n::tr("rp.account_id")) + AccountID,
-             ps5ui::Style::Center)
+             toolbox_i18n::format("rp.account_id_fmt", AccountID), ps5ui::Style::Center)
       .label("decoded_account_id",
-             std::string(toolbox_i18n::tr("rp.account_id_decoded")) +
-                 decoded_account_id,
+             toolbox_i18n::format("rp.account_id_decoded_fmt",
+                       decoded_account_id.c_str()),
              ps5ui::Style::Center);
 
   if (usbpath() != -1)
@@ -386,12 +331,13 @@ void generate_cheats_xml(std::string& new_xml, std::string& not_open_tid,
   if (!client.GameVerFromTid(g_ui.running_tid, game_ver))
     game_ver = toolbox_i18n::tr("cheats.ver_unknown");
 
-  ps5ui::Page page(list_id, std::string(toolbox_i18n::tr("cheats.title_prefix")) +
-                                g_ui.running_tid + " - " + game_ver);
+  ps5ui::Page page(list_id, toolbox_i18n::format("cheats.title_fmt",
+                                      g_ui.running_tid.c_str(),
+                                      game_ver.c_str()));
 
   if (!g_ui.is_game_open && show_while_not_open) {
     page.label("id_cheat_disclaimer",
-               g_ui.running_tid + toolbox_i18n::tr("cheats.not_running"),
+               toolbox_i18n::format("cheats.not_running_fmt", g_ui.running_tid.c_str()),
                ps5ui::Style::Center);
   }
 
@@ -422,8 +368,7 @@ void generate_cheats_xml(std::string& new_xml, std::string& not_open_tid,
   page.label("id_cheat_title", "★ " + game_name + " ★", ps5ui::Style::Center);
 
   const std::string authors = join_authors(res_json.get());
-  page.label("credits",
-             std::string(toolbox_i18n::tr("cheats.authors")) + authors,
+  page.label("credits", toolbox_i18n::format("cheats.authors_fmt", authors.c_str()),
              ps5ui::Style::Center);
 
   append_cheat_entries(page, res_json.get(), g_ui.running_tid, game_name,
@@ -481,6 +426,11 @@ void generate_plapps_xml(std::string& new_xml) {
 
 namespace {
 
+/* Temporarily hide Remote Play from the toolbox homepage. Flip to 1 to restore. */
+#ifndef ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY
+#define ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY 0
+#endif
+
 constexpr const char* kIconPkg =
     "/user/data/OnionHEN/assets/icon_xml_package.png";
 constexpr const char* kIconPlugins =
@@ -488,8 +438,10 @@ constexpr const char* kIconPlugins =
 constexpr const char* kIconGame = "/user/data/OnionHEN/assets/icon_xml_game.png";
 constexpr const char* kIconMonitor =
     "/user/data/OnionHEN/assets/icon_xml_monitor.png";
+#if ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY
 constexpr const char* kIconAccount =
     "/user/data/OnionHEN/assets/icon_xml_account.png";
+#endif
 constexpr const char* kIconSettings =
     "/user/data/OnionHEN/assets/icon_xml_settings.png";
 constexpr const char* kIconShortcuts =
@@ -514,8 +466,10 @@ constexpr const char* kIconHardDrive =
     "/user/data/OnionHEN/assets/icon_xml_hardrive.png";
 constexpr const char* kIconDiscLicense =
     "/user/data/OnionHEN/assets/icon_xml_disc_license.png";
+#if ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY
 constexpr const char* kIconRemotePlay =
     "/user/data/OnionHEN/assets/icon_xml_remote_play.png";
+#endif
 constexpr const char* kIconDonations =
     "/user/data/OnionHEN/assets/icon_xml_donations.png";
 constexpr const char* kIconThanks =
@@ -579,6 +533,10 @@ void append_toolbox_display_group(ps5ui::Group& g) {
          o.toggle("id_overlay_enabled", toolbox_i18n::tr("overlay.enabled"),
                   toolbox_on("id_overlay_enabled"), std::nullopt,
                   toolbox_i18n::tr("overlay.enabled.desc"))
+             .toggle("id_overlay_background",
+                     toolbox_i18n::tr("overlay.background"),
+                     toolbox_on("id_overlay_background"), std::nullopt,
+                     toolbox_i18n::tr("overlay.background.desc"))
              .list("id_overlay_change_pos", toolbox_i18n::tr("overlay.pos"),
                    [](ps5ui::ListBuilder& L) {
                      L.item("id_overlay_pos_1",
@@ -615,11 +573,13 @@ void append_toolbox_display_group(ps5ui::Group& g) {
               kIconMenuOption);
 }
 
+#if ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY
 void append_toolbox_connection_group(ps5ui::Group& g) {
   g.link("remote_play", toolbox_i18n::tr("remote_play.link"),
          "remote_play.xml", toolbox_i18n::tr("remote_play.link.sub"),
          kIconRemotePlay);
 }
+#endif
 
 void append_toolbox_system_group(ps5ui::Group& g) {
   g.group(
@@ -652,11 +612,22 @@ void append_toolbox_system_group(ps5ui::Group& g) {
 }
 
 void append_toolbox_preferences_group(ps5ui::Group& g) {
-  g.list("id_ui_lang", toolbox_i18n::tr("lang.list"),
+  g.list("id_start_opt", toolbox_i18n::tr("startup.open_after_load"),
+         [](ps5ui::ListBuilder& L) {
+           L.item("id_start_opt_none", toolbox_i18n::tr("startup.none"), "0")
+               .item("id_start_opt_home_menu",
+                     toolbox_i18n::tr("startup.home_menu"), "1");
+         },
+         toolbox_i18n::tr("startup.open_after_load.sub"),
+         toolbox_val("id_start_opt", "0"),
+         toolbox_i18n::tr("startup.open_after_load.confirm"),
+         toolbox_i18n::tr("startup.open_after_load.confirm_phrase"))
+      .list("id_ui_lang", toolbox_i18n::tr("lang.list"),
          [](ps5ui::ListBuilder& L) {
            L.item("id_ui_lang_system", toolbox_i18n::tr("lang.system"), "0")
                .item("id_ui_lang_zh", toolbox_i18n::tr("lang.zh"), "1")
-               .item("id_ui_lang_en", toolbox_i18n::tr("lang.en"), "2");
+               .item("id_ui_lang_en", toolbox_i18n::tr("lang.en"), "2")
+               .item("id_ui_lang_ar", toolbox_i18n::tr("lang.ar"), "3");
          },
          toolbox_i18n::tr("lang.list.sub"), toolbox_val("id_ui_lang", "0"))
       .list("id_cheats_shortcut", toolbox_i18n::tr("sc.cheats"),
@@ -717,9 +688,8 @@ void append_toolbox_debug_group(ps5ui::Group& g) {
 
 void append_toolbox_about_group(ps5ui::Group& g) {
   /* About page top: same ONIONHEN_VERSION as welcome toast / beta banner. */
-  char build_line[160];
-  std::snprintf(build_line, sizeof(build_line), toolbox_i18n::tr("about.build"),
-                ONIONHEN_VERSION);
+  const std::string build_line =
+      toolbox_i18n::format("about.build", ONIONHEN_VERSION);
 
   g.label("id_about_build", build_line, ps5ui::Style::Center)
       .group(
@@ -730,11 +700,13 @@ void append_toolbox_about_group(ps5ui::Group& g) {
              .label("id_method_1",
                     "- Ko-fi  | https://ko-fi.com/0xp0co",
                     ps5ui::Style::Center)
-             .label("id_method_2", "- 微信｜polichan01", ps5ui::Style::Center)
+             .label("id_method_2", toolbox_i18n::tr("about.wechat"),
+                    ps5ui::Style::Center)
              .button("id_author_0xp0co", "麒麟/0xp0co", std::nullopt, "@0xp0co",
                      kIconAuthorAvatar)
              .label("id_author_donor_spacer", "　", ps5ui::Style::Center)
-             .label("id_donor_info", "★ 捐赠者 ★", ps5ui::Style::Center)
+             .label("id_donor_info", toolbox_i18n::tr("about.donors"),
+                    ps5ui::Style::Center)
              .button("id_donator_aglx", "爱过流星", std::nullopt,
                      std::nullopt, kIconDonatorAglx)
              .button("id_donator_ljf", "狂爱龙卷風", std::nullopt,
@@ -772,7 +744,7 @@ void append_toolbox_about_group(ps5ui::Group& g) {
                        "尼克库尔曼 · 云 · 啊烦",
                        ps5ui::Style::Center)
                 .label("id_about_tester_4",
-                       "小小蔡",
+                       "小小蔡 · B站谢锡榆 · 荆枫",
                        ps5ui::Style::Center)
                 .label("id_about_more", toolbox_i18n::tr("about.more"),
                        ps5ui::Style::Center);
@@ -824,31 +796,6 @@ void generate_toolbox_xml(std::string& new_xml) {
   ps5ui::Page page("id_debug_settings", toolbox_i18n::tr("root.title"));
   page.root_focus("id_group_pkg");
 
-#if defined(ONION_ENABLE_BETA_TRIAL)
-  /*
-   * Beta notice at the top of the root settings list (centered labels).
-   * Visible as soon as the toolbox opens — no need to enter a subgroup.
-   * Focus still lands on the first interactive group (PKG).
-   * Format string is decoded at runtime (see decode_beta_banner_fmt) so the
-   * zh/en redistribution notice is not a plain string in the ELF.
-   */
-  {
-    const bool en = toolbox_i18n::active_lang() == toolbox_i18n::Lang::En;
-    const unsigned char *enc =
-        en ? kBetaBannerEnEnc : kBetaBannerZhEnc;
-    const size_t enc_len =
-        en ? sizeof(kBetaBannerEnEnc) : sizeof(kBetaBannerZhEnc);
-    std::string fmt = decode_beta_banner_fmt(enc, enc_len);
-    char beta_banner[192];
-    std::snprintf(beta_banner, sizeof(beta_banner), fmt.c_str(),
-                  ONIONHEN_VERSION);
-    /* Drop decoded format promptly; banner text remains only in the UI buffer. */
-    for (char &c : fmt)
-      c = '\0';
-    page.label("id_beta_banner", beta_banner, ps5ui::Style::Center);
-  }
-#endif
-
   page.group(
           "id_group_pkg", toolbox_i18n::tr("group.pkg"),
           [](ps5ui::Group& g) { append_toolbox_pkg_group(g); },
@@ -867,11 +814,13 @@ void generate_toolbox_xml(std::string& new_xml) {
           [](ps5ui::Group& g) { append_toolbox_display_group(g); },
           toolbox_i18n::tr("group.display.sub"), kIconMonitor,
           "id_overlay_opts")
+#if ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY
       .group(
           "id_group_connection", toolbox_i18n::tr("group.connection"),
           [](ps5ui::Group& g) { append_toolbox_connection_group(g); },
           toolbox_i18n::tr("group.connection.sub"), kIconAccount,
           "remote_play")
+#endif
       .group(
           "id_group_system", toolbox_i18n::tr("group.system"),
           [](ps5ui::Group& g) { append_toolbox_system_group(g); },
@@ -881,7 +830,7 @@ void generate_toolbox_xml(std::string& new_xml) {
           "id_group_preferences", toolbox_i18n::tr("group.preferences"),
           [](ps5ui::Group& g) { append_toolbox_preferences_group(g); },
           toolbox_i18n::tr("group.preferences.sub"), kIconShortcuts,
-          "id_ui_lang")
+          "id_start_opt")
       .group(
           "id_group_debug", toolbox_i18n::tr("group.debug"),
           [](ps5ui::Group& g) { append_toolbox_debug_group(g); },

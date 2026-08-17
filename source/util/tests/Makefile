@@ -30,8 +30,6 @@ COMMON_FLAGS := -Wall -Wextra -g -O0 $(DEPFLAGS) -DONION_HOST_TEST=1 -DCBC=1 \
 	-I$(REPO_ROOT)/source/libonion_ipc/include \
 	-I$(REPO_ROOT)/source/libonion_detour/include \
 	-I$(REPO_ROOT)/source/libonion_ready \
-	-I$(REPO_ROOT)/source/libonion_trial/source \
-	-I$(REPO_ROOT)/source/libonion_trial/include \
 	-I$(REPO_ROOT)/source/daemon/include \
 	-I$(THIRD_PARTY_ROOT)/cjson \
 	-I$(THIRD_PARTY_ROOT)/cheat_support \
@@ -40,6 +38,7 @@ COMMON_FLAGS := -Wall -Wextra -g -O0 $(DEPFLAGS) -DONION_HOST_TEST=1 -DCBC=1 \
 	$(KEYSTONE_CFLAGS)
 
 I18N_DIR := $(REPO_ROOT)/source/i18n
+I18N_JSON := $(wildcard $(I18N_DIR)/*.json)
 I18N_CATALOG := $(BUILD_DIR)/generated/toolbox_i18n_catalog.inc
 NOTIFY_I18N_CATALOG := $(BUILD_DIR)/generated/notify_i18n_catalog.inc
 
@@ -60,11 +59,8 @@ PROD_C_SRCS := \
 	$(REPO_ROOT)/source/libonion_platform/source/net.c \
 	$(REPO_ROOT)/source/libonion_platform/source/notify.c \
 	$(REPO_ROOT)/source/libonion_platform/source/notify_i18n.c \
-	$(REPO_ROOT)/source/libonion_platform/source/obf_str.c \
 	$(REPO_ROOT)/source/libonion_ready/source/ready.c \
-	$(REPO_ROOT)/source/libonion_payload/source/payload.c \
-	$(REPO_ROOT)/source/libonion_trial/source/eval.c \
-	$(REPO_ROOT)/source/libonion_trial/source/seal_store.c
+	$(REPO_ROOT)/source/libonion_payload/source/payload.c
 
 PROD_CXX_SRCS := \
 	$(UTIL_ROOT)/source/cheats/json_cheat_parser.cpp \
@@ -98,7 +94,6 @@ TEST_C_SRCS := \
 	test_platform_notify.c \
 	test_toolbox_timing.c \
 	test_hijack_retry.c \
-	test_beta_trial.c \
 	stubs/host_stubs.c
 
 TEST_CXX_SRCS := \
@@ -128,11 +123,8 @@ PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_platform/log.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_platform/net.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_platform/notify.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_platform/notify_i18n.o
-PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_platform/obf_str.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_ready/ready.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_payload/payload.o
-PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_trial/eval.o
-PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_trial/seal_store.o
 PROD_C_OBJS += $(BUILD_DIR)/prod/libonion_detour/hde64.o
 
 CHEAT_SUPPORT_SRCS := $(wildcard $(THIRD_PARTY_ROOT)/cheat_support/*.c)
@@ -221,19 +213,17 @@ $(BUILD_DIR)/prod/shellui/toolbox_route.o: $(REPO_ROOT)/source/shellui/src/toolb
 	@mkdir -p $(dir $@)
 	$(HOST_CXX) $(CXXFLAGS) -c -o $@ $<
 
-$(I18N_CATALOG): $(I18N_DIR)/generate_catalog.py $(I18N_DIR)/zh-CN.json $(I18N_DIR)/en-US.json | $(BUILD_DIR)
+$(I18N_CATALOG): $(I18N_DIR)/generate_catalog.py $(I18N_JSON) | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(PYTHON) $(I18N_DIR)/generate_catalog.py \
-		--zh-cn $(I18N_DIR)/zh-CN.json \
-		--en-us $(I18N_DIR)/en-US.json \
+		--locales-dir $(I18N_DIR) \
 		--catalog toolbox \
 		--output $@
 
-$(NOTIFY_I18N_CATALOG): $(I18N_DIR)/generate_catalog.py $(I18N_DIR)/zh-CN.json $(I18N_DIR)/en-US.json | $(BUILD_DIR)
+$(NOTIFY_I18N_CATALOG): $(I18N_DIR)/generate_catalog.py $(I18N_JSON) | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(PYTHON) $(I18N_DIR)/generate_catalog.py \
-		--zh-cn $(I18N_DIR)/zh-CN.json \
-		--en-us $(I18N_DIR)/en-US.json \
+		--locales-dir $(I18N_DIR) \
 		--catalog notifications \
 		--output $@
 
@@ -244,14 +234,6 @@ $(BUILD_DIR)/prod/shellui/toolbox_i18n.o: $(REPO_ROOT)/source/shellui/src/toolbo
 $(BUILD_DIR)/prod/libonion_ready/ready.o: $(REPO_ROOT)/source/libonion_ready/source/ready.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(HOST_CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILD_DIR)/prod/libonion_trial/eval.o: $(REPO_ROOT)/source/libonion_trial/source/eval.c | $(BUILD_DIR)
-	@mkdir -p $(dir $@)
-	$(HOST_CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILD_DIR)/prod/libonion_trial/seal_store.o: $(REPO_ROOT)/source/libonion_trial/source/seal_store.c | $(BUILD_DIR)
-	@mkdir -p $(dir $@)
-	$(HOST_CC) $(CFLAGS) -DCBC=1 -DAES256=1 -c -o $@ $<
 
 $(BUILD_DIR)/prod/libonion_platform/fs.o: $(REPO_ROOT)/source/libonion_platform/source/fs.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
@@ -270,10 +252,6 @@ $(BUILD_DIR)/prod/libonion_platform/notify.o: $(REPO_ROOT)/source/libonion_platf
 	$(HOST_CC) $(CFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/prod/libonion_platform/notify_i18n.o: $(REPO_ROOT)/source/libonion_platform/source/notify_i18n.c $(NOTIFY_I18N_CATALOG) | $(BUILD_DIR)
-	@mkdir -p $(dir $@)
-	$(HOST_CC) $(CFLAGS) -c -o $@ $<
-
-$(BUILD_DIR)/prod/libonion_platform/obf_str.o: $(REPO_ROOT)/source/libonion_platform/source/obf_str.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(HOST_CC) $(CFLAGS) -c -o $@ $<
 

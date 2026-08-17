@@ -109,6 +109,10 @@ int parse_language(const char *s, int def) {
   if (streq_ci(s, "en") || streq_ci(s, "english")) {
     return kUiLanguageEn;
   }
+  if (streq_ci(s, "ar") || streq_ci(s, "arabic") ||
+      streq_ci(s, "ar-SA") || streq_ci(s, "ar_sa")) {
+    return kUiLanguageAr;
+  }
   return def;
 }
 
@@ -118,10 +122,26 @@ const char *language_name(int v) {
     return "zh-Hans";
   case kUiLanguageEn:
     return "en";
+  case kUiLanguageAr:
+    return "ar";
   case kUiLanguageSystem:
   default:
     return "system";
   }
+}
+
+int parse_startup_open_after_load(const char *s, int def) {
+  if (streq_ci(s, "none")) {
+    return kStartupOpenNone;
+  }
+  if (streq_ci(s, "home_menu")) {
+    return kStartupOpenHomeMenu;
+  }
+  return def;
+}
+
+const char *startup_open_after_load_name(int v) {
+  return v == kStartupOpenHomeMenu ? "home_menu" : "none";
 }
 
 int parse_log_level(const char *s, int def) {
@@ -407,6 +427,9 @@ bool apply_parser(IniParser *parser, Settings *out) {
   out->schema_version = version;
   out->ui_lang =
       parse_language(ini_get(parser, "toolbox.language"), out->ui_lang);
+  out->startup_open_after_load = parse_startup_open_after_load(
+      ini_get(parser, "startup.open_after_load"),
+      out->startup_open_after_load);
   out->log_level =
       parse_log_level(ini_get(parser, "logging.level"), out->log_level);
   out->display_tids = parse_bool(
@@ -443,9 +466,12 @@ bool apply_parser(IniParser *parser, Settings *out) {
                         out->enable_fan_speed);
   out->fan_threshold =
       parse_int_range(ini_get(parser, "cooling.temperature_threshold_celsius"),
-                      out->fan_threshold, 0, 100);
+                      out->fan_threshold, kFanThresholdMinCelsius,
+                      kFanThresholdMaxCelsius);
   out->overlay_enabled =
       parse_bool(ini_get(parser, "overlay.enabled"), out->overlay_enabled);
+  out->overlay_background = parse_bool(
+      ini_get(parser, "overlay.background"), out->overlay_background);
   out->overlay_pos =
       parse_overlay_edge(ini_get(parser, "overlay.edge"), out->overlay_pos);
   out->overlay_cpu =
@@ -465,6 +491,8 @@ bool apply_parser(IniParser *parser, Settings *out) {
   out->toolbox_shortcut_opt =
       parse_toolbox_shortcut(ini_get(parser, "shortcuts.toolbox"),
                              out->toolbox_shortcut_opt);
+  out->kstuff_autoload =
+      parse_bool(ini_get(parser, "kstuff.autoload"), out->kstuff_autoload);
   return true;
 }
 
@@ -519,9 +547,16 @@ std::string settings_serialize(const Settings &in) {
   b += "\n";
   b += "[toolbox]\n";
   b += "# language controls the Toolbox UI and notification language.\n";
-  b += "# Available values: system, zh-Hans, en\n";
+  b += "# Available values: system, zh-Hans, en, ar\n";
   b += "# system follows the PS5 system language when it can be detected.\n";
   b += "language=" + std::string(language_name(in.ui_lang)) + "\n";
+  b += "\n";
+  b += "[startup]\n";
+  b += "# open_after_load chooses which page opens after OnionHEN finishes loading.\n";
+  b += "# Available values: none, home_menu\n";
+  b += "open_after_load=" +
+       std::string(startup_open_after_load_name(in.startup_open_after_load)) +
+       "\n";
   b += "\n";
   b += "[logging]\n";
   b += "# level controls how much OnionHEN records to its log files.\n";
@@ -589,6 +624,9 @@ std::string settings_serialize(const Settings &in) {
   b += "# enabled shows or hides the complete game monitor bar.\n";
   b += "# Available values: true, false\n";
   b += "enabled=" + bool_text(in.overlay_enabled) + "\n";
+  b += "# background controls the translucent panel behind the monitor bar.\n";
+  b += "# Available values: true, false\n";
+  b += "background=" + bool_text(in.overlay_background) + "\n";
   b += "# edge chooses the screen edge used by the monitor bar.\n";
   b += "# Available values: top, bottom\n";
   b += "edge=" + std::string(overlay_edge_name(in.overlay_pos)) + "\n";
@@ -618,6 +656,11 @@ std::string settings_serialize(const Settings &in) {
   b += "# Available values: off, l2_r3, long_share, share\n";
   b += "toolbox=" + std::string(toolbox_shortcut_name(in.toolbox_shortcut_opt)) +
        "\n";
+  b += "\n";
+  b += "[kstuff]\n";
+  b += "# autoload loads kstuff when OnionHEN starts.\n";
+  b += "# Available values: true, false\n";
+  b += "autoload=" + bool_text(in.kstuff_autoload) + "\n";
   return b;
 }
 

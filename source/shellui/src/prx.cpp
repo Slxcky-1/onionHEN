@@ -24,6 +24,7 @@ along with this program; see the file COPYING. If not, see
 #include "ipc.hpp"
 #include "proc.h"
 #include "ps5/kernel.h"
+#include "remote_play_page.hpp"
 #include "ucred.h"
 #include "webserver.hpp"
 
@@ -143,14 +144,14 @@ bool install_detour(const char* name, uint64_t target, void* hook, Fn& out_orig,
   if (!target) {
     LOG_ERROR("Hook target missing: %s", name);
     if (required)
-      notify("Failed to find hook target");
+      notify("notify.hook.target");
     return !required;
   }
 
   if (!InstallDetour(target, hook, reinterpret_cast<void**>(&out_orig))) {
     LOG_ERROR("Detour failed: %s", name);
     if (required)
-      notify("Failed to install hook");
+      notify("notify.hook.install");
     return !required;
   }
 
@@ -186,7 +187,7 @@ MonoImage* require_dll(const char* name) {
   MonoImage* img = getDLLimage(name);
   if (!img) {
     LOG_ERROR("Failed to load Mono assembly: %s", name);
-    notify("Failed to load assembly");
+    notify("notify.hook.load_assembly");
   }
   return img;
 }
@@ -383,7 +384,8 @@ void init_resource_names() {
 
 bool init_version_string(const OrbisKernelSwVersion& sw) {
   /* XOR with base64_decode(kXorKeyB64) == "SISTR0_I_SEE_YOU" (not the b64 text). */
-  const char enc_ver[] = "\x1c\x3b\x3a\x3b\x3c\x78\x1a\x07\x7f"; /* "OnionHEN " */
+  /* XOR "OnionHEN " with SISTR0_I_SEE_YOU. Regenerate: encryptver.py "OnionHEN " */
+  const char enc_ver[] = "\x1c\x27\x3a\x3b\x3c\x78\x1a\x07\x7f"; /* "OnionHEN " */
   const std::string key = base64_decode(kXorKeyB64);
   auto dev_ver_bytes =
       encrypt_decrypt(reinterpret_cast<const unsigned char*>(enc_ver),
@@ -423,7 +425,7 @@ bool load_shell_images(ShellImages& out) {
   // Optional: LaunchApp / KillAppWithReason only when present
   out.lnc = getDLLimage("Sce.Vsh.LncUtilWrapper.dll");
   if (!out.lnc)
-    notify("Failed to get LncUtilWrapper image");
+    notify("notify.hook.lnc_image");
 
   out.react_common = require_dll("ReactNative.Vsh.Common.dll");
   out.rn_shell = require_dll("Sce.Vsh.ShellUI.ReactNativeShellApp.dll");
@@ -448,14 +450,14 @@ bool resolve_game_container(MonoImage* app_system) {
   MonoClass* layer_manager =
       mono_class_from_name(app_system, "Sce.Vsh.ShellUI.AppSystem", "LayerManager");
   if (!layer_manager) {
-    notify("Failed to get LayerManager class");
+    notify("notify.hook.layer_manager");
     return false;
   }
 
   MonoMethod* find =
       mono_class_get_method_from_name(layer_manager, "FindContainerSceneByPath", 1);
   if (!find) {
-    notify("Failed to get FindContainerSceneByPath method");
+    notify("notify.hook.find_scene");
     return false;
   }
 
@@ -465,11 +467,11 @@ bool resolve_game_container(MonoImage* app_system) {
   Game = mono_runtime_invoke(find, nullptr, args, &exception);
 
   if (exception) {
-    notify("Exception occurred while calling FindContainerSceneByPath");
+    notify("notify.hook.find_scene_exc");
     return false;
   }
   if (!Game) {
-    notify("Failed to get Game ContainerScene");
+    notify("notify.hook.game_scene");
     return false;
   }
 
@@ -500,7 +502,7 @@ bool install_mono_hook(const MonoHookSpec& h) {
   if (!addr) {
     LOG_ERROR("Hook target missing: %s", h.name);
     if (h.required)
-      notify("Failed to find hook target");
+      notify("notify.hook.target");
     return !h.required;
   }
   LOG_DEBUG("Installing mono hook: %s target=%#02lx hook=%p", h.name, addr,
@@ -508,7 +510,7 @@ bool install_mono_hook(const MonoHookSpec& h) {
   if (!InstallDetour(addr, h.hook, h.orig)) {
     LOG_ERROR("Detour failed: %s", h.name);
     if (h.required)
-      notify("Failed to install hook");
+      notify("notify.hook.install");
     return !h.required;
   }
   return true;
@@ -536,7 +538,7 @@ bool install_hooks(const ShellImages& img) {
 
   // --- Native (required) ---
   if (!sceRegMgrGetInt) {
-    notify("Failed to find sceRegMgrGetInt");
+    notify("notify.hook.regmgr");
     return false;
   }
   if (!install_detour_native("sceRegMgrGetInt",
@@ -551,16 +553,6 @@ bool install_hooks(const ShellImages& img) {
       {"OptionMenu.createJson", img.rn_shell, "ReactNative.Modules.ShellUI.HomeUI",
        "OptionMenu", "createJson", 8, reinterpret_cast<void*>(&createJson_hook),
        reinterpret_cast<void**>(&createJson), true},
-      /*
-       * Re-enabled for device test: scene leave should end Remote Play PIN
-       * registration (StopConfirmRegistLoop + NotifyPinCodeError). Historical
-       * crash was old trampoline RIP-rel; libonion_detour relocates that now.
-       * Still non-required so a missing method does not abort hook install.
-       */
-      {"LayerManager.UpdateImposeStatusFlag", img.app_system,
-       "Sce.Vsh.ShellUI.AppSystem", "LayerManager", "UpdateImposeStatusFlag", 2,
-       reinterpret_cast<void*>(&UpdateImposeStatusFlag_hook),
-       reinterpret_cast<void**>(&UpdateImposeStatusFlag_Orig), false},
       /* Optional: Core.Input may still be loading while we install; missing is non-fatal. */
       {"GamePad.GetData", img.core, "Sce.PlayStation.Core.Input", "GamePad", "GetData",
        1, reinterpret_cast<void*>(&GetData_hook), reinterpret_cast<void**>(&GetData),
@@ -574,6 +566,13 @@ bool install_hooks(const ShellImages& img) {
       {"SettingPage.OnCreating", img.legacy, UI3_dec.c_str(), "SettingPage",
        "OnCreating", 1, reinterpret_cast<void*>(&OnPreCreate_Hook),
        reinterpret_cast<void**>(&oOnPreCreate), false},
+      {"SettingPage.OnActivated", img.legacy, UI3_dec.c_str(), "SettingPage",
+       "OnActivated", 1, reinterpret_cast<void*>(&OnActivated_Hook),
+       reinterpret_cast<void**>(&oOnActivated), false},
+      {"SettingPage.OnDeactivating", img.legacy, UI3_dec.c_str(),
+       "SettingPage", "OnDeactivating", 1,
+       reinterpret_cast<void*>(&OnDeactivating_Hook),
+       reinterpret_cast<void**>(&oOnDeactivating), false},
       {"SettingsPlugin.GetString", img.legacy, UI3_dec.c_str(), "SettingsPlugin",
        "GetString", 1, reinterpret_cast<void*>(&GetString_Hook),
        reinterpret_cast<void**>(&oGetString), true},
@@ -589,6 +588,10 @@ bool install_hooks(const ShellImages& img) {
     if (!install_mono_hook(h))
       return false;
   }
+
+  InitializeRemotePlayPageLifecycle(img.legacy, img.pui);
+  LOG_INFO("[remote_play] lifecycle hooks activated=%d deactivating=%d",
+           oOnActivated ? 1 : 0, oOnDeactivating ? 1 : 0);
 
   // --- Optional diagnostics (log only) ---
   (void)install_optional_diag(
@@ -615,18 +618,18 @@ bool install_hooks(const ShellImages& img) {
         img.lnc, "Sce.Vsh.LncUtil", "LncUtilWrapper", "KillAppWithReason", 2);
     if (kill_addr &&
         !DetourFunction(kill_addr, reinterpret_cast<void*>(&KillAppWithReason_Hook)))
-      notify("Failed to detour KillAppWithReason");
+      notify("notify.hook.kill_app");
   }
 
   // --- RNPS bundle decrypt path ---
   if (!ioctl) {
-    notify("Failed to find RNPS decrypt ioctl");
+    notify("notify.hook.rnps_find");
     return false;
   }
   LOG_DEBUG("Found ioctl at %p", reinterpret_cast<void *>(ioctl));
   if (!DetourFunction(reinterpret_cast<uintptr_t>(ioctl),
                       reinterpret_cast<void*>(&ioctl_hook))) {
-    notify("Failed to detour RNPS decrypt ioctl");
+    notify("notify.hook.rnps_detour");
     return false;
   }
   LOG_DEBUG("Detoured ioctl to ioctl_hook");
@@ -641,7 +644,7 @@ bool install_hooks(const ShellImages& img) {
              "BootHelper", "Boot", 2, reinterpret_cast<void*>(&uri_boot_hook_2),
              reinterpret_cast<void**>(&boot_orig_2), false}) ||
         !boot_orig_2)
-      notify("failed to detour BootHelper.Boot");
+      notify("notify.hook.boot");
   }
 
   // --- CaptureScreen: 4-arg then 5-arg ---
@@ -657,7 +660,7 @@ bool install_hooks(const ShellImages& img) {
              reinterpret_cast<void*>(&CaptureScreen_new),
              reinterpret_cast<void**>(&CaptureScreen_orig_new), false}) ||
         !CaptureScreen_orig_new)
-      notify("Failed to detour CaptureScreen");
+      notify("notify.hook.capture");
   }
 
   // --- GetManifestResourceStream (class name differs on 3.xx) ---
@@ -666,7 +669,7 @@ bool install_hooks(const ShellImages& img) {
     const uint64_t method = Get_Address_of_Method(
         img.mscorlib, "System.Reflection", klass, "GetManifestResourceStream", 1);
     if (!method) {
-      notify("Failed to get master address");
+      notify("notify.hook.master");
       return false;
     }
     (void)install_mono_hook(
@@ -682,9 +685,15 @@ bool install_hooks(const ShellImages& img) {
    * while the installer is still compiling and committing other Mono hooks.
    */
   (void)install_mono_hook(
-      {"PUI.Application.Update", img.pui, "Sce.PlayStation.PUI", "Application",
-       "Update", 0, reinterpret_cast<void*>(&OnRender_Hook),
+      {"PUI.Application.Update", img.pui, "Sce.PlayStation.PUI",
+       "Application", "Update", 0, reinterpret_cast<void*>(&OnRender_Hook),
        reinterpret_cast<void**>(&OnRender_orig), false});
+  if (OnRender_orig) {
+    LOG_INFO("[remote_play] lifecycle UI polling enabled");
+  } else {
+    LOG_WARN("[remote_play] lifecycle UI polling unavailable; manual "
+             "OnDeactivating fallback remains active");
+  }
 
   return true;
 }

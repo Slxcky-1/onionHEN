@@ -107,7 +107,7 @@ void onion_notify_format(char *out, size_t out_sz, int show_watermark,
                          const char *fmt, va_list ap) {
   char buff[3075];
 
-  /* English source fmt → onion_notify_tr → printf-style body. */
+  /* notify.* key → onion_notify_tr → printf-style body. */
   vsnprintf(buff, sizeof(buff), onion_notify_tr(fmt), ap);
   if (show_watermark) {
     snprintf(out, out_sz, "[OnionHEN] %s", buff);
@@ -188,7 +188,7 @@ void onion_notify_rich(const char *message, const char *sub_message,
   int rc;
 
   json_escape(msg, sizeof(msg),
-              onion_notify_tr(message ? message : "OnionHEN"));
+              onion_notify_tr(message ? message : "notify.brand"));
   json_escape(sub, sizeof(sub),
               onion_notify_tr(sub_message ? sub_message : ""));
   json_escape(icon, sizeof(icon),
