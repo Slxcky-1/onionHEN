@@ -69,7 +69,6 @@ Missing toolbox keys render as the key itself (visible in the menu).
    ```c
    onion_notify(true, "notify.fan.open_failed");
    onion_notify(true, "notify.payload.loading", name);
-   onion_notify_debug("notify.trial.days", days);
    onion_notify_rich("notify.brand", "notify.boot.starting", ...);
    ```
 
@@ -97,9 +96,6 @@ the runtime mapping:
    `system`, add that id in `onion_notify_resolve_language`
    (`10`/`11` → `zh-Hans`, `21` → `ar`; everything else is `en`).
 
-XOR trial banners stay bilingual (zh / en). Arabic and any later locale
-use the English banner.
-
 ## Intentional exclusions
 
 These user-visible strings are **not** in the JSON catalogs on purpose:
@@ -110,7 +106,7 @@ These user-visible strings are **not** in the JSON catalogs on purpose:
 | HomeUI top-nav `OnionHEN` | Brand token, same in every language. |
 | Notification watermark `[OnionHEN]` | Brand prefix in `onion_notify_format`. |
 | About names, handles, Ko-fi URL, project URLs | Proper nouns / addresses. |
-| Beta trial banner and integrity/redistrib toasts | XOR-obfuscated via `encrypt_banner.py`, already bilingual. |
+| Integrity failure toasts | XOR-obfuscated via `encrypt_banner.py`, already bilingual. |
 | Unpacker start-failure toasts | First-stage loader; no language setting and its own `notify()`. English only until it is wired to `onion_notify`. |
 | Cheat names / descriptions from cheat files | Come from the cheat JSON, not OnionHEN. |
 
@@ -122,8 +118,8 @@ Checked against call sites (not just the JSON files):
 
 - Toolbox menus, game-options cheat entry, PKG `GetString` hooks, and
   About donor/WeChat labels go through `toolbox_i18n::tr()`.
-- Daemon / util / shellui / bootstrapper / trial toasts go through
-  `notify.*` keys. Host tests cover zh, en, and ar lookup.
+- Daemon / util / shellui / bootstrapper toasts go through `notify.*`
+  keys. Host tests cover zh, en, and ar lookup.
 - Four toolbox keys are unused leftovers from an older menu grouping:
   `group.lang`, `group.lang.sub`, `group.shortcuts`, `group.shortcuts.sub`.
   They are translated but not shown.

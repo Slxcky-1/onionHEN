@@ -65,9 +65,6 @@ along with this program; see the file COPYING. If not, see
  #include <freebsd-helper.h>
  #include <elfldr_remote.h>
  #include <onion/integrity.h>
-#if defined(ONION_ENABLE_BETA_TRIAL)
- #include <onion/trial.h>
-#endif
  
  extern "C" {
  #include "elfldr.h"
@@ -682,7 +679,7 @@ static bool launch_blob(const uint8_t *elf, size_t size, const char *label,
 }
 
 /**
- * Trial + ELF integrity gates — must run before private elfldr / util / daemon.
+ * ELF integrity gate — must run before private elfldr / util / daemon.
  * On failure nothing from the embedded chain is started.
  */
 static int onion_boot_gates(void) {
@@ -693,15 +690,6 @@ static int onion_boot_gates(void) {
     onion_notify_debug_integrity_failed();
     return -1;
   }
-
-#if defined(ONION_ENABLE_BETA_TRIAL)
-  if (onion_trial_gate() != 0) {
-    LOG_ERROR("beta trial gate failed — aborting boot (no util/daemon/elfldr)");
-    return -1;
-  }
-  /* Obfuscated en/zh redistribution notice (see onion/obf_str.h). */
-  onion_notify_debug_beta_redistrib();
-#endif
   return 0;
 }
 

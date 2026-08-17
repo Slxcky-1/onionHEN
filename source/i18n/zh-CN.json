@@ -301,11 +301,6 @@
     "notify.rp.reg_set": "SCE_REGMGR：无法设置 REMOTEPLAY_rp_enable（0x%x）",
     "notify.rp.reg_verify": "SCE_REGMGR：无法验证 REMOTEPLAY_rp_enable（0x%x）",
     "notify.rp.confirm": "sceRemoteplayConfirmDeviceRegist 0x%X 配对状态：%d 配对错误：%d",
-    "notify.trial.no_identity": "内测失败：无法读取设备标识",
-    "notify.trial.bad_seal": "内测配置无效（seal 错误）",
-    "notify.trial.days": "内测剩余 %d 天",
-    "notify.trial.expired": "内测已结束\n此版本已无法使用",
-    "notify.trial.clock": "内测启动被拒绝\n系统时间异常",
     "notify.brand": "OnionHEN"
   }
 }

@@ -150,10 +150,8 @@ static int test_obf_notify_debug_helpers(void) {
   /* Must not crash; send path is stubbed on host. */
   onion_notify_set_language(ONION_NOTIFY_LANG_EN);
   onion_notify_debug_integrity_failed();
-  onion_notify_debug_beta_redistrib();
   onion_notify_set_language(ONION_NOTIFY_LANG_ZH_HANS);
   onion_notify_debug_integrity_failed();
-  onion_notify_debug_beta_redistrib();
   onion_notify_set_language(ONION_NOTIFY_LANG_EN);
   return 0;
 }

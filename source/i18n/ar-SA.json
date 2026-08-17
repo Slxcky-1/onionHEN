@@ -301,11 +301,6 @@
     "notify.rp.reg_set": "SCE_REGMGR: تعذّر تعيين REMOTEPLAY_rp_enable (0x%x)",
     "notify.rp.reg_verify": "SCE_REGMGR: تعذّر التحقق من REMOTEPLAY_rp_enable (0x%x)",
     "notify.rp.confirm": "sceRemoteplayConfirmDeviceRegist 0x%X pair_stat: %d pair_err: %d",
-    "notify.trial.no_identity": "فشلت التجربة: تعذّر قراءة هوية الجهاز",
-    "notify.trial.bad_seal": "التجربة مُهيأة خطأ (ختم غير صالح)",
-    "notify.trial.days": "التجربة: تبقى %d يومًا",
-    "notify.trial.expired": "انتهت التجربة\nهذا البناء لم يعد صالحًا",
-    "notify.trial.clock": "حُظرت التجربة\nيبدو أن ساعة النظام غير صحيحة",
     "notify.brand": "OnionHEN"
   }
 }

@@ -301,11 +301,6 @@
     "notify.rp.reg_set": "SCE_REGMGR: unable to set REMOTEPLAY_rp_enable (0x%x)",
     "notify.rp.reg_verify": "SCE_REGMGR: unable to verify REMOTEPLAY_rp_enable (0x%x)",
     "notify.rp.confirm": "sceRemoteplayConfirmDeviceRegist 0x%X pair_stat: %d pair_err: %d",
-    "notify.trial.no_identity": "Beta trial failed: cannot read device identity",
-    "notify.trial.bad_seal": "Beta trial misconfigured (invalid seal)",
-    "notify.trial.days": "Beta trial: %d day(s) remaining",
-    "notify.trial.expired": "Beta trial expired\nThis build is no longer valid",
-    "notify.trial.clock": "Beta trial blocked\nSystem clock appears incorrect",
     "notify.brand": "OnionHEN"
   }
 }

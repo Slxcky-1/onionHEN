@@ -42,49 +42,6 @@ void escapeXML(std::string& input) {
 
 namespace {
 
-#if defined(ONION_ENABLE_BETA_TRIAL)
-/*
- * Beta banner format strings (zh/en) are not plain C string literals.
- * Blob: enc[i] = (plain[i] ^ key[i%k]) + (i*17 + 31)  (mod 256)
- * Key:  base64(kBannerXorKeyB64), same material as prx version banner.
- * Regenerate: python3 source/shellui/assets/encrypt_banner.py
- */
-constexpr const char *kBannerXorKeyB64 = "U0lTVFIwX0lfU0VFX1lPVQ==";
-
-/* Obfuscated zh-Hans format (printf %s = ONIONHEN_VERSION). */
-constexpr unsigned char kBetaBannerZhEnc[] = {
-    0xd0, 0x01, 0x17, 0xc6, 0x1a, 0x2a, 0x5f, 0x45, 0x91, 0x90, 0x2e, 0x3a,
-    0x17, 0x75, 0x9a, 0x00, 0xa2, 0xee, 0x46, 0x37, 0x27, 0x21, 0x92, 0x52,
-    0xb2, 0x8d, 0x7a, 0xe3, 0xfa, 0x85, 0xaa, 0x10, 0xb2, 0xf1, 0x39, 0x63,
-    0x39, 0x1f, 0x6c, 0x57, 0xb2, 0xc2, 0x96, 0xeb, 0xfd, 0xd9, 0x23, 0x23,
-    0x0a, 0x46, 0x55, 0x3f, 0x65, 0x54, 0x6e, 0xab, 0xb8, 0x5b, 0xa0, 0xe7,
-    0xf5};
-
-/* Obfuscated en-US format (printf %s = ONIONHEN_VERSION). */
-constexpr unsigned char kBetaBannerEnEnc[] = {
-    0xd0, 0x01, 0x17, 0xc6, 0x73, 0xe9, 0x90, 0x9e, 0x26, 0x2e, 0xff, 0x3f,
-    0x88, 0xea, 0x7c, 0x2f, 0x4b, 0xa9, 0x6e, 0x7d, 0x79, 0x94, 0xa2, 0xb2,
-    0xd2, 0xe2, 0xef, 0xfb, 0x08, 0x1c, 0x2a, 0x2e, 0x46, 0x5c, 0xd4, 0x08,
-    0x68, 0xa4, 0xbb, 0xe5, 0x46, 0xfb, 0x0d, 0x26, 0x46, 0x91, 0x9c, 0x65,
-    0x85, 0x98, 0x97, 0xb3, 0xb4, 0xe8, 0x34, 0xee, 0x56, 0x09, 0x19, 0x2d,
-    0x45, 0x63, 0x68, 0xc3, 0x10, 0x41, 0x57};
-
-std::string decode_beta_banner_fmt(const unsigned char *enc, size_t n) {
-  const std::string key = base64_decode(kBannerXorKeyB64);
-  if (key.empty() || n == 0)
-    return {};
-  std::string out(n, '\0');
-  for (size_t i = 0; i < n; ++i) {
-    unsigned char b = enc[i];
-    b = static_cast<unsigned char>(b -
-                                   static_cast<unsigned char>(i * 17u + 31u));
-    b ^= static_cast<unsigned char>(key[i % key.size()]);
-    out[i] = static_cast<char>(b);
-  }
-  return out;
-}
-#endif
-
 /** Payload .elf only (OnionHEN no longer supports .plugin packages). */
 template <typename G>
 void append_payload_entry(G& page, const std::string& directory, const char* filename,
@@ -838,31 +795,6 @@ void append_toolbox_about_group(ps5ui::Group& g) {
 void generate_toolbox_xml(std::string& new_xml) {
   ps5ui::Page page("id_debug_settings", toolbox_i18n::tr("root.title"));
   page.root_focus("id_group_pkg");
-
-#if defined(ONION_ENABLE_BETA_TRIAL)
-  /*
-   * Beta notice at the top of the root settings list (centered labels).
-   * Visible as soon as the toolbox opens — no need to enter a subgroup.
-   * Focus still lands on the first interactive group (PKG).
-   * Format string is decoded at runtime (see decode_beta_banner_fmt) so the
-   * zh/en redistribution notice is not a plain string in the ELF.
-   */
-  {
-    const bool zh = toolbox_i18n::active_lang() == toolbox_i18n::Lang::ZhHans;
-    const unsigned char *enc =
-        zh ? kBetaBannerZhEnc : kBetaBannerEnEnc;
-    const size_t enc_len =
-        zh ? sizeof(kBetaBannerZhEnc) : sizeof(kBetaBannerEnEnc);
-    std::string fmt = decode_beta_banner_fmt(enc, enc_len);
-    char beta_banner[192];
-    std::snprintf(beta_banner, sizeof(beta_banner), fmt.c_str(),
-                  ONIONHEN_VERSION);
-    /* Drop decoded format promptly; banner text remains only in the UI buffer. */
-    for (char &c : fmt)
-      c = '\0';
-    page.label("id_beta_banner", beta_banner, ps5ui::Style::Center);
-  }
-#endif
 
   page.group(
           "id_group_pkg", toolbox_i18n::tr("group.pkg"),

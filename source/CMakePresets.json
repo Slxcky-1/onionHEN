@@ -69,8 +69,7 @@
 			"displayName": "PS5 Release",
 			"inherits": "ps5-debug",
 			"cacheVariables": {
-				"CMAKE_BUILD_TYPE": "Release",
-				"ONION_ENABLE_BETA_TRIAL": "OFF"
+				"CMAKE_BUILD_TYPE": "Release"
 			}
 		},
 		{

@@ -51,9 +51,6 @@ along with this program; see the file COPYING. If not, see
 #include <onion/ready.h>
 #include <onion/integrity.h>
 #include <onion/obf_str.h>
-#if defined(ONION_ENABLE_BETA_TRIAL)
-#include <onion/trial.h>
-#endif
 
 #define MSG_NOSIGNAL 0x20000 /* do not generate SIGPIPE on EOF. */
 pthread_t cheat_thr = nullptr;
@@ -249,7 +246,7 @@ int main() {
   /*
    * ELF self-integrity (libonion_integrity). When protection is compiled out
    * this is a no-op. Runs before trial/services so a patched image cannot skip
-   * the check by only touching later gates.
+   * the check by only touching later startup.
    */
   if (onion_self_integrity_verify() != 0) {
     LOG_ERROR("ELF self-integrity verification failed");
@@ -259,16 +256,6 @@ int main() {
       sleep(3600);
   }
   onion_self_integrity_start_monitor();
-
-#if defined(ONION_ENABLE_BETA_TRIAL)
-  /* Defense-in-depth only: bootstrapper already gated and toasted. Quiet on OK
-   * so we do not re-show remaining-days or redistribution notices. */
-  if (onion_trial_gate_ex(/*notify_ok=*/0) != 0) {
-    LOG_ERROR("beta trial gate failed; daemon will idle");
-    for (;;)
-      sleep(3600);
-  }
-#endif
 
   OrbisKernelSwVersion sys_ver;
   sceKernelGetProsperoSystemSwVersion(&sys_ver);

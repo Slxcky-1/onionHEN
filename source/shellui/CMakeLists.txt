@@ -28,11 +28,6 @@ if(NOT ONIONHEN_SHELLUI_HOMEUI_TOP_NAV_PATCH)
 	message(STATUS "shellui: HomeUI top-nav patch DISABLED")
 endif()
 
-# Same beta switch as daemon/libonion_trial — toolbox UI can show trial notices.
-if(ONION_ENABLE_BETA_TRIAL)
-	target_compile_definitions(${PROJECT_NAME} PRIVATE ONION_ENABLE_BETA_TRIAL=1)
-endif()
-
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 set(I18N_DIR "${D_CWD}/../i18n")

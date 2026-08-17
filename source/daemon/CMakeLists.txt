@@ -61,15 +61,6 @@ add_dependencies(${PROJECT_NAME} onion_version util onion_elfldr_server NineS sh
 target_link_libraries	(${PROJECT_NAME} PUBLIC onion_ipc onion_settings onion_proc onion_platform onion_ready onion_elfldr onion_integrity hijacker SceSystemService SceNotification SceUserService SceNetCtl SceSysCore kernel_sys NineS)
 add_dependencies(${PROJECT_NAME} onion_integrity)
 
-# Optional beta trial time gate (entirely under libonion_trial; remove later).
-if(ONION_ENABLE_BETA_TRIAL)
-	target_compile_definitions(${PROJECT_NAME} PRIVATE ONION_ENABLE_BETA_TRIAL=1)
-	target_include_directories(${PROJECT_NAME} PRIVATE
-		"${PROJECT_ROOT}/libonion_trial/include")
-	add_dependencies(${PROJECT_NAME} onion_trial)
-	target_link_libraries(${PROJECT_NAME} PUBLIC onion_trial)
-endif()
-
 if(ONION_ENABLE_ELF_PROTECTION)
 	target_compile_definitions(${PROJECT_NAME} PRIVATE ONION_ENABLE_ELF_PROTECTION=1)
 endif()
