@@ -4,7 +4,7 @@
 
 <p align="center">
   <b>OnionHEN</b><br/>
-  An all-in-one homebrew enabler and Toolbox for PlayStation 5
+  An all-in-one HEN and Toolbox for PlayStation 5
 </p>
 
 <p align="center">
@@ -38,9 +38,9 @@
 </p>
 
 <p align="center">
-  OnionHEN is a modular PS5 payload stack that combines system preparation,
-  a ShellUI Toolbox,<br/>payload management, game overlays, cheats, and runtime
-  services behind one entry payload.
+  OnionHEN is a modular payload stack for the PS5. One entry ELF prepares
+  the system, injects a ShellUI Toolbox,<br/>and then runs overlays, cheats,
+  payloads, and background services.
 </p>
 
 <p align="center">
@@ -59,22 +59,22 @@
 
 # Features
 
-OnionHEN focuses on a practical, maintainable homebrew environment for exploited PS5 systems.
+OnionHEN is a practical homebrew stack for jailbroken PS5 consoles.
 
-- **ShellUI Toolbox** — an integrated settings interface injected into the PS5 ShellUI
-- **System preparation** — privilege setup, filesystem remounting, and update-partition blocking
-- **fSELF / fPKG support** — optional kernel functionality provided by the embedded `kstuff` payload
-- **Payload manager** — launch and stop bare `.elf` payloads, with optional automatic startup
-- **Game overlay** — configurable FPS, CPU, GPU, RAM, temperature, usage, and network information
-- **Cheat engine** — local JSON, SHN, MC4, and ShnExt files with runtime toggle support
-- **Console tools** — Rest Mode controls, Remote Play options, external HDD tools, title IDs, fan settings, shortcuts, and game options
-- **App jailbreak** — whitelist homebrew can request privilege escape via daemon sandbox FIFO
-- **Resilient runtime** — critical and utility daemons are separated; the main daemon can restart the utility daemon
-- **Centralized configuration** — Toolbox and daemon settings share one versioned `config.ini` schema
+- **ShellUI Toolbox** — a settings page injected into the PS5 ShellUI
+- **System preparation** — raise privileges, remount filesystems, and block the update partition
+- **fSELF / fPKG** — bundled `kstuff` so fake SELF and PKG can run; it loads by default and can be turned off in the Toolbox
+- **Payload manager** — start and stop plain `.elf` payloads, with optional auto-start
+- **Game overlay** — an in-game bar for FPS, CPU, GPU, RAM, temperatures, and network info
+- **Cheat engine** — local JSON, SHN, MC4, and ShnExt files that can be toggled at runtime
+- **Console tools** — Rest Mode, Remote Play, external HDD, Title IDs, fan control, shortcuts, and game options
+- **App jailbreak** — allowlisted homebrew can ask the daemon for extra privileges through a sandbox FIFO
+- **Resilient runtime** — the critical daemon and utility daemon run apart; the main daemon can restart the utility
+- **Shared configuration** — the Toolbox and daemons use one versioned `config.ini`
 
-OnionHEN intentionally does not bundle a kernel exploit. It still needs an
-external `elfldr` on **9021** for the initial bootstrap, then starts its own
-private embedded loader on **9020** for runtime ELF and user payload launches.
+OnionHEN does not include a kernel exploit. The first hop still needs an
+external `elfldr` on **9021**. After that, OnionHEN starts its own private
+loader on **9020** for later ELF and user-payload launches.
 
 <br>
 
@@ -82,24 +82,18 @@ private embedded loader on **9020** for runtime ELF and user payload launches.
 
 ### Requirements
 
-1. A PS5 running a compatible kernel exploit
-2. An external [PS5 `elfldr`](https://github.com/ps5-payload-dev/elfldr) listening on port **9021** for the initial bootstrap
-3. A firmware-compatible `kstuff` build when fSELF / fPKG functionality is required
-
-> [!IMPORTANT]
-> Firmware and exploit compatibility are determined by the exploit chain, PS5 payload SDK,
-> and `kstuff` version. Do not assume that a payload built for one firmware is safe on another.
+1. A jailbroken PS5
+2. An external [PS5 `elfldr`](https://github.com/ps5-payload-dev/elfldr) listening on port **9021** for the first hop
 
 ### Load OnionHEN
 
 1. Run the kernel exploit and start the external `elfldr` service.
-2. Send `OnionHEN.elf` through the loader provided by your exploit host.
-3. Wait for the utility daemon, `kstuff`, and main daemon to start in sequence.
-4. Open the PS5 settings area to access the OnionHEN Toolbox.
+2. Send `OnionHEN.elf` through the loader your exploit host provides.
+3. Wait for the utility daemon, `kstuff`, and the main daemon to start, in that order.
+4. Open PS5 Settings and enter the OnionHEN Toolbox.
 
-The runtime launch order is deliberately serialized. After bootstrap, OnionHEN
-prefers its embedded `onion_elfldr.elf` on **9020** and keeps **9021** as a
-compatibility fallback.
+Startup is sequential. After the first hop, OnionHEN uses its own
+`onion_elfldr.elf` on port **9020** and keeps **9021** only as a fallback.
 
 ```text
 OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstuff.elf → daemon.elf → Toolbox
@@ -113,12 +107,12 @@ Place standalone payloads in:
 /data/OnionHEN/payloads/
 ```
 
-Only bare `.elf` payloads are supported. Automatic startup can be enabled from the Toolbox;
-OnionHEN records that choice with a sibling `.auto_start` marker.
+Only plain `.elf` files are supported. Auto-start can be turned on in the Toolbox;
+OnionHEN remembers that choice with a matching `.auto_start` file next to the ELF.
 
 ### Cheats
 
-Place cheat files in the flat cheat directory using the title ID and game version:
+Put cheat files in one directory, named with the Title ID and game version:
 
 ```text
 /data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.json
@@ -127,7 +121,7 @@ Place cheat files in the flat cheat directory using the title ID and game versio
 /data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.ShnExt
 ```
 
-Cheat files are loaded locally. Changes are detected and reloaded without restarting the full stack.
+Cheats load from disk. If a file changes, OnionHEN reloads it without restarting the whole stack.
 
 <br>
 
@@ -152,14 +146,13 @@ export PS5_PAYLOAD_SDK=/path/to/ps5-payload-sdk
 ./scripts/build.sh --jobs 8
 ```
 
-The build script configures the project, synchronizes external dependencies, and builds the complete
-embedding chain in the required order.
+The script configures the project, fetches external dependencies, and builds
+the embed chain in the required order.
 
 ### Common options
 
 | Option | Description |
 | --- | --- |
-| `--fw <hex>` | Set `PS5_FW_VERSION` / `V_FW` |
 | `--build-type Debug\|Release` | Select the CMake build type |
 | `--build-dir <path>` | Override the default `build/` directory |
 | `--cache-dir <path>` | Override `.cache/dependencies/` |
@@ -179,38 +172,38 @@ Run `./scripts/build.sh --help` for the complete option list.
 | `build/bin/daemon.elf` | Critical daemon |
 | `build/bin/util.elf` | Utility daemon |
 | `build/bin/shellui.elf` | Toolbox injection payload |
-| `build/lib/*.a` | First-party static libraries |
+| `build/lib/*.a` | In-tree static libraries |
 
-All generated files stay under `build/`; downloaded inputs are cached under `.cache/dependencies/`.
-The `source/` tree is not used as an artifact directory.
+Build outputs stay in `build/`. Downloads are cached in `.cache/dependencies/`.
+Nothing is written back into `source/`.
 
 ### Tests
 
-Host tests cover settings, IPC framing, payload helpers, cheat parsers, relocation, Toolbox routing,
-and shared platform code:
+Host tests cover settings, IPC, payload helpers, cheat parsers, relocation,
+Toolbox routing, and shared platform code:
 
 ```shell
 make -C source/util/tests clean
 make -C source/util/tests test -j8
 ```
 
-The host test link expects Keystone to be available through `KEYSTONE_PREFIX`
+Linking the host tests needs Keystone on `KEYSTONE_PREFIX`
 (default: `/opt/homebrew`).
 
 <br>
 
 # Configuration
 
-OnionHEN creates and shares the same schema through these runtime views:
+OnionHEN reads and writes the same config in two places:
 
 ```text
 /data/OnionHEN/config.ini
 /user/data/OnionHEN/config.ini
 ```
 
-Most settings can be changed directly from the Toolbox. The semantic schema
-starts at `schema_version=1`. When no config exists, OnionHEN writes an
-annotated default based on [`config.ini.example`](config.ini.example).
+Most options can be changed in the Toolbox. The format is
+`schema_version=1`. If no file exists, OnionHEN writes a commented
+default from [`config.ini.example`](config.ini.example).
 
 | Key | Default | Values |
 | --- | --- | --- |
@@ -240,8 +233,8 @@ annotated default based on [`config.ini.example`](config.ini.example).
 | Path | Purpose |
 | --- | --- |
 | `/data/OnionHEN/payloads/` | User payload ELFs |
-| `/data/OnionHEN/cheats/` | Flat cheat files |
-| `/data/OnionHEN/kstuff.elf` | Optional runtime override for embedded `kstuff` |
+| `/data/OnionHEN/cheats/` | Cheat files |
+| `/data/OnionHEN/kstuff.elf` | Optional replacement for the embedded `kstuff` |
 | `/data/OnionHEN/OnionHEN.log` | Main runtime log |
 | `/data/OnionHEN/OnionHEN_util_daemon.log` | Utility daemon log |
 
@@ -265,13 +258,13 @@ annotated default based on [`config.ini.example`](config.ini.example).
 ├── assets/                    Project artwork
 ├── docs/                      Architecture and technical notes
 ├── scripts/                   Build, dependency, and host-side helpers
-├── source/                    First-party PS5 source tree
+├── source/                    In-tree PS5 sources
 │   ├── bootstrapper/          Startup and embedded payload chain
 │   ├── daemon/                Critical daemon and Toolbox injection
-│   ├── util/                  Utility daemon, IPC, and cheat engine
+│   ├── util/                  Utility daemon, IPC, and cheats
 │   ├── shellui/               Toolbox and ShellUI hooks
 │   ├── unpacker/              Final OnionHEN payload wrapper
-│   ├── libonion_*/            Shared first-party libraries
+│   ├── libonion_*/            Shared in-tree libraries
 │   ├── common/                Shared low-level implementations
 │   └── platform/ps5/stubs/    PS5 system-library link stubs
 ├── third_party/               External source, archives, and submodules
@@ -286,11 +279,11 @@ See [the architecture document](docs/arch.md) for the complete module and IPC ma
 
 # Troubleshooting
 
-1. Confirm the external bootstrap `elfldr` service is reachable on port **9021** before loading OnionHEN.
-2. Confirm the payload was built for the intended firmware and with a complete PS5 payload SDK.
-3. If the Toolbox does not appear, wait for the serialized `util → kstuff → daemon` launch chain and inspect the logs.
-4. If a full build cannot obtain `kstuff.elf`, retry `./scripts/sync_dependencies.sh` or initialize the submodule.
-5. When reporting a problem, include firmware, exploit host, SDK version, build type, logs, and reproducible steps.
+1. Before loading OnionHEN, make sure the external `elfldr` is reachable on port **9021**.
+2. Make sure the payload was built for this firmware with a complete PS5 Payload SDK.
+3. If the Toolbox does not appear, wait for `util → kstuff → daemon` to finish and check the logs.
+4. If the build cannot get `kstuff.elf`, run `./scripts/sync_dependencies.sh` again or initialize the submodule.
+5. When you report a problem, include firmware, exploit host, SDK version, build type, logs, and steps to reproduce.
 
 <br>
 
@@ -307,20 +300,35 @@ See [the architecture document](docs/arch.md) for the complete module and IPC ma
 
 <a href="https://ko-fi.com/0xp0co"><img src="https://img.shields.io/badge/Ko--fi-Support-FF6433?style=for-the-badge&logo=kofi&logoColor=white" alt="Support OnionHEN on Ko-fi"/></a>
 
-If you find this project helpful, please consider supporting its continued development. Your support is greatly appreciated!
+If OnionHEN is useful to you, consider supporting further development. Thank you.
 
 <br>
 
 # Credits
 
-OnionHEN is possible because of the PS5 homebrew and reverse-engineering community.
+OnionHEN exists because of the PS5 homebrew and reverse-engineering community.
 
-- [etaHEN](https://github.com/LightningMods/etaHEN) — LightningMods and contributors; original open-source foundation
-- [GoldHEN](https://github.com/GoldHEN/GoldHEN) — SiSTR0 and contributors; inspiration for a polished all-in-one HEN
-- [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) and the PS5 payload development community
-- [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch, sleirsgoevy, and contributors
-- [cJSON](https://github.com/DaveGamble/cJSON), [7-Zip SDK](https://www.7-zip.org/sdk.html), and Keystone
-- All OnionHEN contributors, testers, researchers, and users who provide actionable feedback
+### Based on
+
+- [etaHEN](https://github.com/LightningMods/etaHEN) — LightningMods and contributors; source base of this tree
+- [GoldHEN](https://github.com/GoldHEN/GoldHEN) — SiSTR0 and contributors; the PS4 all-in-one HEN this project takes after
+
+### Used or embedded
+
+- [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) — Prospero toolchain and headers
+- [elfldr](https://github.com/ps5-payload-dev/elfldr) — first-hop loader on port 9021; not shipped in the payload
+- [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch, sleirsgoevy, and contributors; optional `kstuff.elf`
+- [libhijacker](https://github.com/astrelsky/libhijacker) — astrelsky; process hijack and kernel R/W
+- [NineS](https://github.com/buzzer-re/NineS) — buzzer-re; ShellUI injection
+- [cJSON](https://github.com/DaveGamble/cJSON) — JSON parsing
+- [7-Zip LZMA SDK](https://www.7-zip.org/sdk.html) — unpacker decompression
+- [miniz](https://github.com/richgel999/miniz) — cheat-file decompression
+
+### Testers
+
+即食面, 雨之声, 大饼电玩, 安定区, 随风, 麒麟, 尼克库尔曼, 云, 啊烦, 小小蔡, B站谢锡榆, 荆枫
+
+Thanks as well to everyone else who tested, researched, or sent usable feedback.
 
 <br>
 
