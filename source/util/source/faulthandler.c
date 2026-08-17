@@ -46,7 +46,7 @@ static void __attribute__((used)) cleanup_and_throw(void) {
 		g_cleanup_handler = NULL;
 	}
 	longjmp(g_catch_buf, 1);
-	onion_notify(true, "OnionHEN utilities daemon has crashed ...\n\nSome OnionHEN features will be unavailable until you reboot");
+	onion_notify(true, "notify.util.crashed");
 	// TODO longjump here
 }
 

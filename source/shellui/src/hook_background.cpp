@@ -10,11 +10,11 @@
 void *load_payload_thread(void *args) {
   PayloadEntry *entry = (PayloadEntry *)args;
 
-  notify("Loading payload %s ...", entry->path.c_str());
+  notify("notify.payload.loading", entry->path.c_str());
   IPC_Client &util_ipc = IPC_Client::getInstance(true);
   if (util_ipc.LaunchPayload(entry->shellui_path, entry->tid) !=
       IPC_Ret::NO_ERROR) {
-    notify("Failed to launch payload %s (%s)", entry->path.c_str(),
+    notify("notify.payload.launch_failed", entry->path.c_str(),
            entry->tid.c_str());
   }
 

@@ -14,7 +14,6 @@
 #include "toolbox_values.hpp"
 #include "onion_cjson.hpp"
 
-#define PIN_CODE_SIZE 64
 #define ACCOUNT_ID_BASE64_SIZE 16
 
 #include <dirent.h>
@@ -114,16 +113,11 @@ void append_payload_entry(G& page, const std::string& directory, const char* fil
   const std::string id_prefix = list_page ? "id_payload_" : "id_auto_payload_";
   const std::string id = id_prefix + std::to_string(next_id++);
 
-  std::string second;
-  if (list_page) {
-    second = std::string(toolbox_i18n::tr("payload.start_stop")) + filename +
-             toolbox_i18n::tr("payload.path") + shown_path + ") (" + elf_key +
-             ")";
-  } else {
-    second = std::string(toolbox_i18n::tr("payload.autostart_enable")) +
-             filename + toolbox_i18n::tr("payload.autostart_suffix") +
-             shown_path + ")";
-  }
+  const std::string second =
+      list_page ? toolbox_i18n::format("payload.start_stop_fmt", filename.c_str(),
+                            shown_path.c_str(), elf_key.c_str())
+                : toolbox_i18n::format("payload.autostart_fmt", filename.c_str(),
+                            shown_path.c_str());
 
   page.toggle(id, filename, /*on=*/false, second);
 
@@ -166,7 +160,7 @@ void append_homebrew_game(G& page, const std::string& game_dir, const char* dir_
   g_ui.games_list.push_back(game);
 
   page.button(game.id, "(" + title_id + ") " + title,
-              shown_path + toolbox_i18n::tr("plapps.version") + ver,
+              toolbox_i18n::format("plapps.version_fmt", shown_path.c_str(), ver.c_str()),
               std::nullopt, icon_path);
 }
 
@@ -237,8 +231,8 @@ void append_cheat_entries(G& page, cJSON* root, const std::string& tid,
       page.toggle(id_attr, name, enabled, std::nullopt, desc, "tex_game_icon");
     } else {
       page.button(id_attr, name,
-                  std::string(toolbox_i18n::tr("cheats.enable_for")) +
-                      game_name + toolbox_i18n::tr("cheats.enable_mid") + name,
+                  toolbox_i18n::format("cheats.enable_fmt", game_name.c_str(),
+                            name.c_str()),
                   desc, "tex_game_icon");
     }
     g_ui.set_cheat_enabled(id, enabled);
@@ -248,7 +242,6 @@ void append_cheat_entries(G& page, cJSON* root, const std::string& tid,
 } // namespace
 
 void generate_remote_play_xml(std::string& xml_buffer) {
-  char pin_code[PIN_CODE_SIZE] = {0};
   char AccountID[ACCOUNT_ID_BASE64_SIZE] = {0};
   uint64_t dec_account_id = 0;
   bool activated_now = false;
@@ -289,21 +282,19 @@ void generate_remote_play_xml(std::string& xml_buffer) {
   const std::string decoded_account_id = account_id_stream.str();
 
   g_ui.remote_play_info =
-      std::string(toolbox_i18n::tr("rp.account_id")) + AccountID;
+      toolbox_i18n::format("rp.account_id_fmt", AccountID);
   g_ui.remote_play_info +=
-      std::string("\n") + toolbox_i18n::tr("rp.account_id_decoded") +
-      decoded_account_id;
+      std::string("\n") +
+      toolbox_i18n::format("rp.account_id_decoded_fmt", decoded_account_id.c_str());
 
   uint32_t pinCode = 0;
   const bool pin_ready = GeneratePINCode(pinCode);
   std::string pin_display;
   if (pin_ready) {
     LOG_DEBUG("Pin code => %u", pinCode);
-    snprintf(pin_code, sizeof(pin_code), "%s%04u %04u    ",
-             toolbox_i18n::tr("rp.pin"), pinCode / 10000u,
-             pinCode % 10000u);
-    pin_display = pin_code;
-    LOG_DEBUG("Pin code str => %s", pin_code);
+    pin_display = toolbox_i18n::format("rp.pin_fmt", pinCode / 10000u,
+                                      pinCode % 10000u);
+    LOG_DEBUG("Pin code str => %s", pin_display.c_str());
   } else {
     pin_display = toolbox_i18n::tr("rp.pin_error");
   }
@@ -311,11 +302,10 @@ void generate_remote_play_xml(std::string& xml_buffer) {
 
   page.label("id_pin", pin_display, ps5ui::Style::Center)
       .label("base64_account_id",
-             std::string(toolbox_i18n::tr("rp.account_id")) + AccountID,
-             ps5ui::Style::Center)
+             toolbox_i18n::format("rp.account_id_fmt", AccountID), ps5ui::Style::Center)
       .label("decoded_account_id",
-             std::string(toolbox_i18n::tr("rp.account_id_decoded")) +
-                 decoded_account_id,
+             toolbox_i18n::format("rp.account_id_decoded_fmt",
+                       decoded_account_id.c_str()),
              ps5ui::Style::Center);
 
   if (usbpath() != -1)
@@ -384,12 +374,13 @@ void generate_cheats_xml(std::string& new_xml, std::string& not_open_tid,
   if (!client.GameVerFromTid(g_ui.running_tid, game_ver))
     game_ver = toolbox_i18n::tr("cheats.ver_unknown");
 
-  ps5ui::Page page(list_id, std::string(toolbox_i18n::tr("cheats.title_prefix")) +
-                                g_ui.running_tid + " - " + game_ver);
+  ps5ui::Page page(list_id, toolbox_i18n::format("cheats.title_fmt",
+                                      g_ui.running_tid.c_str(),
+                                      game_ver.c_str()));
 
   if (!g_ui.is_game_open && show_while_not_open) {
     page.label("id_cheat_disclaimer",
-               g_ui.running_tid + toolbox_i18n::tr("cheats.not_running"),
+               toolbox_i18n::format("cheats.not_running_fmt", g_ui.running_tid.c_str()),
                ps5ui::Style::Center);
   }
 
@@ -420,8 +411,7 @@ void generate_cheats_xml(std::string& new_xml, std::string& not_open_tid,
   page.label("id_cheat_title", "★ " + game_name + " ★", ps5ui::Style::Center);
 
   const std::string authors = join_authors(res_json.get());
-  page.label("credits",
-             std::string(toolbox_i18n::tr("cheats.authors")) + authors,
+  page.label("credits", toolbox_i18n::format("cheats.authors_fmt", authors.c_str()),
              ps5ui::Style::Center);
 
   append_cheat_entries(page, res_json.get(), g_ui.running_tid, game_name,
@@ -740,9 +730,8 @@ void append_toolbox_debug_group(ps5ui::Group& g) {
 
 void append_toolbox_about_group(ps5ui::Group& g) {
   /* About page top: same ONIONHEN_VERSION as welcome toast / beta banner. */
-  char build_line[160];
-  std::snprintf(build_line, sizeof(build_line), toolbox_i18n::tr("about.build"),
-                ONIONHEN_VERSION);
+  const std::string build_line =
+      toolbox_i18n::format("about.build", ONIONHEN_VERSION);
 
   g.label("id_about_build", build_line, ps5ui::Style::Center)
       .group(

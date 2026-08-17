@@ -17,7 +17,7 @@ extern bool app_launched;
 void ReloadApp(MonoString *str){
      std::string tid = mono_string_to_utf8(str);
      LOG_DEBUG("Reloading %s scenes", tid.c_str());
-     notify("Reloading %s scenes", tid.c_str());
+     notify("notify.app.reload_scenes", tid.c_str());
      Orig_ReloadApp(str);
 }
 
@@ -36,10 +36,10 @@ int AppInstUtilInstallByPackage_Hook(MonoString* uri, MonoString* ex_uri, MonoSt
     std::string s_icon_url = mono_string_to_utf8(icon_url);
     LOG_DEBUG("AppInstUtilInstallByPackage_Hook called with:\n uri: %s\n ex_uri: %s\n playgo_scenario_id: %s\n content_id: %s\n content_name: %s\n icon_url: %s\n slot: %u\n is_playgo_enabled: %d", 
         s_uri.c_str(), s_ex_uri.c_str(), s_playgo_scenario_id.c_str(), s_content_id.c_str(), s_content_name.c_str(), s_icon_url.c_str(), slot, is_playgo_enabled);
-    notify("Installing package from:\n%s", s_uri.c_str());
+    notify("notify.pkg.installing", s_uri.c_str());
     int ret = Orig_AppInstUtilInstallByPackage(uri, ex_uri, playgo_scenario_id, content_id, content_name, icon_url, slot, is_playgo_enabled, pkg_info, languages, playgo_scenario_ids, content_ids);
     LOG_DEBUG("AppInstUtilInstallByPackage_Hook returned: %d", ret);
-    notify("Installation finished with code: %d", ret);
+    notify("notify.pkg.finished", ret);
 	return ret;
 }
 
@@ -159,13 +159,13 @@ int sceAppInstUtilInstallByPackage_hook(MetaInfo* arg1,
     }
 
     LOG_DEBUG("========== Calling Original Function ==========");
-    notify("Installing package from:\n%s",
+    notify("notify.pkg.installing",
         arg1 ? (arg1->uri ? arg1->uri : "(null)") : "(null)");
 
     int ret = sceAppInstUtilInstallByPackage_orig(arg1, pkg_info, arg2);
 
     LOG_DEBUG("sceAppInstUtilInstallByPackage_hook returned: %d", ret);
-    notify("Installation finished with code: %d", ret);
+    notify("notify.pkg.finished", ret);
 
     return ret;
 }

@@ -62,9 +62,11 @@ static int test_notify_language_resolution(void) {
 static int test_notify_format_localized(void) {
   char out[128];
   onion_notify_set_language(ONION_NOTIFY_LANG_ZH_HANS);
-  format_msg(out, sizeof(out), 1, "Unable to raise privileges");
+  format_msg(out, sizeof(out), 1, "notify.priv.unable");
   TEST_ASSERT_STREQ("[OnionHEN] 无法提升权限", out);
   onion_notify_set_language(ONION_NOTIFY_LANG_EN);
+  format_msg(out, sizeof(out), 1, "notify.priv.unable");
+  TEST_ASSERT_STREQ("[OnionHEN] Unable to raise privileges", out);
   return 0;
 }
 
@@ -72,11 +74,11 @@ static int test_notify_payload_localized(void) {
   char out[256];
   onion_notify_set_language(ONION_NOTIFY_LANG_ZH_HANS);
 
-  format_msg(out, sizeof(out), 1, "Loading payload %s ...", "demo.elf");
+  format_msg(out, sizeof(out), 1, "notify.payload.loading", "demo.elf");
   TEST_ASSERT_STREQ("[OnionHEN] 正在加载 Payload demo.elf...", out);
 
   format_msg(out, sizeof(out), 1,
-             "Payload launched\nPath: %s\nKey: %s", "/data/demo.elf",
+             "notify.payload.launched", "/data/demo.elf",
              "demo");
   TEST_ASSERT_STREQ(
       "[OnionHEN] Payload 已启动\n路径：/data/demo.elf\n标识：demo", out);
@@ -112,7 +114,7 @@ static int test_notify_rich_localizes_both_text_fields(void) {
   g_rich_payload[0] = '\0';
   onion_notify_set_language(ONION_NOTIFY_LANG_ZH_HANS);
   onion_notify_set_rich_send(capture_rich_notify);
-  onion_notify_rich("OnionHEN", "OnionHEN is starting...", "/icon.png",
+  onion_notify_rich("notify.brand", "notify.boot.starting", "/icon.png",
                     "download", "43");
   TEST_ASSERT_TRUE(strstr(g_rich_payload, "OnionHEN 正在启动...") != NULL);
   onion_notify_set_language(ONION_NOTIFY_LANG_EN);

@@ -79,7 +79,7 @@ bool copyFile(const char *source, const char *destination)
     FILE *src = fopen(source, "rb");
     if (src == NULL)
     {
-        onion_notify(false, "copyFile failed for %s", source);
+        onion_notify(false, "notify.fs.copy_file", source);
         LOG_ERROR("copyFile failed for %s", source);
         return false;
     }
@@ -87,7 +87,7 @@ bool copyFile(const char *source, const char *destination)
     FILE *dest = fopen(destination, "wb");
     if (dest == NULL)
     {
-        onion_notify(false, "copyFile failed for %s", destination);
+        onion_notify(false, "notify.fs.copy_file", destination);
         LOG_ERROR("copyFile failed for %s", destination);
         fclose(src);
         return false;
@@ -148,7 +148,7 @@ int launchApp(const char *titleId)
 		break;
 	case SCE_LNC_ERROR_APP_NOT_FOUND:
 		LOG_ERROR("app %s not found", titleId);
-		onion_notify(true, "app %s not found", titleId);
+		onion_notify(true, "notify.app.not_found", titleId);
 		break;
 	default:
 		LOG_ERROR("[LA] unknown error 0x%x", (uint32_t)err);

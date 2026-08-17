@@ -68,7 +68,7 @@ uintptr_t kernel_base = 0;
 void* __stack_chk_guard = (void*)0xdeadbeef;
 
 static void cleanup(void) {
-    onion_notify(true, "OnionHEN utilities daemon has crashed...\n\nAttemping to recover...");
+    onion_notify(true, "notify.util.crash_recovering");
     exit(1);
 }
 
@@ -120,7 +120,7 @@ int main(void) {
     if (setjmp(g_catch_buf) == 0)
         LOG_INFO("jump has been set");
     else
-        onion_notify(true, "The Fatal error has been successfully resolved\n\nyou have nothing to worry about");
+        onion_notify(true, "notify.crash.resolved");
 
     LOG_INFO("Registering signal handler...");
     fault_handler_init(cleanup);

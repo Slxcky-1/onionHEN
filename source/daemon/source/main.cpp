@@ -201,7 +201,7 @@ int launchApp(const char *titleId) {
         break;
     case SCE_LNC_ERROR_APP_NOT_FOUND:
         LOG_ERROR("app %s not found", titleId);
-        onion_notify(true, "app %s not found", titleId);
+        onion_notify(true, "notify.app.not_found", titleId);
         break;
     default:
         LOG_ERROR("[LA] unknown error 0x%x", (uint32_t)err);
@@ -216,9 +216,7 @@ void sig_handler(int signo) {
         LOG_WARN("Signal handler is disabled, ignoring signal %d", signo);
         return;
     }
-    onion_notify(true,
-          "OnionHEN has crashed ...\n\nPlease send /data/OnionHEN/OnionHEN_crash.log "
-          "to the PKG-Zone discord: https://discord.gg/BduZHudWGj");
+    onion_notify(true, "notify.crash.main");
     LOG_ERROR("main OnionHEN has crashed ...");
     exit(1);
 }

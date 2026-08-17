@@ -273,14 +273,14 @@ bool onion_payload_load(const char *path, const char *filename) {
   const size_t base_len = strlen(base);
   if (!(base_len > 4 && strcmp(base + base_len - 4, ".elf") == 0)) {
     LOG_INFO("Not a .elf payload: %s", base);
-    onion_notify(1, "Only .elf payloads are supported:\n%s", base);
+    onion_notify(1, "notify.payload.elf_only", base);
     free(buf);
     return false;
   }
 
   if (!onion_payload_is_elf(buf, size)) {
     LOG_ERROR("Invalid ELF file: %s", base);
-    onion_notify(1, "Invalid ELF file: %s", base);
+    onion_notify(1, "notify.payload.invalid_elf", base);
     free(buf);
     return false;
   }
@@ -288,7 +288,7 @@ bool onion_payload_load(const char *path, const char *filename) {
   char key[64];
   if (!onion_payload_elf_key_from_name(base, key, sizeof(key))) {
     LOG_ERROR("Invalid ELF basename (empty stem): %s", base);
-    onion_notify(1, "Invalid ELF name: %s", base);
+    onion_notify(1, "notify.payload.invalid_name", base);
     free(buf);
     return false;
   }

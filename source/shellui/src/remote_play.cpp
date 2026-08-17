@@ -100,19 +100,19 @@ void stop_session() {
 bool InitRemotePlay() {
   int rp_enable = 0, err = 0;
   if ((err = sceRegMgrGetInt_hook(REMOTE_PLAY_ENABLE_REGISTRY, &rp_enable))) {
-    notify("SCE_REGMGR: unable to get REMOTEPLAY_rp_enable (0x%x)", err);
+    notify("notify.rp.reg_get", err);
     return false;
   } else if (rp_enable != 1) {
     rp_enable = 1;
     if ((err = sceRegMgrSetInt(REMOTE_PLAY_ENABLE_REGISTRY, rp_enable))) {
-      notify("SCE_REGMGR: unable to set REMOTEPLAY_rp_enable (0x%x)", err);
+      notify("notify.rp.reg_set", err);
       return false;
     }
     int verify_enable = 0;
     if ((err = sceRegMgrGetInt_hook(REMOTE_PLAY_ENABLE_REGISTRY,
                                     &verify_enable)) ||
         verify_enable != 1) {
-      notify("SCE_REGMGR: unable to verify REMOTEPLAY_rp_enable (0x%x)", err);
+      notify("notify.rp.reg_verify", err);
       return false;
     }
     LOG_DEBUG("[remote_play] enabled REMOTEPLAY_rp_enable registry");
@@ -250,7 +250,7 @@ void *confirm_regist_loop(void *) {
       LOG_DEBUG("[remote_play] ConfirmDeviceRegist 0x%x pair_stat=%d "
                   "pair_err=%d",
                   err, pair_stat, pair_err);
-      notify("sceRemoteplayConfirmDeviceRegist 0x%X pair_stat: %d pair_err: %d",
+      notify("notify.rp.confirm",
              err, pair_stat, pair_err);
       terminal_reason = "confirmation_error";
       break;

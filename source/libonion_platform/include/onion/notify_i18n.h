@@ -30,8 +30,8 @@ onion_notify_language_t onion_notify_resolve_language(int ui_language,
 /** Select a language from the shared setting and PS5 system language. */
 void onion_notify_apply_ui_language(int ui_language, int system_language);
 
-/** Translate an English notification format string; unknown text is unchanged. */
-const char *onion_notify_tr(const char *english);
+/** Translate a stable notification key; unknown keys are returned unchanged. */
+const char *onion_notify_tr(const char *key);
 
 #ifdef __cplusplus
 }

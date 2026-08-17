@@ -59,11 +59,11 @@ bool set_fan_threshold(int temp) {
     return true;
   case FanWriteResult::OpenFailed:
     LOG_ERROR("fan: open /dev/icc_fan failed: %s", strerror(errno));
-    onion_notify(true, "Unable to Open Fan Settings!");
+    onion_notify(true, "notify.fan.open_failed");
     return false;
   case FanWriteResult::IoctlFailed:
     LOG_ERROR("fan: ioctl failed: %s", strerror(errno));
-    onion_notify(true, "Unable to Set Fan Speed!");
+    onion_notify(true, "notify.fan.set_failed");
     return false;
   }
   return false;

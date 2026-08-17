@@ -144,14 +144,14 @@ bool install_detour(const char* name, uint64_t target, void* hook, Fn& out_orig,
   if (!target) {
     LOG_ERROR("Hook target missing: %s", name);
     if (required)
-      notify("Failed to find hook target");
+      notify("notify.hook.target");
     return !required;
   }
 
   if (!InstallDetour(target, hook, reinterpret_cast<void**>(&out_orig))) {
     LOG_ERROR("Detour failed: %s", name);
     if (required)
-      notify("Failed to install hook");
+      notify("notify.hook.install");
     return !required;
   }
 
@@ -187,7 +187,7 @@ MonoImage* require_dll(const char* name) {
   MonoImage* img = getDLLimage(name);
   if (!img) {
     LOG_ERROR("Failed to load Mono assembly: %s", name);
-    notify("Failed to load assembly");
+    notify("notify.hook.load_assembly");
   }
   return img;
 }
@@ -425,7 +425,7 @@ bool load_shell_images(ShellImages& out) {
   // Optional: LaunchApp / KillAppWithReason only when present
   out.lnc = getDLLimage("Sce.Vsh.LncUtilWrapper.dll");
   if (!out.lnc)
-    notify("Failed to get LncUtilWrapper image");
+    notify("notify.hook.lnc_image");
 
   out.react_common = require_dll("ReactNative.Vsh.Common.dll");
   out.rn_shell = require_dll("Sce.Vsh.ShellUI.ReactNativeShellApp.dll");
@@ -450,14 +450,14 @@ bool resolve_game_container(MonoImage* app_system) {
   MonoClass* layer_manager =
       mono_class_from_name(app_system, "Sce.Vsh.ShellUI.AppSystem", "LayerManager");
   if (!layer_manager) {
-    notify("Failed to get LayerManager class");
+    notify("notify.hook.layer_manager");
     return false;
   }
 
   MonoMethod* find =
       mono_class_get_method_from_name(layer_manager, "FindContainerSceneByPath", 1);
   if (!find) {
-    notify("Failed to get FindContainerSceneByPath method");
+    notify("notify.hook.find_scene");
     return false;
   }
 
@@ -467,11 +467,11 @@ bool resolve_game_container(MonoImage* app_system) {
   Game = mono_runtime_invoke(find, nullptr, args, &exception);
 
   if (exception) {
-    notify("Exception occurred while calling FindContainerSceneByPath");
+    notify("notify.hook.find_scene_exc");
     return false;
   }
   if (!Game) {
-    notify("Failed to get Game ContainerScene");
+    notify("notify.hook.game_scene");
     return false;
   }
 
@@ -502,7 +502,7 @@ bool install_mono_hook(const MonoHookSpec& h) {
   if (!addr) {
     LOG_ERROR("Hook target missing: %s", h.name);
     if (h.required)
-      notify("Failed to find hook target");
+      notify("notify.hook.target");
     return !h.required;
   }
   LOG_DEBUG("Installing mono hook: %s target=%#02lx hook=%p", h.name, addr,
@@ -510,7 +510,7 @@ bool install_mono_hook(const MonoHookSpec& h) {
   if (!InstallDetour(addr, h.hook, h.orig)) {
     LOG_ERROR("Detour failed: %s", h.name);
     if (h.required)
-      notify("Failed to install hook");
+      notify("notify.hook.install");
     return !h.required;
   }
   return true;
@@ -538,7 +538,7 @@ bool install_hooks(const ShellImages& img) {
 
   // --- Native (required) ---
   if (!sceRegMgrGetInt) {
-    notify("Failed to find sceRegMgrGetInt");
+    notify("notify.hook.regmgr");
     return false;
   }
   if (!install_detour_native("sceRegMgrGetInt",
@@ -618,18 +618,18 @@ bool install_hooks(const ShellImages& img) {
         img.lnc, "Sce.Vsh.LncUtil", "LncUtilWrapper", "KillAppWithReason", 2);
     if (kill_addr &&
         !DetourFunction(kill_addr, reinterpret_cast<void*>(&KillAppWithReason_Hook)))
-      notify("Failed to detour KillAppWithReason");
+      notify("notify.hook.kill_app");
   }
 
   // --- RNPS bundle decrypt path ---
   if (!ioctl) {
-    notify("Failed to find RNPS decrypt ioctl");
+    notify("notify.hook.rnps_find");
     return false;
   }
   LOG_DEBUG("Found ioctl at %p", reinterpret_cast<void *>(ioctl));
   if (!DetourFunction(reinterpret_cast<uintptr_t>(ioctl),
                       reinterpret_cast<void*>(&ioctl_hook))) {
-    notify("Failed to detour RNPS decrypt ioctl");
+    notify("notify.hook.rnps_detour");
     return false;
   }
   LOG_DEBUG("Detoured ioctl to ioctl_hook");
@@ -644,7 +644,7 @@ bool install_hooks(const ShellImages& img) {
              "BootHelper", "Boot", 2, reinterpret_cast<void*>(&uri_boot_hook_2),
              reinterpret_cast<void**>(&boot_orig_2), false}) ||
         !boot_orig_2)
-      notify("failed to detour BootHelper.Boot");
+      notify("notify.hook.boot");
   }
 
   // --- CaptureScreen: 4-arg then 5-arg ---
@@ -660,7 +660,7 @@ bool install_hooks(const ShellImages& img) {
              reinterpret_cast<void*>(&CaptureScreen_new),
              reinterpret_cast<void**>(&CaptureScreen_orig_new), false}) ||
         !CaptureScreen_orig_new)
-      notify("Failed to detour CaptureScreen");
+      notify("notify.hook.capture");
   }
 
   // --- GetManifestResourceStream (class name differs on 3.xx) ---
@@ -669,7 +669,7 @@ bool install_hooks(const ShellImages& img) {
     const uint64_t method = Get_Address_of_Method(
         img.mscorlib, "System.Reflection", klass, "GetManifestResourceStream", 1);
     if (!method) {
-      notify("Failed to get master address");
+      notify("notify.hook.master");
       return false;
     }
     (void)install_mono_hook(

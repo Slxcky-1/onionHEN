@@ -861,7 +861,7 @@ private:
 
     if (ok && uid_after == 0) {
       if (current.debug_app_jb_msg) {
-        onion_notify(true, "App (PID %i) has been granted a jailbreak",
+        onion_notify(true, "notify.jailbreak.granted",
                      static_cast<int>(target_pid));
       }
       LOG_INFO("[JB] OK: pid=%d tid=%s fully jailbroken",

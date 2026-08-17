@@ -75,19 +75,15 @@ def validate_locales(
             f"error: locale key mismatch in {section}; " + "; ".join(details)
         )
 
-    for source, english in en_us["notifications"].items():
-        if english != source:
-            raise SystemExit(
-                "error: en-US notification values must equal their source keys: "
-                f"{source!r}"
-            )
-        chinese = zh_cn["notifications"][source]
-        if printf_conversions(english) != printf_conversions(chinese):
-            raise SystemExit(
-                "error: printf conversions differ for notification "
-                f"{source!r}: {printf_conversions(english)} != "
-                f"{printf_conversions(chinese)}"
-            )
+    for section in SECTIONS:
+        for key, english in en_us[section].items():
+            chinese = zh_cn[section][key]
+            if printf_conversions(english) != printf_conversions(chinese):
+                raise SystemExit(
+                    "error: printf conversions differ for "
+                    f"{section} {key!r}: {printf_conversions(english)} != "
+                    f"{printf_conversions(chinese)}"
+                )
 
 
 def cpp_string(value: str) -> str:
@@ -112,9 +108,10 @@ def generate(
             )
     else:
         lines.append("static const notify_translation_t kTranslations[] = {")
-        for source, chinese in zh_cn["notifications"].items():
+        for key, chinese in zh_cn["notifications"].items():
             lines.append(
-                f"    {{{cpp_string(source)}, {cpp_string(chinese)}}},"
+                f"    {{{cpp_string(key)}, {cpp_string(chinese)}, "
+                f"{cpp_string(en_us['notifications'][key])}}},"
             )
     lines.extend(["};", ""])
     return "\n".join(lines)

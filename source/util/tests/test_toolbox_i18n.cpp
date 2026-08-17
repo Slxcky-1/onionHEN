@@ -35,6 +35,8 @@ static int test_default_zh(void) {
                                "远程游玩配对成功，可以开始连接") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("rp.notify.timeout"),
                                "远程游玩配对已超时") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
+                               "为 %s 启用/禁用 %s") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.game_menu"),
                                "★ OnionHEN 金手指") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("pkg.msg.options"),
@@ -68,8 +70,12 @@ static int test_en(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("remote_play.link.sub"),
                                "View PIN and account details for Remote Play "
                                "from a phone or PC") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rp.account_id_decoded"),
-                               "Decoded account ID: ") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("rp.account_id_decoded_fmt"),
+                               "Decoded account ID: %s") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
+                               "Enable/disable %s for %s") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("payload.start_stop_fmt"),
+                               "Start/stop %s (path: %s) (%s)") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("rp.pin_error"),
                                "Could not obtain a Remote Play PIN") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("rp.notify.countdown"),
@@ -118,6 +124,17 @@ static int test_missing_key(void) {
   return 0;
 }
 
+static int test_format(void) {
+  set_lang(Lang::ZhHans);
+  TEST_ASSERT_TRUE(format("cheats.enable_fmt", "Game", "God") ==
+                   "为 Game 启用/禁用 God");
+  set_lang(Lang::En);
+  TEST_ASSERT_TRUE(format("cheats.enable_fmt", "Game", "God") ==
+                   "Enable/disable Game for God");
+  TEST_ASSERT_TRUE(format("about.build", "v1") == "Build: v1");
+  return 0;
+}
+
 extern "C" int test_toolbox_i18n_suite(void) {
   int fails = 0;
   fails += onion_test_run("i18n.default_zh", test_default_zh);
@@ -126,5 +143,6 @@ extern "C" int test_toolbox_i18n_suite(void) {
   fails += onion_test_run("i18n.system_lang_host_fallback",
                           test_system_lang_host_fallback);
   fails += onion_test_run("i18n.missing_key", test_missing_key);
+  fails += onion_test_run("i18n.format", test_format);
   return fails;
 }

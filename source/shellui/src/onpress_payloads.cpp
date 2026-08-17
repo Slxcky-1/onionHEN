@@ -27,7 +27,7 @@ static OnPressResult prefix_id_payload(OnPressContext &ctx) {
                   entry.tid.c_str());
       IPC_Client::getInstance(false).ForceKillPID(pid);
       unlink(pbuf);
-      notify("%s killed", entry.tid.c_str());
+      notify("notify.process.killed", entry.tid.c_str());
       break;
     } else if (pid <= 1 && atol(ctx.value.c_str()) == 1) {
       pthread_t thr;
@@ -58,7 +58,7 @@ static OnPressResult prefix_id_auto_payload(OnPressContext &ctx) {
     } else if (atol(ctx.value.c_str())) {
       int fd = open(auto_path.c_str(), O_CREAT | O_RDWR, 0777);
       if (fd < 0) {
-        notify("Failed to create auto start file");
+        notify("notify.payload.autostart_file");
       } else {
         close(fd);
       }

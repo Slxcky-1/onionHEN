@@ -97,7 +97,7 @@ static OnPressResult id_ui_lang(OnPressContext &ctx) {
   LOG_DEBUG("UI language: %s", name);
   toolbox_i18n::apply_system_or_ui_lang(v);
   /* XML is built when the page opens; current tree stays in the old language. */
-  notify("Language saved. Leave and re-open the toolbox for it to take effect.");
+  notify("notify.lang.saved");
   return OnPressResult::Handled;
 }
 
@@ -122,7 +122,7 @@ static OnPressResult id_fan_speed(OnPressContext &ctx) {
   int &fan_speed = g_settings.fan_threshold;
   fan_speed = atoi(ctx.value.c_str());
   if (!g_settings.enable_fan_speed) {
-    notify("Manual Fan speed threshold is not enabled");
+    notify("notify.fan.not_enabled");
     return OnPressResult::EarlyReturn;
   }
   LOG_DEBUG("Setting fan speed to %d%%", fan_speed);
@@ -139,14 +139,12 @@ static OnPressResult id_cheats_shortcut(OnPressContext &ctx) {
   Cheats_Shortcut opt = (Cheats_Shortcut)atoi(ctx.value.c_str());
   if (opt == CHEATS_SINGLE_SHARE) {
     if (g_settings.toolbox_shortcut_opt == TOOLBOX_SINGLE_SHARE) {
-      notify("Toolbox and Cheats shortcuts cannot be the same, current "
-             "selection will NOT be saved");
+      notify("notify.shortcut.toolbox_cheats");
       return OnPressResult::EarlyReturn;
     }
   } else if (opt == CHEATS_LONG_SHARE) {
     if (g_settings.toolbox_shortcut_opt == TOOLBOX_LONG_SHARE) {
-      notify("Toolbox and Cheats long shortcuts cannot be the same, current "
-             "selection will NOT be saved");
+      notify("notify.shortcut.toolbox_cheats_long");
       return OnPressResult::EarlyReturn;
     }
   }
@@ -163,14 +161,12 @@ static OnPressResult id_toolbox_shortcut(OnPressContext &ctx) {
   Toolbox_Shortcut opt = (Toolbox_Shortcut)atoi(ctx.value.c_str());
   if (opt == TOOLBOX_SINGLE_SHARE) {
     if (g_settings.cheats_shortcut_opt == CHEATS_SINGLE_SHARE) {
-      notify("Cheats and Toolbox shortcuts cannot be the same, current "
-             "selection will NOT be saved");
+      notify("notify.shortcut.cheats_toolbox");
       return OnPressResult::EarlyReturn;
     }
   } else if (opt == TOOLBOX_LONG_SHARE) {
     if (g_settings.cheats_shortcut_opt == CHEATS_LONG_SHARE) {
-      notify("Cheats and Toolbox long shortcuts cannot be the same, current "
-             "selection will NOT be saved");
+      notify("notify.shortcut.cheats_toolbox_long");
       return OnPressResult::EarlyReturn;
     }
   }

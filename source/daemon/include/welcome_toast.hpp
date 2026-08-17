@@ -83,12 +83,12 @@ inline void replace_all(std::string &text, std::string_view token,
 inline std::string make_welcome_toast_json(std::string_view toolbox_uri) {
   std::string json = kWelcomeToastJsonTemplate;
   const std::string message = std::string(ONIONHEN_VERSION) +
-                              onion_notify_tr(" made by ") + ONIONHEN_AUTHOR;
+                              onion_notify_tr("notify.boot.made_by") + ONIONHEN_AUTHOR;
   replace_all(json, kWelcomeToastMessageToken, message);
   replace_all(json, kWelcomeToastSubMessageToken,
-              onion_notify_tr("Welcome to OnionHEN"));
+              onion_notify_tr("notify.boot.welcome"));
   replace_all(json, kWelcomeToastActionToken,
-              onion_notify_tr("Go to the OnionHEN Toolbox"));
+              onion_notify_tr("notify.boot.goto_toolbox"));
   const std::string_view replacement =
       toolbox_uri.empty()
           ? std::string_view(

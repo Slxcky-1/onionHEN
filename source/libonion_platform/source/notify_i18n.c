@@ -7,8 +7,9 @@
 #include <string.h>
 
 typedef struct {
-  const char *en;
+  const char *key;
   const char *zh;
+  const char *en;
 } notify_translation_t;
 
 /* Generated from source/i18n locale catalogs at build time. */
@@ -49,15 +50,16 @@ void onion_notify_apply_ui_language(int ui_language, int system_language) {
       onion_notify_resolve_language(ui_language, system_language));
 }
 
-const char *onion_notify_tr(const char *english) {
-  if (!english || onion_notify_get_language() != ONION_NOTIFY_LANG_ZH_HANS) {
-    return english ? english : "";
-  }
+const char *onion_notify_tr(const char *key) {
+  if (!key)
+    return "";
 
   for (size_t i = 0; i < sizeof(kTranslations) / sizeof(kTranslations[0]); ++i) {
-    if (strcmp(kTranslations[i].en, english) == 0) {
-      return kTranslations[i].zh;
+    if (strcmp(kTranslations[i].key, key) == 0) {
+      return onion_notify_get_language() == ONION_NOTIFY_LANG_ZH_HANS
+                 ? kTranslations[i].zh
+                 : kTranslations[i].en;
     }
   }
-  return english;
+  return key;
 }

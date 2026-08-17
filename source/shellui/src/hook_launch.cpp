@@ -33,7 +33,7 @@ int LaunchApp(MonoString* titleId, uint64_t* args, int argsSize, LaunchAppParam 
 	  unsigned int ret = LaunchApp_orig(titleId, args, argsSize, param);
       if (ret < 0) {
          #if SHELL_DEBUG == 1
-         notify("LaunchApp failed with error code: %d", ret);
+         notify("notify.app.launch_failed", ret);
          #endif
          return ret;
       }
@@ -46,12 +46,12 @@ int LaunchApp(MonoString* titleId, uint64_t* args, int argsSize, LaunchAppParam 
 #if SHELL_DEBUG == 1
   LOG_DEBUG("LaunchApp called with titleId: %s, argsSize: %d, param->size: %d", mono_string_to_utf8(titleId), argsSize, param->size);
 #endif
-  notify("Launching app: %s checking for patches ...", mono_string_to_utf8(titleId));
+  notify("notify.app.launching", mono_string_to_utf8(titleId));
 
   unsigned int ret = LaunchApp_orig(titleId, args, argsSize, param);
   if (ret < 0) {
     #if SHELL_DEBUG == 1
-    notify("LaunchApp failed with error code: %d", ret);
+    notify("notify.app.launch_failed", ret);
     #endif
     return ret;
   }
@@ -59,7 +59,7 @@ int LaunchApp(MonoString* titleId, uint64_t* args, int argsSize, LaunchAppParam 
   app_launched = true;
 
  #if SHELL_DEBUG == 1
-  notify("LaunchApp returned: %d", ret);
+  notify("notify.app.launch_returned", ret);
   #endif
 
   save_appid(ret, ONION_SYSTEM_TMP_APP_LAUNCHED);

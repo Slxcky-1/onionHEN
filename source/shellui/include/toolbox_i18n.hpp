@@ -4,6 +4,7 @@
  */
 #pragma once
 
+#include <cstdarg>
 #include <string>
 #include <string_view>
 
@@ -45,5 +46,9 @@ const char *tr(const char *key);
 
 /** Convenience: tr(key) as std::string. */
 inline std::string trs(const char *key) { return tr(key); }
+
+/** Lookup tr(key) and apply printf placeholders. */
+std::string formatv(const char *key, va_list ap);
+std::string format(const char *key, ...);
 
 } // namespace toolbox_i18n

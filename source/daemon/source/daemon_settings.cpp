@@ -39,7 +39,7 @@ bool LoadSettings(bool force) {
   if (newest == 0) {
     LOG_ERROR("[Daemon] Config file not found. Creating default schema...");
     if (onion::settings_ensure_default()) {
-      onion_notify(true, "OnionHEN config created! @ /data/OnionHEN/config.ini");
+      onion_notify(true, "notify.settings.created");
     }
   }
 
@@ -47,7 +47,7 @@ bool LoadSettings(bool force) {
   onion::Settings s{};
   const bool from_file = onion::settings_load(&s);
   if (!from_file && newest != 0) {
-    onion_notify(true, "Failed to Read the Settings file");
+    onion_notify(true, "notify.settings.read_failed");
     return false;
   }
 

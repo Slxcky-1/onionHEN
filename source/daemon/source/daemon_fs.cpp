@@ -368,7 +368,7 @@ static void shutdown_restart_shellui(void) {
   shutdown_restart_shellui();
 
   LOG_INFO("shutdown[3/3]: exit daemon (kstuff intentionally left running)");
-  onion_notify(true, "OnionHEN stack shutdown (util + ShellUI + daemon; kstuff remains)");
+  onion_notify(true, "notify.stack.shutdown");
   usleep(200 * 1000);
   exit(0);
 }

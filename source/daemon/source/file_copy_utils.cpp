@@ -18,7 +18,7 @@ uint64_t calculateTotalSize(const char *path) {
   long total = 0;
   DIR *dir = opendir(path);
   if (dir == NULL) {
-    onion_notify(false, "calculateTotalSize failed for %s", path);
+    onion_notify(false, "notify.fs.size_failed", path);
     return 0;
   }
 
@@ -65,14 +65,14 @@ void calculateSize(uint64_t size, char *result) {
 bool copyFile(const char *source, const char *destination) {
   FILE *src = fopen(source, "rb");
   if (src == NULL) {
-    onion_notify(false, "copyFile failed for %s", source);
+    onion_notify(false, "notify.fs.copy_file", source);
     LOG_ERROR("copyFile failed for %s", source);
     return false;
   }
 
   FILE *dest = fopen(destination, "wb");
   if (dest == NULL) {
-    onion_notify(false, "copyFile failed for %s", destination);
+    onion_notify(false, "notify.fs.copy_file", destination);
     LOG_ERROR("copyFile failed for %s", destination);
     fclose(src);
     return false;
@@ -91,7 +91,7 @@ bool copyFile(const char *source, const char *destination) {
 bool copyRecursive(const char *source, const char *destination) {
   DIR *dir = opendir(source);
   if (dir == NULL) {
-    onion_notify(false, "copyRecursive failed for %s", source);
+    onion_notify(false, "notify.fs.copy_recursive", source);
     return false;
   }
 
@@ -114,7 +114,7 @@ bool copyRecursive(const char *source, const char *destination) {
       copyRecursive(srcPath, destPath);
     } else if (S_ISREG(st.st_mode)) {
       if (!copyFile(srcPath, destPath)) {
-        onion_notify(false, "copyRecursive failed for %s", srcPath);
+        onion_notify(false, "notify.fs.copy_recursive", srcPath);
         closedir(dir);
         return false;
       }

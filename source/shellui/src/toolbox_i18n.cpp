@@ -7,6 +7,7 @@
 #include "external_symbols.hpp"
 #endif
 
+#include <cstdio>
 #include <cstring>
 
 namespace toolbox_i18n {
@@ -77,6 +78,27 @@ const char *tr(const char *key) {
   if (!e)
     return key ? key : "";
   return active_lang() == Lang::En ? e->en : e->zh;
+}
+
+std::string formatv(const char *key, va_list ap) {
+  const char *fmt = tr(key);
+  va_list measure;
+  va_copy(measure, ap);
+  const int needed = std::vsnprintf(nullptr, 0, fmt, measure);
+  va_end(measure);
+  if (needed < 0)
+    return {};
+  std::string out(static_cast<size_t>(needed), '\0');
+  std::vsnprintf(out.data(), static_cast<size_t>(needed) + 1, fmt, ap);
+  return out;
+}
+
+std::string format(const char *key, ...) {
+  va_list ap;
+  va_start(ap, key);
+  std::string out = formatv(key, ap);
+  va_end(ap);
+  return out;
 }
 
 } // namespace toolbox_i18n

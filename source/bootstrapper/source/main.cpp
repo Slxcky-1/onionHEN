@@ -361,10 +361,10 @@ static void cleanup(void);
 static void notify_starting(bool custom_icon_ready) {
   if (!custom_icon_ready) {
     LOG_WARN("Startup icon unavailable; using system notification icon");
-    notify("OnionHEN is starting...");
+    notify("notify.boot.starting");
     return;
   }
-  onion_notify_rich("OnionHEN", "OnionHEN is starting...",
+  onion_notify_rich("notify.brand", "notify.boot.starting",
                     "/user/data/OnionHEN/onionhen.png", "download",
                     "588193128");
 }
@@ -414,12 +414,12 @@ static void notify_starting(bool custom_icon_ready) {
       }
 
       if (!is_elf_header(address)) {
-          notify( "Kstuff '%s' doesn't have ELF header.", path);
+          notify( "notify.kstuff.no_elf_header", path);
           goto free_mem;
       }
 
       require_cleanup = true;
-      notify("Loading kstuff from: %s", path);
+      notify("notify.kstuff.loading", path);
       return address;
 
   free_mem:
@@ -449,7 +449,7 @@ static void notify_starting(bool custom_icon_ready) {
     }
   
     // Notify user about cleanup
-    notify("OnionHEN has been cleaned up.");
+    notify("notify.boot.cleaned_up");
   
     // Exit the program
     exit(0);
@@ -473,13 +473,13 @@ static void notify_starting(bool custom_icon_ready) {
    sock.fd = -1;
    sock = FileDescriptor_init(socket(AF_INET, SOCK_STREAM, 0));
    if (sock.fd == -1) {
-     notify("Failed to create socket: %s", strerror(errno));
+     notify("notify.net.socket_create", strerror(errno));
      return -1;
    }
  
    int value = 1;
    if (setsockopt(sock.fd, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(value)) < 0) {
-     notify("Failed to set socket options: %s", strerror(errno));
+     notify("notify.net.socket_options", strerror(errno));
      return -1;
    }
  
@@ -490,12 +490,12 @@ static void notify_starting(bool custom_icon_ready) {
    server_addr.sin_addr.s_addr = 0;
  
    if (bind(sock.fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0) {
-     notify("Failed to bind socket: %s", strerror(errno));
+     notify("notify.net.socket_bind", strerror(errno));
      return -1;
    }
  
    if (listen(sock.fd, 1) != 0) {
-     notify("Failed to listen on socket: %s", strerror(errno));
+     notify("notify.net.socket_listen", strerror(errno));
      return -1;
    }
  
@@ -509,7 +509,7 @@ static void notify_starting(bool custom_icon_ready) {
      return conn;
    }
  
-   notify("Failed to accept connection: %s", strerror(errno));
+   notify("notify.net.socket_accept", strerror(errno));
    return -1;
  }
  
@@ -719,7 +719,7 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
 
   if (!elfldr_remote_available()) {
     LOG_DEBUG("FATAL: no elfldr on 127.0.0.1:9021");
-    notify("Start elfldr on 9021 first, then re-run OnionHEN.");
+    notify("notify.elfldr.need_9021");
     return -2;
   }
   g_payload_loader_port =
@@ -748,7 +748,7 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
   onion_ready_clear(ONION_FLAG_FPS_OVERLAY);
 
   if (!launch_blob(util_start, util_size, "util", "onion_util.elf")) {
-    notify("failed to launch util via elfldr");
+    notify("notify.elfldr.launch_util");
     return -2;
   }
   if (!onion_ready_wait(ONION_READY_UTIL, /*timeout_ms=*/15000, /*poll_ms=*/200))
@@ -787,7 +787,7 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
         bool not_loaded = true;
         while ((not_loaded = (sceKernelMprotect(&buz[0], 100, 0x7) < 0))) {
           if (wait++ > 15) {
-            notify("Failed to load kstuff, continuing without it");
+            notify("notify.kstuff.load_failed");
             break;
           }
           sleep(1);
@@ -798,7 +798,7 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
           sleep(1); /* brief settle for ShellUI trophy patches */
         }
       } else {
-        notify("Failed to load kstuff via elfldr, continuing");
+        notify("notify.kstuff.load_elfldr_failed");
       }
     }
   } else {
@@ -811,7 +811,7 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
   kill_by_name("OnionHEN Critical", nullptr);
   onion_ready_clear(ONION_READY_DAEMON);
   if (!launch_blob(daemon_start, daemon_size, "daemon", "onion_daemon.elf")) {
-    notify("failed to launch daemon via elfldr");
+    notify("notify.elfldr.launch_daemon");
     return -2;
   }
   if (!onion_ready_wait(ONION_READY_DAEMON, /*timeout_ms=*/20000,
@@ -825,7 +825,7 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
 static void load_autostart_payloads(void) {
   if (!elfldr_remote_onion_available()) {
     LOG_WARN("Skipping user payload autostart: private elfldr :9020 unavailable");
-    notify("User payload autostart skipped: private elfldr :9020 is unavailable");
+    notify("notify.payload.autostart_skipped");
     return;
   }
 
@@ -839,7 +839,7 @@ static void load_autostart_payloads(void) {
       continue;
     LOG_DEBUG("Loading payload: %s", payload_paths[i]);
     if (!load_payload(payload_paths[i], loaded_filenames[i])) {
-      notify("Failed to load payload!\nPath: %s", payload_paths[i]);
+      notify("notify.payload.load_failed_path", payload_paths[i]);
       LOG_ERROR("FAILED!");
       continue;
     }
@@ -869,7 +869,7 @@ int main(void) {
 
   LOG_DEBUG("Jailbreaking the boostrapper ...");
   if (elfldr_raise_privileges(getpid())) {
-    notify("Unable to raise privileges");
+    notify("notify.priv.unable");
     return -1;
   }
   LOG_DEBUG("   Success!");
@@ -906,12 +906,12 @@ int main(void) {
   LOG_DEBUG("Remounting system partitions ...");
   if (!remount("/dev/ssd0.system_ex", "/system_ex")) {
     perror("failed to mount /system_ex\nif you see this reboot");
-    notify("failed to mount /system_ex\nif you see this reboot");
+    notify("notify.mount.system_ex");
     return -1;
   }
   if (!remount("/dev/ssd0.system", "/system")) {
     perror("failed to mount /system_\nif you see this reboot");
-    notify("failed to mount /system\nif you see this reboot");
+    notify("notify.mount.system");
     return -1;
   }
   LOG_DEBUG("   Success!");

@@ -249,14 +249,14 @@ onion_trial_gate_ex(int notify_ok) {
 
   if(load_seal(&seal) < 0) {
     LOG_ERROR("[trial] invalid compile-time beta seal");
-    onion_notify_debug("Beta trial misconfigured (invalid seal)");
+    onion_notify_debug("notify.trial.bad_seal");
     return -1;
   }
 
   if(onion_trial_device_serial(serial, sizeof(serial)) < 0 ||
      onion_trial_device_fp(serial, device_fp) < 0) {
     LOG_ERROR("[trial] cannot read device identity");
-    onion_notify_debug("Beta trial failed: cannot read device identity");
+    onion_notify_debug("notify.trial.no_identity");
     return -1;
   }
 
@@ -272,26 +272,26 @@ onion_trial_gate_ex(int notify_ok) {
   case ONION_TRIAL_OK:
     should_write = 1;
     if(notify_ok) {
-      onion_notify_debug("Beta trial: %d day(s) remaining", days);
+      onion_notify_debug("notify.trial.days", days);
     }
     break;
   case ONION_TRIAL_EXPIRED:
     should_write = 1;
     onion_notify_debug(
-        "Beta trial expired\nThis build is no longer valid");
+        "notify.trial.expired");
     break;
   case ONION_TRIAL_STICKY:
     should_write = 1;
     onion_notify_debug(
-        "Beta trial expired\nThis build is no longer valid");
+        "notify.trial.expired");
     break;
   case ONION_TRIAL_ROLLBACK:
   case ONION_TRIAL_CLOCK_EARLY:
     onion_notify_debug(
-        "Beta trial blocked\nSystem clock appears incorrect");
+        "notify.trial.clock");
     break;
   default:
-    onion_notify_debug("Beta trial expired\nThis build is no longer valid");
+    onion_notify_debug("notify.trial.expired");
     break;
   }
 
