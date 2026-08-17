@@ -35,6 +35,13 @@ static int test_default_zh(void) {
                                "远程游玩配对成功，可以开始连接") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("rp.notify.timeout"),
                                "远程游玩配对已超时") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.game_menu"),
+                               "★ OnionHEN 金手指") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("pkg.msg.options"),
+                               "PKG 安装器选项") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("about.donors"), "★ 捐赠者 ★") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("about.wechat"),
+                               "- 微信｜polichan01") == 0);
   return 0;
 }
 
@@ -74,6 +81,14 @@ static int test_en(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("debug.np_env.sub"),
                                "Change the PlayStation Network environment "
                                "string; the console reboots after saving") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.game_menu"),
+                               "★ OnionHEN Cheats") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("pkg.msg.installing"),
+                               "OnionHEN is installing the selected PKG") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("pkg.msg.select_all"), "Select all") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("about.donors"), "★ Donors ★") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("about.wechat"),
+                               "- WeChat | polichan01") == 0);
   return 0;
 }
 

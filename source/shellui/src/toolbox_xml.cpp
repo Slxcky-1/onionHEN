@@ -753,11 +753,13 @@ void append_toolbox_about_group(ps5ui::Group& g) {
              .label("id_method_1",
                     "- Ko-fi  | https://ko-fi.com/0xp0co",
                     ps5ui::Style::Center)
-             .label("id_method_2", "- 微信｜polichan01", ps5ui::Style::Center)
+             .label("id_method_2", toolbox_i18n::tr("about.wechat"),
+                    ps5ui::Style::Center)
              .button("id_author_0xp0co", "麒麟/0xp0co", std::nullopt, "@0xp0co",
                      kIconAuthorAvatar)
              .label("id_author_donor_spacer", "　", ps5ui::Style::Center)
-             .label("id_donor_info", "★ 捐赠者 ★", ps5ui::Style::Center)
+             .label("id_donor_info", toolbox_i18n::tr("about.donors"),
+                    ps5ui::Style::Center)
              .button("id_donator_aglx", "爱过流星", std::nullopt,
                      std::nullopt, kIconDonatorAglx)
              .button("id_donator_ljf", "狂爱龙卷風", std::nullopt,

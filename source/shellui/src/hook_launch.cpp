@@ -4,6 +4,7 @@
 #include "hooked_funcs.hpp"
 #include "ipc.hpp"
 #include "external_symbols.hpp"
+#include "toolbox_i18n.hpp"
 #include <onion/platform.h>
 #include <onion/system_tmp.h>
 #include <string>
@@ -193,7 +194,12 @@ void createJson_hook(MonoObject* inst, MonoObject* array, MonoString* id, MonoSt
     }
     if(id_str == "MENU_ID_CHECK_PATCH"){  
       //createJson_hook: 8815fec90 id: MENU_ID_CHECK_PATCH, label: , actionUrl: pspatchcheck:check-for-update?titleid=CUSA01127, actionId: , messageId: msgid_check_update
-        createJson(inst, array, mono_string_new(Root_Domain, "MENU_ID_CHEATS"), mono_string_new(Root_Domain, "★ OnionHEN 金手指"), mono_string_new(Root_Domain, "OnionHEN?Cheats_not_open"), actionId, nullptr, subMenu, enable);
+        createJson(inst, array,
+                   mono_string_new(Root_Domain, "MENU_ID_CHEATS"),
+                   mono_string_new(Root_Domain,
+                                   toolbox_i18n::tr("cheats.game_menu")),
+                   mono_string_new(Root_Domain, "OnionHEN?Cheats_not_open"),
+                   actionId, nullptr, subMenu, enable);
         return;
     }
 

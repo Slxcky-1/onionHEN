@@ -17,6 +17,7 @@ along with this program; see the file COPYING. If not, see
 #include "hooked_funcs.hpp"
 #include "homeui_top_nav_patch.hpp"
 #include "settings_bundle_patch.hpp"
+#include "toolbox_i18n.hpp"
 #include <onion/platform.h>
 #include "detour.h"
 #include "ipc.hpp"
@@ -116,35 +117,35 @@ MonoString *GetString_Hook(MonoObject *Instance, MonoString *str) {
     LOG_DEBUG("Resource Name: %s", resourceName.c_str());
 #endif
     if (resourceName == "msg_options") {
-      return mono_str_ui("PKG 安装器选项");
+      return mono_str_ui(toolbox_i18n::tr("pkg.msg.options"));
     } else if (resourceName == "msg_installing") {
-      return mono_str_ui("OnionHEN 正在安装所选 PKG");
+      return mono_str_ui(toolbox_i18n::tr("pkg.msg.installing"));
     } else if (resourceName == "msg_yes") {
-      return mono_str_ui("是");
+      return mono_str_ui(toolbox_i18n::tr("pkg.msg.yes"));
     } else if (resourceName == "msg_no") {
-      return mono_str_ui("否");
+      return mono_str_ui(toolbox_i18n::tr("pkg.msg.no"));
     } else if (resourceName == "msg_sort") {
-      return mono_str_ui("OnionHEN PKG 排序");
+      return mono_str_ui(toolbox_i18n::tr("pkg.msg.sort"));
     } else if (resourceName == "msg_sort_name_az") {
-      return mono_str_ui("名称（A-Z）");
+      return mono_str_ui(toolbox_i18n::tr("pkg.msg.sort_az"));
     } else if (resourceName == "msg_sort_name_za") {
-      return mono_str_ui("名称（Z-A）");
+      return mono_str_ui(toolbox_i18n::tr("pkg.msg.sort_za"));
     } else if (resourceName == "msg_updated") {
-      return mono_str_ui("已更新");
+      return mono_str_ui(toolbox_i18n::tr("pkg.msg.updated"));
     } else if (resourceName == "msg_wait") {
-      return mono_str_ui("请稍候...");
+      return mono_str_ui(toolbox_i18n::tr("pkg.msg.wait"));
     }
     else if (resourceName == "msg_ok"){
-      return mono_str_ui("确定");
+      return mono_str_ui(toolbox_i18n::tr("pkg.msg.ok"));
     }
     else if (resourceName == "msg_cancel_vb"){
-        return mono_str_ui("取消");
+        return mono_str_ui(toolbox_i18n::tr("pkg.msg.cancel"));
     }
     //else if (resourceName == "msg_deselect_all") {
    //   return mono_str_ui("取消全选"); // IDK WHY BUT ONLY 1 CAN BE ACTIVE OR SHELLUI CRASHES
   //  }
     else if (resourceName == "msg_select_all") {
-      return mono_str_ui("全选");
+      return mono_str_ui(toolbox_i18n::tr("pkg.msg.select_all"));
     }
 
     // XML title/description literals (e.g. "★OnionHEN 工具箱") are already valid
