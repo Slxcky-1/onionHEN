@@ -29,12 +29,9 @@ static int test_default_zh(void) {
                                "打开系统安装界面，用于安装 PKG 游戏或应用") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("fan.enable.sub"),
                                "关闭时使用系统默认风扇策略") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rp.notify.countdown"),
-                               "远程游玩配对剩余时间：%u 秒") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rp.notify.paired"),
-                               "远程游玩配对成功，可以开始连接") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rp.notify.timeout"),
-                               "远程游玩配对已超时") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("account.warning"),
+                               "激活账号后，现有游戏存档可能会失效。"
+                               "请确认你接受这个风险后再继续。") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "为 %s 启用/禁用 %s") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.game_menu"),
@@ -56,8 +53,6 @@ static int test_en(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("group.display.sub"),
                                "In-game overlay, home menu display, and game "
                                "options entry") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("group.connection"),
-                               "Account, Connection & Remote Play") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.preferences"), "Preferences") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("startup.open_after_load"),
                                "Automatically open after OnionHEN loads") == 0);
@@ -67,23 +62,15 @@ static int test_en(void) {
                                "Information (recommended)") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("log.trace"), "Trace") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("sc.off"), "Off (no shortcut)") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("remote_play.link.sub"),
-                               "View PIN and account details for Remote Play "
-                               "from a phone or PC") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rp.account_id_decoded_fmt"),
-                               "Decoded account ID: %s") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("account.link"), "Account activation") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("account.warning"),
+                               "Activating this account may make existing game "
+                               "saves unusable. Continue only if you accept "
+                               "that risk.") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "Enable/disable %s for %s") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("payload.start_stop_fmt"),
                                "Start/stop %s (path: %s) (%s)") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rp.pin_error"),
-                               "Could not obtain a Remote Play PIN") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rp.notify.countdown"),
-                               "Remote Play pairing: %u seconds remaining") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rp.notify.paired"),
-                               "Remote Play paired and ready to connect") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rp.notify.timeout"),
-                               "Remote Play pairing timed out") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("debug.np_env.sub"),
                                "Change the PlayStation Network environment "
                                "string; the console reboots after saving") == 0);
@@ -113,7 +100,6 @@ static int test_zh_hant(void) {
   set_lang(Lang::ZhHant);
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★OnionHEN 工具箱") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.link"), "金手指") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("remote_play.link"), "遠端遊玩") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("startup.home_menu"), "主畫面") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "為 %s 啟用/停用 %s") == 0);

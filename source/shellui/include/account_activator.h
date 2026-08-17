@@ -35,9 +35,6 @@ along with this program; see the file COPYING. If not, see
 #define ACCOUNT_ENTITY_FLAGS_NUMBER    0x7800800
 #define ACCOUNT_ENTITY_FLAGS_NUMBER_2  0x7940800
 
-
-#define REMOTE_PLAY_ENABLE_REGISTRY     0x41810000
-
 #define ACCOUNT_TYPE_MAX 17
 
 extern "C" int sceUserServiceInitialize(uint32_t*);

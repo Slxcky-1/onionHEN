@@ -19,7 +19,7 @@ enum class Page : unsigned char {
   Payloads,
   Cheats,
   AutoPayloads,
-  RemotePlay,
+  Account,
   Plapps,
   SuperuserPass,      /**< recognized; still use original stream */
   RedirectOgDebug,    /**< og_debug.xml → debug_settings resource */
@@ -29,7 +29,6 @@ struct ResourceNames {
   std::string_view payloads_xml;
   std::string_view debug_settings_xml;
   std::string_view cheats_xml;
-  std::string_view remote_play_xml;
 };
 
 struct RouteInput {
@@ -46,7 +45,7 @@ struct RouteFlags {
   bool is_debug_settings = false;
   bool is_cheats = false;
   bool is_auto_payload = false;
-  bool is_remote_play = false;
+  bool is_account = false;
   bool is_plapps = false;
 };
 
@@ -62,6 +61,8 @@ RouteResult resolve_resource(const RouteInput &in);
 /** Fixed Legacy resource paths (Sony Settings.Plugins module name is fixed). */
 inline constexpr std::string_view kAutoPayloadsXml =
     "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.auto_payloads.xml";
+inline constexpr std::string_view kAccountXml =
+    "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.account.xml";
 inline constexpr std::string_view kPlappsXml =
     "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.plapps.xml";
 inline constexpr std::string_view kSuperuserXml =

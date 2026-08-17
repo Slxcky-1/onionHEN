@@ -3,7 +3,6 @@
  */
 #include "hooked_funcs.hpp"
 #include "debug_settings_route_runtime.hpp"
-#include "remote_play.h"
 #include "detour.h"
 #include "ipc.hpp"
 #include <msg.hpp>

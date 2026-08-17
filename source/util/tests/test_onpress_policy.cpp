@@ -40,8 +40,8 @@ static int test_page_domain_matrix(void) {
                    OnPressDomain::AutoPayloads);
   TEST_ASSERT_TRUE(toolbox::onpress_domain_for_page(Page::Cheats) ==
                    OnPressDomain::Cheats);
-  TEST_ASSERT_TRUE(toolbox::onpress_domain_for_page(Page::RemotePlay) ==
-                   OnPressDomain::RemotePlay);
+  TEST_ASSERT_TRUE(toolbox::onpress_domain_for_page(Page::Account) ==
+                   OnPressDomain::Account);
   TEST_ASSERT_TRUE(toolbox::onpress_domain_for_page(Page::Plapps) ==
                    OnPressDomain::Plapps);
   TEST_ASSERT_TRUE(toolbox::onpress_domain_for_page(Page::SuperuserPass) ==

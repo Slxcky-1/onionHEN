@@ -24,7 +24,6 @@ along with this program; see the file COPYING. If not, see
 #include "ipc.hpp"
 #include "proc.h"
 #include "ps5/kernel.h"
-#include "remote_play_page.hpp"
 #include "ucred.h"
 #include "webserver.hpp"
 
@@ -50,7 +49,6 @@ std::string Sysinfo;
 std::string display_info;
 std::string uilib_dll;
 std::string payloads_xml;
-std::string remote_play_xml;
 std::string debug_settings_xml;
 std::string cheats_xml;
 
@@ -256,12 +254,6 @@ bool resolve_native_symbols(pid_t pid, void*& out_sceAppInstUtilInstallByPackage
       LOG_ERROR("Failed to resolve sceSystemServiceLaunchApp");
   }
 
-  int remote_play = get_module_handle(pid, "libSceRemoteplay.sprx");
-  KERNEL_DLSYM(remote_play, sceRemoteplayNotifyPinCodeError);
-  KERNEL_DLSYM(remote_play, sceRemoteplayInitialize);
-  KERNEL_DLSYM(remote_play, sceRemoteplayGeneratePinCode);
-  KERNEL_DLSYM(remote_play, sceRemoteplayConfirmDeviceRegist);
-
   int reg = get_module_handle(pid, "libSceRegMgr.sprx");
   KERNEL_DLSYM(reg, sceRegMgrGetInt);
 
@@ -354,9 +346,6 @@ void init_resource_names() {
   cheats_xml = base64_decode(
       "U2NlLlZzaC5TaGVsbFVJLkxlZ2FjeS5zcmMuU2NlLlZzaC5Ta"
       "GVsbFVJLlNldHRpbmdzLlBsdWdpbnMuY2hlYXRzLnhtbA==");
-  remote_play_xml = base64_decode(
-      "U2NlLlZzaC5TaGVsbFVJLkxlZ2FjeS5zcmMuU2NlLlZzaC5TaGVsbFVJLlNldHRpbmdzLlBs"
-      "dWdpbnMucmVtb3RlX3BsYXkueG1s");
   debug_settings_xml = base64_decode(
       "U2NlLlZzaC5TaGVsbFVJLkxlZ2FjeS5zcmMuU2NlLlZzaC5TaGVsbFVJLlNldHRpbmdzLlBs"
       "dWdpbnMuRGVidWdTZXR0aW5ncy5kYXRhLmRlYnVnX3NldHRpbmdzLnhtbA==");
@@ -375,7 +364,6 @@ void init_resource_names() {
   LOG_DEBUG("[GMRS-INIT]   debug_settings_xml=\"%s\"", debug_settings_xml.c_str());
   LOG_DEBUG("[GMRS-INIT]   payloads_xml=\"%s\"", payloads_xml.c_str());
   LOG_DEBUG("[GMRS-INIT]   cheats_xml=\"%s\"", cheats_xml.c_str());
-  LOG_DEBUG("[GMRS-INIT]   remote_play_xml=\"%s\"", remote_play_xml.c_str());
 }
 
 // ---------------------------------------------------------------------------
@@ -566,13 +554,6 @@ bool install_hooks(const ShellImages& img) {
       {"SettingPage.OnCreating", img.legacy, UI3_dec.c_str(), "SettingPage",
        "OnCreating", 1, reinterpret_cast<void*>(&OnPreCreate_Hook),
        reinterpret_cast<void**>(&oOnPreCreate), false},
-      {"SettingPage.OnActivated", img.legacy, UI3_dec.c_str(), "SettingPage",
-       "OnActivated", 1, reinterpret_cast<void*>(&OnActivated_Hook),
-       reinterpret_cast<void**>(&oOnActivated), false},
-      {"SettingPage.OnDeactivating", img.legacy, UI3_dec.c_str(),
-       "SettingPage", "OnDeactivating", 1,
-       reinterpret_cast<void*>(&OnDeactivating_Hook),
-       reinterpret_cast<void**>(&oOnDeactivating), false},
       {"SettingsPlugin.GetString", img.legacy, UI3_dec.c_str(), "SettingsPlugin",
        "GetString", 1, reinterpret_cast<void*>(&GetString_Hook),
        reinterpret_cast<void**>(&oGetString), true},
@@ -588,10 +569,6 @@ bool install_hooks(const ShellImages& img) {
     if (!install_mono_hook(h))
       return false;
   }
-
-  InitializeRemotePlayPageLifecycle(img.legacy, img.pui);
-  LOG_INFO("[remote_play] lifecycle hooks activated=%d deactivating=%d",
-           oOnActivated ? 1 : 0, oOnDeactivating ? 1 : 0);
 
   // --- Optional diagnostics (log only) ---
   (void)install_optional_diag(
@@ -688,12 +665,6 @@ bool install_hooks(const ShellImages& img) {
       {"PUI.Application.Update", img.pui, "Sce.PlayStation.PUI",
        "Application", "Update", 0, reinterpret_cast<void*>(&OnRender_Hook),
        reinterpret_cast<void**>(&OnRender_orig), false});
-  if (OnRender_orig) {
-    LOG_INFO("[remote_play] lifecycle UI polling enabled");
-  } else {
-    LOG_WARN("[remote_play] lifecycle UI polling unavailable; manual "
-             "OnDeactivating fallback remains active");
-  }
 
   return true;
 }

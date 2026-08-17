@@ -31,8 +31,6 @@ struct ToolboxUiState {
   std::vector<Payloads_Apps> payloads_apps_list;
   std::vector<GameEntry> games_list;
 
-  std::string remote_play_info;
-
   void set_active_page(toolbox::Page page) {
     active_page = page;
   }

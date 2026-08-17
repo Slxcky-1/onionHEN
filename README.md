@@ -67,7 +67,7 @@ OnionHEN is a practical homebrew stack for jailbroken PS5 consoles.
 - **Payload manager** — start and stop plain `.elf` payloads, with optional auto-start
 - **Game overlay** — an in-game bar for FPS, CPU, GPU, RAM, temperatures, and network info
 - **Cheat engine** — local JSON, SHN, MC4, and ShnExt files that can be toggled at runtime
-- **Console tools** — Rest Mode, Remote Play, external HDD, Title IDs, fan control, shortcuts, and game options
+- **Console tools** — Rest Mode, account activation, external HDD, Title IDs, fan control, shortcuts, and game options
 - **App jailbreak** — allowlisted homebrew can ask the daemon for extra privileges through a sandbox FIFO
 - **Resilient runtime** — the critical daemon and utility daemon run apart; the main daemon can restart the utility
 - **Shared configuration** — the Toolbox and daemons use one versioned `config.ini`

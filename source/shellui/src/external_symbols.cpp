@@ -27,12 +27,6 @@ SceLncUtilLaunchAppType sceLncUtilLaunchApp_dyn = nullptr;
 int (*sceSystemServiceParamGetInt)(int param_id, int* value) = nullptr;
 int (*sceSystemServiceGetAppTitleId)(int appid, char* titleid) = nullptr; 
 
-/* ====================================== Remote Play Symbols ======================================*/
-int (*sceRemoteplayNotifyPinCodeError)(int errorcode) = nullptr;
-int (*sceRemoteplayInitialize)(void*, size_t) = nullptr;
-int (*sceRemoteplayGeneratePinCode)(uint32_t*) = nullptr;
-int (*sceRemoteplayConfirmDeviceRegist)(int*, int*) = nullptr;
-
 /* ====================================== Dynamic Appmsg Symbols ===================================*/
 
 uint32_t(*sceAppMessagingSendMsg)(uint32_t appId, uint32_t msgType, const void* msg, size_t msgLength, uint32_t flags) = nullptr;

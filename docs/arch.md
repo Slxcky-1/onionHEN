@@ -181,7 +181,7 @@ OnionHEN/
 - Payload 与内核组件（Payload ELF、kstuff 管理）
 - 游戏辅助（金手指引擎、OnionHEN 游戏选项）
 - 监控与显示（游戏 overlay、Title ID）
-- 账号、连接与远程游玩
+- 账号激活
 - 系统与硬件（风扇、休息模式、外置 HDD、BD 激活）
 - 操作偏好（工具箱语言、手柄快捷键）
 - 高级调试 / 关于
@@ -231,7 +231,7 @@ OnionHEN/
 | **toolbox_xml** | `generate_*_xml` / `generate_toolbox_xml` 菜单 XML（`ps5ui::Page`） |
 | **settings_ui** | `settings_commit` / SaveSettings 等 UI 侧设置 |
 | **shellui_notify / shellui_proc** | UI 用 `notify(const char*)` 与进程/USB 辅助 |
-| **hook_onpress + onpress_*** | 页面所有权策略 + 表驱动 OnPress：原生 Settings 页面纯透传，Toolbox 按 root / cheats / payloads / remote-play / plapps 拆域 |
+| **hook_onpress + onpress_*** | 页面所有权策略 + 表驱动 OnPress：原生 Settings 页面纯透传，Toolbox 按 root / cheats / payloads / account / plapps 拆域 |
 
 #### Ready / runtime flags 协议
 
@@ -370,7 +370,7 @@ struct IPCMessage {
 - Debug Settings 替代菜单
 - 内容安装与管理、Payload 与内核组件
 - 游戏辅助、监控与显示
-- 账号、连接与远程游玩
+- 账号激活
 - 系统与硬件、操作偏好
 - 高级调试、关于与支持
 - 金手指（flat 文件 + mdbg/kdirect）

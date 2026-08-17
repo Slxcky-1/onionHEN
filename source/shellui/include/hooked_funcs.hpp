@@ -140,7 +140,7 @@ std::vector<unsigned char> encrypt_decrypt(const unsigned char *data, size_t siz
 void ReloadRNPSApp(const char* title_id);
 
 void generate_payload_xml(std::string& xml_buffer, bool list_page);
-void generate_remote_play_xml(std::string& xml_buffer);
+void generate_account_xml(std::string& xml_buffer);
 void generate_toolbox_xml(std::string& new_xml);
 void Patch_Main_thread_Check(MonoImage * image_core);
 uint64_t Get_Address_of_Method(MonoImage* Assembly_Image, const char* Name_Space, const char* Class_Name, const char* Method_Name, int Param_Count);
@@ -320,10 +320,7 @@ result Invoke(MonoImage* Assembly_Image, MonoClass* klass, MonoObject* Instance,
 /* ================================= ORIG HOOKED MONO FUNCS ============================================= */
 extern int (*oOnPress)(MonoObject* Instance, MonoObject* element, MonoObject* e);
 extern int (*oOnPreCreate)(MonoObject* Instance, MonoObject* element);
-extern void (*oOnActivated)(MonoObject* Instance, int transition);
-extern void (*oOnDeactivating)(MonoObject* Instance, int transition);
 extern MonoString* (*CxmlUri)(MonoObject* obj,MonoString* uri);
-extern bool (*CheckRemotePlayRestriction_Orig)(MonoObject* instance);
 extern void (*oTerminate)(void);
 
 extern bool (*boot_orig)(MonoString* uri, int opt, MonoString* titleIdForBootAction);
@@ -349,7 +346,6 @@ extern  std::string uilib_dll;
 
 extern  std::string payloads_xml;
 extern  std::string debug_settings_xml;
-extern  std::string remote_play_xml;
 extern MonoImage* pui_img;
 extern MonoImage* AppSystem_img;
 extern MonoObject* Game;
@@ -364,13 +360,10 @@ MonoObject* New_Object(MonoClass* Klass);
 MonoString *GetString_Hook(MonoObject *Instance, MonoString *str);
 int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e);
 int OnPreCreate_Hook(MonoObject* Instance, MonoObject* element);
-void OnActivated_Hook(MonoObject* Instance, int transition);
-void OnDeactivating_Hook(MonoObject* Instance, int transition);
 MonoImage * getDLLimage(const char* dll_file);
 MonoString* CxmlUri_Hook(MonoObject* obj, MonoString* uri);
 MonoObject* InvokeByDesc(MonoClass* p_Class, const char* p_MethodDesc, void* p_Instance, void* p_Args);
 void generate_plapps_xml(std::string& new_xml);
-bool RemotePlayRestriction_Hook(MonoObject* instance);
 MonoString* GetString(MonoString* str);
 int ItemzLaunchByUri(const char* uri);
 void GoToHome();
@@ -383,6 +376,7 @@ int sceSystemServiceGetAppId(const char *tid);
 /** USB mass-storage index, or -1 when none mounted. */
 int usbpath();
 extern "C" int sceUserServiceGetInitialUser(int* uid);
+extern "C" int sceUserServiceGetForegroundUser(int* uid);
 void ParseCheatID(const char* id, char* tid, int* cheat_id);
 int Launch_FG_Game(const char *path, const char* title_id, const char* title);
 bool uri_boot_hook(MonoString* uri, int opt, MonoString* titleIdForBootAction);

@@ -89,7 +89,9 @@ public:
                   std::optional<std::string> second_title = std::nullopt,
                   std::optional<std::string> description = std::nullopt,
                   std::optional<std::string> icon = std::nullopt,
-                  Style style = Style::None);
+                  Style style = Style::None,
+                  std::optional<std::string> confirm = std::nullopt,
+                  std::optional<std::string> confirm_phrase = std::nullopt);
 
   Derived& toggle(std::string id, std::string title, bool on,
                   std::optional<std::string> second_title = std::nullopt,
@@ -182,7 +184,9 @@ template <typename Derived>
 Derived& GroupT<Derived>::button(std::string id, std::string title,
                                  std::optional<std::string> second_title,
                                  std::optional<std::string> description,
-                                 std::optional<std::string> icon, Style style) {
+                                 std::optional<std::string> icon, Style style,
+                                 std::optional<std::string> confirm,
+                                 std::optional<std::string> confirm_phrase) {
   Node n;
   n.kind = Node::Kind::Button;
   n.attrs.id = std::move(id);
@@ -191,6 +195,8 @@ Derived& GroupT<Derived>::button(std::string id, std::string title,
   n.attrs.description = std::move(description);
   n.attrs.icon = std::move(icon);
   n.attrs.style = style;
+  n.attrs.confirm = std::move(confirm);
+  n.attrs.confirm_phrase = std::move(confirm_phrase);
   return add(std::move(n));
 }
 

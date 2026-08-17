@@ -61,7 +61,7 @@ const OnPressExactEntry *onpress_overlay_exact(size_t *count);
 const OnPressExactEntry *onpress_network_exact(size_t *count);
 const OnPressExactEntry *onpress_system_exact(size_t *count);
 const OnPressExactEntry *onpress_misc_root_exact(size_t *count);
-const OnPressExactEntry *onpress_remote_play_exact(size_t *count);
+const OnPressExactEntry *onpress_account_exact(size_t *count);
 
 const OnPressPrefixEntry *onpress_payloads_prefix(size_t *count);
 const OnPressPrefixEntry *onpress_cheats_prefix(size_t *count);
