@@ -68,6 +68,12 @@ static int test_notify_language_resolution(void) {
                      onion_notify_resolve_language(9, 1));
   TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_PT_BR,
                      onion_notify_resolve_language(10, 1));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_IT,
+                     onion_notify_resolve_language(11, 1));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_RU,
+                     onion_notify_resolve_language(12, 1));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_PL,
+                     onion_notify_resolve_language(13, 1));
   TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_AR,
                      onion_notify_resolve_language(0, 21));
   TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_JA,
@@ -94,6 +100,12 @@ static int test_notify_language_resolution(void) {
                      onion_notify_resolve_language(0, 17));
   TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_PT_BR,
                      onion_notify_resolve_language(0, 7));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_IT,
+                     onion_notify_resolve_language(0, 5));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_RU,
+                     onion_notify_resolve_language(0, 8));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_PL,
+                     onion_notify_resolve_language(0, 16));
   return 0;
 }
 
@@ -130,6 +142,15 @@ static int test_notify_format_localized(void) {
   onion_notify_set_language(ONION_NOTIFY_LANG_PT_BR);
   format_msg(out, sizeof(out), 1, "notify.priv.unable");
   TEST_ASSERT_STREQ("[OnionHEN] Não foi possível elevar os privilégios", out);
+  onion_notify_set_language(ONION_NOTIFY_LANG_IT);
+  format_msg(out, sizeof(out), 1, "notify.priv.unable");
+  TEST_ASSERT_STREQ("[OnionHEN] Impossibile elevare i privilegi", out);
+  onion_notify_set_language(ONION_NOTIFY_LANG_RU);
+  format_msg(out, sizeof(out), 1, "notify.priv.unable");
+  TEST_ASSERT_STREQ("[OnionHEN] Не удалось повысить привилегии", out);
+  onion_notify_set_language(ONION_NOTIFY_LANG_PL);
+  format_msg(out, sizeof(out), 1, "notify.priv.unable");
+  TEST_ASSERT_STREQ("[OnionHEN] Nie udało się podnieść uprawnień", out);
   return 0;
 }
 

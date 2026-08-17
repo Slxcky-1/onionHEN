@@ -430,6 +430,9 @@ static int test_language_new_locales_roundtrip(void) {
       {onion::kUiLanguageKo, "ko", "ko-KR"},
       {onion::kUiLanguageEs, "es", "es-MX"},
       {onion::kUiLanguagePtBr, "pt-BR", "portuguese"},
+      {onion::kUiLanguageIt, "it", "italiano"},
+      {onion::kUiLanguageRu, "ru", "ru-RU"},
+      {onion::kUiLanguagePl, "pl", "polski"},
   };
 
   for (const auto &c : cases) {

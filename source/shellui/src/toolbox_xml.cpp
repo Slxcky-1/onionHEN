@@ -632,8 +632,11 @@ void append_toolbox_preferences_group(ps5ui::Group& g) {
                .item("id_ui_lang_ko", toolbox_i18n::tr("lang.ko"), "8")
                .item("id_ui_lang_fr", toolbox_i18n::tr("lang.fr"), "6")
                .item("id_ui_lang_de", toolbox_i18n::tr("lang.de"), "7")
+               .item("id_ui_lang_it", toolbox_i18n::tr("lang.it"), "11")
                .item("id_ui_lang_es", toolbox_i18n::tr("lang.es"), "9")
                .item("id_ui_lang_pt_br", toolbox_i18n::tr("lang.pt_br"), "10")
+               .item("id_ui_lang_pl", toolbox_i18n::tr("lang.pl"), "13")
+               .item("id_ui_lang_ru", toolbox_i18n::tr("lang.ru"), "12")
                .item("id_ui_lang_ar", toolbox_i18n::tr("lang.ar"), "3");
          },
          toolbox_i18n::tr("lang.list.sub"), toolbox_val("id_ui_lang", "0"))

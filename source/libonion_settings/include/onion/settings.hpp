@@ -62,6 +62,9 @@ inline constexpr int kUiLanguageDe = 7;
 inline constexpr int kUiLanguageKo = 8;
 inline constexpr int kUiLanguageEs = 9;
 inline constexpr int kUiLanguagePtBr = 10;
+inline constexpr int kUiLanguageIt = 11;
+inline constexpr int kUiLanguageRu = 12;
+inline constexpr int kUiLanguagePl = 13;
 
 inline constexpr int kStartupOpenNone = 0;
 inline constexpr int kStartupOpenHomeMenu = 1;
@@ -147,7 +150,8 @@ struct Settings {
 
   // [toolbox]
   // 0 = system (default), 1 = zh-Hans, 2 = en, 3 = ar, 4 = zh-Hant,
-  // 5 = ja, 6 = fr, 7 = de, 8 = ko, 9 = es, 10 = pt-BR
+  // 5 = ja, 6 = fr, 7 = de, 8 = ko, 9 = es, 10 = pt-BR, 11 = it,
+  // 12 = ru, 13 = pl
   int ui_lang = kUiLanguageSystem;
 
   // [logging]

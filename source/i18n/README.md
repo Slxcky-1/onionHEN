@@ -5,8 +5,10 @@ ELF. The console does not load locale files at runtime.
 
 Current locales: `zh-CN.json` (简体中文), `zh-TW.json` (繁體中文),
 `en-US.json` (English), `ja-JP.json` (日本語), `ko-KR.json` (한국어),
-`fr-FR.json` (Français), `de-DE.json` (Deutsch), `es-ES.json` (Español),
-`pt-BR.json` (Português do Brasil), and `ar-SA.json` (العربية, trial).
+`fr-FR.json` (Français), `de-DE.json` (Deutsch), `it-IT.json` (Italiano),
+`es-ES.json` (Español), `pt-BR.json` (Português do Brasil),
+`pl-PL.json` (Polski), `ru-RU.json` (Русский), and `ar-SA.json`
+(العربية, trial).
 The generator scans every `*.json` in this directory. Each locale is
 selectable in Toolbox and via `toolbox.language`. The Settings XML is
 still LTR, so Arabic glyphs render but the page layout is not mirrored.
@@ -96,9 +98,9 @@ the runtime mapping:
    `meta.id` in `notify_i18n.c` / `toolbox_i18n.cpp`.
 5. If the PS5 system language should pick it when Toolbox language is
    `system`, add that id in `onion_notify_resolve_language`
-   (`0` → `ja`, `2`/`22` → `fr`, `3`/`20` → `es`, `4` → `de`,
-   `7`/`17` → `pt-BR`, `9` → `ko`, `10` → `zh-Hant`, `11` → `zh-Hans`,
-   `21` → `ar`; everything else is `en`).
+   (`0` → `ja`, `2`/`22` → `fr`, `3`/`20` → `es`, `4` → `de`, `5` → `it`,
+   `7`/`17` → `pt-BR`, `8` → `ru`, `9` → `ko`, `10` → `zh-Hant`,
+   `11` → `zh-Hans`, `16` → `pl`, `21` → `ar`; everything else is `en`).
 
 ## Intentional exclusions
 
@@ -122,8 +124,8 @@ Checked against call sites (not just the JSON files):
 - Toolbox menus, game-options cheat entry, PKG `GetString` hooks, and
   About donor/WeChat labels go through `toolbox_i18n::tr()`.
 - Daemon / util / shellui / bootstrapper toasts go through `notify.*`
-  keys. Host tests cover zh-Hans, zh-Hant, en, ja, ko, fr, de, es,
-  pt-BR, and ar lookup.
+  keys. Host tests cover zh-Hans, zh-Hant, en, ja, ko, fr, de, it, es,
+  pt-BR, pl, ru, and ar lookup.
 - Four toolbox keys are unused leftovers from an older menu grouping:
   `group.lang`, `group.lang.sub`, `group.shortcuts`, `group.shortcuts.sub`.
   They are translated but not shown.
