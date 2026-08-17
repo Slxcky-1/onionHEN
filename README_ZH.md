@@ -40,6 +40,18 @@
   payload 管理、游戏 overlay、金手指和运行时服务整合在同一个入口 payload 中。
 </p>
 
+<p align="center">
+  <img src="assets/screenshot_01.png" alt="OnionHEN 主界面入口"/>
+</p>
+
+<p align="center">
+  <img src="assets/screenshot_02.png" alt="OnionHEN 游戏监视条"/>
+</p>
+
+<p align="center">
+  <img src="assets/screenshot_03.png" alt="OnionHEN Toolbox"/>
+</p>
+
 <br>
 
 # 功能
