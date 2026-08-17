@@ -13,12 +13,6 @@
 namespace toolbox_i18n {
 namespace {
 
-struct Entry {
-  const char *key;
-  const char *zh;
-  const char *en;
-};
-
 #include "toolbox_i18n_catalog.inc"
 
 const Entry *find_entry(const char *key) {
@@ -31,25 +25,64 @@ const Entry *find_entry(const char *key) {
   return nullptr;
 }
 
+Lang lang_from_notify(onion_notify_language_t language) {
+  if (language == ONION_NOTIFY_LANG_ZH_HANS)
+    return Lang::ZhHans;
+  if (language == ONION_NOTIFY_LANG_AR)
+    return Lang::Ar;
+  return Lang::En;
+}
+
+onion_notify_language_t notify_from_lang(Lang lang) {
+  if (lang == Lang::ZhHans)
+    return ONION_NOTIFY_LANG_ZH_HANS;
+  if (lang == Lang::Ar)
+    return ONION_NOTIFY_LANG_AR;
+  return ONION_NOTIFY_LANG_EN;
+}
+
 Lang lang_from_ui_value(int ui_lang) {
-  return ui_lang == 2 ? Lang::En : Lang::ZhHans;
+  if (ui_lang == 2)
+    return Lang::En;
+  if (ui_lang == 3)
+    return Lang::Ar;
+  return Lang::ZhHans;
+}
+
+const char *locale_id_for_lang(Lang lang) {
+  if (lang == Lang::ZhHans)
+    return "zh-Hans";
+  if (lang == Lang::Ar)
+    return "ar";
+  return "en";
+}
+
+int locale_index_for_lang(Lang lang) {
+  const char *id = locale_id_for_lang(lang);
+  for (int i = 0; i < I18N_LOCALE_COUNT; ++i) {
+    if (std::strcmp(kI18nLocaleIds[i], id) == 0)
+      return i;
+  }
+  return kI18nLocaleFallback;
 }
 
 } // namespace
 
-Lang active_lang() {
-  return onion_notify_get_language() == ONION_NOTIFY_LANG_ZH_HANS
-             ? Lang::ZhHans
-             : Lang::En;
+Lang active_lang() { return lang_from_notify(onion_notify_get_language()); }
+
+int active_ui_lang_value() {
+  const Lang lang = active_lang();
+  if (lang == Lang::En)
+    return 2;
+  if (lang == Lang::Ar)
+    return 3;
+  return 1;
 }
 
-int active_ui_lang_value() { return active_lang() == Lang::En ? 2 : 1; }
-
 void set_lang(Lang lang) {
-  if (lang != Lang::ZhHans && lang != Lang::En)
+  if (lang != Lang::ZhHans && lang != Lang::En && lang != Lang::Ar)
     lang = Lang::ZhHans;
-  onion_notify_set_language(lang == Lang::ZhHans ? ONION_NOTIFY_LANG_ZH_HANS
-                                                  : ONION_NOTIFY_LANG_EN);
+  onion_notify_set_language(notify_from_lang(lang));
 }
 
 void apply_ui_lang(int ui_lang) {
@@ -67,17 +100,14 @@ void apply_system_or_ui_lang(int ui_lang) {
   if (sceSystemServiceParamGetInt)
     (void)sceSystemServiceParamGetInt(1, &system_language);
 #endif
-  set_lang(onion_notify_resolve_language(0, system_language) ==
-                   ONION_NOTIFY_LANG_ZH_HANS
-               ? Lang::ZhHans
-               : Lang::En);
+  set_lang(lang_from_notify(onion_notify_resolve_language(0, system_language)));
 }
 
 const char *tr(const char *key) {
   const Entry *e = find_entry(key);
   if (!e)
     return key ? key : "";
-  return active_lang() == Lang::En ? e->en : e->zh;
+  return e->text[locale_index_for_lang(active_lang())];
 }
 
 std::string formatv(const char *key, va_list ap) {

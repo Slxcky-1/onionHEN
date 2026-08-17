@@ -1,4 +1,9 @@
 {
+  "meta": {
+    "id": "en",
+    "bcp47": "en-US",
+    "fallback": true
+  },
   "toolbox": {
     "root.title": "★OnionHEN Toolbox",
     "group.pkg": "Content Install & Management",
@@ -127,6 +132,7 @@
     "lang.system": "System language",
     "lang.zh": "简体中文",
     "lang.en": "English",
+    "lang.ar": "العربية",
     "about.build": "Build: %s",
     "about.donate": "Support this project",
     "about.donate.sub": "Like the project? Consider supporting it on Ko-fi",

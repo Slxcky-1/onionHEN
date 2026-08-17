@@ -1,6 +1,6 @@
 /* Copyright (C) 2025 OnionHEN / LightningMods
  *
- * Lightweight i18n for dynamic toolbox XML (zh-Hans / en).
+ * Lightweight i18n for dynamic toolbox XML (zh-Hans / en / ar).
  */
 #pragma once
 
@@ -14,6 +14,7 @@ namespace toolbox_i18n {
 enum class Lang : int {
   ZhHans = 0,
   En = 1,
+  Ar = 2,
 };
 
 /** Active language for tr() (from settings or explicit set). */
@@ -24,13 +25,13 @@ int active_ui_lang_value();
 
 /**
  * Apply an explicit UI language setting value.
- * 1=zh-Hans, 2=en. Invalid values fall back to zh-Hans.
+ * 1=zh-Hans, 2=en, 3=ar. Invalid values fall back to zh-Hans.
  */
 void apply_ui_lang(int ui_lang);
 
 /**
  * Apply the stored UI language setting.
- * 0=system, 1=zh-Hans, 2=en. This is a configuration boundary: system is
+ * 0=system, 1=zh-Hans, 2=en, 3=ar. This is a configuration boundary: system is
  * queried here once, then XML and notifications reuse the resolved language.
  */
 void apply_system_or_ui_lang(int ui_lang);

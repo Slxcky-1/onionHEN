@@ -54,6 +54,7 @@ inline constexpr int kSettingsSchemaVersion = 1;
 inline constexpr int kUiLanguageSystem = 0;
 inline constexpr int kUiLanguageZhHans = 1;
 inline constexpr int kUiLanguageEn = 2;
+inline constexpr int kUiLanguageAr = 3;
 
 inline constexpr int kStartupOpenNone = 0;
 inline constexpr int kStartupOpenHomeMenu = 1;
@@ -138,7 +139,7 @@ struct Settings {
   bool kstuff_autoload = true;
 
   // [toolbox]
-  // 0 = system (default), 1 = zh-Hans, 2 = English
+  // 0 = system (default), 1 = zh-Hans, 2 = English, 3 = Arabic
   int ui_lang = kUiLanguageSystem;
 
   // [logging]

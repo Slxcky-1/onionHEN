@@ -88,14 +88,23 @@ static OnPressResult id_custom_game_opts(OnPressContext &ctx) {
 
 static OnPressResult id_ui_lang(OnPressContext &ctx) {
   int v = atoi(ctx.value.c_str());
-  if (v < 0 || v > 2)
-    v = 0;
+  if (v < onion::kUiLanguageSystem || v > onion::kUiLanguageAr)
+    v = onion::kUiLanguageSystem;
   if (v == g_settings.ui_lang)
     return OnPressResult::EarlyReturn;
   g_settings.ui_lang = v;
-  const char *name = v == 2 ? "en" : (v == 1 ? "zh-Hans" : "system");
+  const char *name = v == onion::kUiLanguageEn
+                         ? "en"
+                         : (v == onion::kUiLanguageZhHans
+                                ? "zh-Hans"
+                                : (v == onion::kUiLanguageAr ? "ar" : "system"));
   LOG_DEBUG("UI language: %s", name);
   toolbox_i18n::apply_system_or_ui_lang(v);
+  /* Language is process-local. This only re-reads config.ini in daemon/util
+     (LoadSettings); it does not inject or restart SceShellUI. Cheat toasts
+     are sent by util, so it must apply the new language too. */
+  ctx.reload_main = true;
+  ctx.reload_util = true;
   /* XML is built when the page opens; current tree stays in the old language. */
   notify("notify.lang.saved");
   return OnPressResult::Handled;

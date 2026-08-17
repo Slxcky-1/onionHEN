@@ -109,6 +109,10 @@ int parse_language(const char *s, int def) {
   if (streq_ci(s, "en") || streq_ci(s, "english")) {
     return kUiLanguageEn;
   }
+  if (streq_ci(s, "ar") || streq_ci(s, "arabic") ||
+      streq_ci(s, "ar-SA") || streq_ci(s, "ar_sa")) {
+    return kUiLanguageAr;
+  }
   return def;
 }
 
@@ -118,6 +122,8 @@ const char *language_name(int v) {
     return "zh-Hans";
   case kUiLanguageEn:
     return "en";
+  case kUiLanguageAr:
+    return "ar";
   case kUiLanguageSystem:
   default:
     return "system";
@@ -541,7 +547,7 @@ std::string settings_serialize(const Settings &in) {
   b += "\n";
   b += "[toolbox]\n";
   b += "# language controls the Toolbox UI and notification language.\n";
-  b += "# Available values: system, zh-Hans, en\n";
+  b += "# Available values: system, zh-Hans, en, ar\n";
   b += "# system follows the PS5 system language when it can be detected.\n";
   b += "language=" + std::string(language_name(in.ui_lang)) + "\n";
   b += "\n";

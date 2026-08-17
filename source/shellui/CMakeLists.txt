@@ -38,17 +38,16 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set(I18N_DIR "${D_CWD}/../i18n")
 set(I18N_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(I18N_CATALOG "${I18N_GENERATED_DIR}/toolbox_i18n_catalog.inc")
+file(GLOB I18N_LOCALE_JSON CONFIGURE_DEPENDS "${I18N_DIR}/*.json")
 add_custom_command(
 	OUTPUT "${I18N_CATALOG}"
 	COMMAND "${Python3_EXECUTABLE}" "${I18N_DIR}/generate_catalog.py"
-		--zh-cn "${I18N_DIR}/zh-CN.json"
-		--en-us "${I18N_DIR}/en-US.json"
+		--locales-dir "${I18N_DIR}"
 		--catalog toolbox
 		--output "${I18N_CATALOG}"
 	DEPENDS
 		"${I18N_DIR}/generate_catalog.py"
-		"${I18N_DIR}/zh-CN.json"
-		"${I18N_DIR}/en-US.json"
+		${I18N_LOCALE_JSON}
 	COMMENT "Generating toolbox i18n catalog"
 	VERBATIM
 )

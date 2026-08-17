@@ -114,10 +114,10 @@ void append_payload_entry(G& page, const std::string& directory, const char* fil
   const std::string id = id_prefix + std::to_string(next_id++);
 
   const std::string second =
-      list_page ? toolbox_i18n::format("payload.start_stop_fmt", filename.c_str(),
-                            shown_path.c_str(), elf_key.c_str())
-                : toolbox_i18n::format("payload.autostart_fmt", filename.c_str(),
-                            shown_path.c_str());
+      list_page ? toolbox_i18n::format("payload.start_stop_fmt", filename,
+                                      shown_path.c_str(), elf_key)
+                : toolbox_i18n::format("payload.autostart_fmt", filename,
+                                      shown_path.c_str());
 
   page.toggle(id, filename, /*on=*/false, second);
 
@@ -669,7 +669,8 @@ void append_toolbox_preferences_group(ps5ui::Group& g) {
          [](ps5ui::ListBuilder& L) {
            L.item("id_ui_lang_system", toolbox_i18n::tr("lang.system"), "0")
                .item("id_ui_lang_zh", toolbox_i18n::tr("lang.zh"), "1")
-               .item("id_ui_lang_en", toolbox_i18n::tr("lang.en"), "2");
+               .item("id_ui_lang_en", toolbox_i18n::tr("lang.en"), "2")
+               .item("id_ui_lang_ar", toolbox_i18n::tr("lang.ar"), "3");
          },
          toolbox_i18n::tr("lang.list.sub"), toolbox_val("id_ui_lang", "0"))
       .list("id_cheats_shortcut", toolbox_i18n::tr("sc.cheats"),
@@ -847,11 +848,11 @@ void generate_toolbox_xml(std::string& new_xml) {
    * zh/en redistribution notice is not a plain string in the ELF.
    */
   {
-    const bool en = toolbox_i18n::active_lang() == toolbox_i18n::Lang::En;
+    const bool zh = toolbox_i18n::active_lang() == toolbox_i18n::Lang::ZhHans;
     const unsigned char *enc =
-        en ? kBetaBannerEnEnc : kBetaBannerZhEnc;
+        zh ? kBetaBannerZhEnc : kBetaBannerEnEnc;
     const size_t enc_len =
-        en ? sizeof(kBetaBannerEnEnc) : sizeof(kBetaBannerZhEnc);
+        zh ? sizeof(kBetaBannerZhEnc) : sizeof(kBetaBannerEnEnc);
     std::string fmt = decode_beta_banner_fmt(enc, enc_len);
     char beta_banner[192];
     std::snprintf(beta_banner, sizeof(beta_banner), fmt.c_str(),

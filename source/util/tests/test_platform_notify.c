@@ -54,6 +54,10 @@ static int test_notify_language_resolution(void) {
                      onion_notify_resolve_language(1, 1));
   TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_EN,
                      onion_notify_resolve_language(2, 11));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_AR,
+                     onion_notify_resolve_language(3, 1));
+  TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_AR,
+                     onion_notify_resolve_language(0, 21));
   TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_EN,
                      onion_notify_resolve_language(0, 0));
   return 0;
@@ -67,6 +71,9 @@ static int test_notify_format_localized(void) {
   onion_notify_set_language(ONION_NOTIFY_LANG_EN);
   format_msg(out, sizeof(out), 1, "notify.priv.unable");
   TEST_ASSERT_STREQ("[OnionHEN] Unable to raise privileges", out);
+  onion_notify_set_language(ONION_NOTIFY_LANG_AR);
+  format_msg(out, sizeof(out), 1, "notify.priv.unable");
+  TEST_ASSERT_STREQ("[OnionHEN] تعذّر رفع الامتيازات", out);
   return 0;
 }
 

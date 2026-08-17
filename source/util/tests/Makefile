@@ -40,6 +40,7 @@ COMMON_FLAGS := -Wall -Wextra -g -O0 $(DEPFLAGS) -DONION_HOST_TEST=1 -DCBC=1 \
 	$(KEYSTONE_CFLAGS)
 
 I18N_DIR := $(REPO_ROOT)/source/i18n
+I18N_JSON := $(wildcard $(I18N_DIR)/*.json)
 I18N_CATALOG := $(BUILD_DIR)/generated/toolbox_i18n_catalog.inc
 NOTIFY_I18N_CATALOG := $(BUILD_DIR)/generated/notify_i18n_catalog.inc
 
@@ -221,19 +222,17 @@ $(BUILD_DIR)/prod/shellui/toolbox_route.o: $(REPO_ROOT)/source/shellui/src/toolb
 	@mkdir -p $(dir $@)
 	$(HOST_CXX) $(CXXFLAGS) -c -o $@ $<
 
-$(I18N_CATALOG): $(I18N_DIR)/generate_catalog.py $(I18N_DIR)/zh-CN.json $(I18N_DIR)/en-US.json | $(BUILD_DIR)
+$(I18N_CATALOG): $(I18N_DIR)/generate_catalog.py $(I18N_JSON) | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(PYTHON) $(I18N_DIR)/generate_catalog.py \
-		--zh-cn $(I18N_DIR)/zh-CN.json \
-		--en-us $(I18N_DIR)/en-US.json \
+		--locales-dir $(I18N_DIR) \
 		--catalog toolbox \
 		--output $@
 
-$(NOTIFY_I18N_CATALOG): $(I18N_DIR)/generate_catalog.py $(I18N_DIR)/zh-CN.json $(I18N_DIR)/en-US.json | $(BUILD_DIR)
+$(NOTIFY_I18N_CATALOG): $(I18N_DIR)/generate_catalog.py $(I18N_JSON) | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(PYTHON) $(I18N_DIR)/generate_catalog.py \
-		--zh-cn $(I18N_DIR)/zh-CN.json \
-		--en-us $(I18N_DIR)/en-US.json \
+		--locales-dir $(I18N_DIR) \
 		--catalog notifications \
 		--output $@
 

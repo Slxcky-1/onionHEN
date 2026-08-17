@@ -389,6 +389,31 @@ static int test_log_level_invalid_falls_back(void) {
   return 0;
 }
 
+static int test_language_ar_roundtrip(void) {
+  const std::string path = temp_ini_path();
+  TEST_ASSERT_TRUE(!path.empty());
+
+  onion::Settings in{};
+  in.ui_lang = onion::kUiLanguageAr;
+  TEST_ASSERT_TRUE(onion::settings_serialize(in).find("language=ar") !=
+                   std::string::npos);
+  TEST_ASSERT_TRUE(onion::settings_save_file(path.c_str(), in));
+
+  onion::Settings out{};
+  TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
+  TEST_ASSERT_EQ_INT(onion::kUiLanguageAr, out.ui_lang);
+
+  FILE *f = fopen(path.c_str(), "w");
+  TEST_ASSERT_TRUE(f != nullptr);
+  fputs("[meta]\nschema_version=1\n\n[toolbox]\nlanguage=ar-SA\n", f);
+  fclose(f);
+  TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
+  TEST_ASSERT_EQ_INT(onion::kUiLanguageAr, out.ui_lang);
+
+  unlink(path.c_str());
+  return 0;
+}
+
 static int test_clamp_fan_threshold(void) {
   TEST_ASSERT_EQ_INT(onion::kFanAutomaticThresholdCelsius,
                      onion::Settings{}.fan_threshold);
@@ -424,6 +449,7 @@ extern "C" int test_settings_suite(void) {
   failures += onion_test_run("settings_config_mtime_helpers", test_config_mtime_helpers);
   failures += onion_test_run("settings_log_level_invalid",
                              test_log_level_invalid_falls_back);
+  failures += onion_test_run("settings_language_ar", test_language_ar_roundtrip);
   failures += onion_test_run("settings_clamp_fan_threshold",
                              test_clamp_fan_threshold);
   return failures;

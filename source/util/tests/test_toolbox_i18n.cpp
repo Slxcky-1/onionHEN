@@ -1,4 +1,4 @@
-/* Host unit tests for shellui toolbox_i18n (zh-Hans / en). */
+/* Host unit tests for shellui toolbox_i18n (zh-Hans / en / ar). */
 #include "test_harness.h"
 
 #include "toolbox_i18n.hpp"
@@ -98,6 +98,17 @@ static int test_en(void) {
   return 0;
 }
 
+static int test_ar(void) {
+  set_lang(Lang::Ar);
+  TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★صندوق أدوات OnionHEN") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("lang.ar"), "العربية") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
+                               "تفعيل/تعطيل %s لـ %s") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.game_menu"),
+                               "★ غش OnionHEN") == 0);
+  return 0;
+}
+
 static int test_apply_ui_lang(void) {
   apply_ui_lang(2);
   TEST_ASSERT_TRUE(active_lang() == Lang::En);
@@ -105,6 +116,9 @@ static int test_apply_ui_lang(void) {
   apply_ui_lang(1);
   TEST_ASSERT_TRUE(active_lang() == Lang::ZhHans);
   TEST_ASSERT_EQ_INT(1, active_ui_lang_value());
+  apply_ui_lang(3);
+  TEST_ASSERT_TRUE(active_lang() == Lang::Ar);
+  TEST_ASSERT_EQ_INT(3, active_ui_lang_value());
   apply_ui_lang(99); /* invalid → zh */
   TEST_ASSERT_TRUE(active_lang() == Lang::ZhHans);
   return 0;
@@ -132,6 +146,9 @@ static int test_format(void) {
   TEST_ASSERT_TRUE(format("cheats.enable_fmt", "Game", "God") ==
                    "Enable/disable Game for God");
   TEST_ASSERT_TRUE(format("about.build", "v1") == "Build: v1");
+  set_lang(Lang::Ar);
+  TEST_ASSERT_TRUE(format("cheats.enable_fmt", "Game", "God") ==
+                   "تفعيل/تعطيل Game لـ God");
   return 0;
 }
 
@@ -139,6 +156,7 @@ extern "C" int test_toolbox_i18n_suite(void) {
   int fails = 0;
   fails += onion_test_run("i18n.default_zh", test_default_zh);
   fails += onion_test_run("i18n.en", test_en);
+  fails += onion_test_run("i18n.ar", test_ar);
   fails += onion_test_run("i18n.apply_ui_lang", test_apply_ui_lang);
   fails += onion_test_run("i18n.system_lang_host_fallback",
                           test_system_lang_host_fallback);

@@ -3,9 +3,11 @@
 User-facing text lives in one JSON file per locale and is compiled into the
 ELF. The console does not load locale files at runtime.
 
-Current locales: `zh-CN.json` (简体中文) and `en-US.json` (English).
-A third language is not wired yet — adding one still requires C++ and
-CMake changes, not just a new JSON file.
+Current locales: `zh-CN.json` (简体中文), `en-US.json` (English), and
+`ar-SA.json` (العربية, trial). The generator scans every `*.json` in
+this directory. Arabic is selectable in Toolbox and via
+`toolbox.language=ar`. The Settings XML is still LTR, so Arabic glyphs
+render but the page layout is not mirrored.
 
 ## File layout
 
@@ -16,12 +18,12 @@ Each locale file has exactly two sections:
 | `toolbox` | dotted ids such as `fan.enable` | `toolbox_i18n::tr("fan.enable")` |
 | `notifications` | `notify.*` ids such as `notify.fan.open_failed` | `onion_notify(true, "notify.fan.open_failed")` |
 
-`en-US.json` values are the English sentences. `zh-CN.json` values are the
-Chinese sentences. Both files must contain the same keys.
+`en-US.json` is the fallback locale (`meta.fallback: true`). Every other
+locale file must contain the same keys and the same `printf` conversions.
 
 The build runs `generate_catalog.py` and rejects:
 
-- missing keys on either side
+- missing keys in any locale
 - empty keys or embedded NUL
 - mismatched `printf` conversions (`%s`, `%d`, `%i`, `%u`, `%X`, …)
 
@@ -30,7 +32,7 @@ Generated tables are embedded in `shellui` (toolbox) and
 
 ## How to add a Toolbox string
 
-1. Add the same key to **both** JSON files under `toolbox`.
+1. Add the same key to **every** locale JSON file under `toolbox`.
 2. Prefer one complete sentence with `printf` placeholders when values are
    inserted. Do not split a sentence across several keys and concatenate
    them in C++ (word order cannot be translated).
@@ -50,15 +52,18 @@ Generated tables are embedded in `shellui` (toolbox) and
    ```
 4. Rebuild. Missing the key in one locale fails the catalog step.
 5. Switch Toolbox language, leave the page, and reopen it. XML is built
-   when the page opens.
+   when the page opens. The same save path used by log level
+   (`settings_commit` → `BREW_RELOAD_SETTINGS` → `LoadSettings`) tells
+   daemon and util to apply the new language. That is a config reread,
+   not a SceShellUI inject.
 
 Missing toolbox keys render as the key itself (visible in the menu).
 
 ## How to add a notification
 
-1. Add a stable `notify.<area>.<name>` key to **both** JSON files under
-   `notifications`. Never use the English sentence as the key.
-2. Keep `printf` placeholders identical in both languages.
+1. Add a stable `notify.<area>.<name>` key to **every** locale JSON file
+   under `notifications`. Never use the English sentence as the key.
+2. Keep `printf` placeholders identical in every language.
 3. Pass the key, not the English text:
 
    ```c
@@ -74,24 +79,26 @@ Missing toolbox keys render as the key itself (visible in the menu).
 ShellUI's `notify("…")` helper forwards to the same catalog. Unpacker
 has its own `notify()` and does **not** use this catalog.
 
-## How to add a language (not just a JSON file)
+## How to add a language
 
-Today the generator and runtime are still two-locale (`zh` / `en`):
+Catalog compilation already scans this directory. A new JSON file is
+embedded automatically. To make the language selectable you still need
+the runtime mapping:
 
-- `generate_catalog.py` is invoked with `--zh-cn` and `--en-us`
-- tables are `{key, zh, en}`
-- settings values are `system` / `zh-Hans` / `en` (`0` / `1` / `2`)
-- Toolbox language list is three hardcoded items
+1. Add `<locale>.json` with the same keys as `en-US.json`, plus
+   `meta.id` (the config.ini value), `meta.bcp47`, and
+   `meta.fallback: false`.
+2. Add `lang.<id>` to every locale file (the Toolbox list label).
+3. Add a `kUiLanguage*` value, parse/serialize it in settings, and add
+   a Toolbox list item with that integer.
+4. Add the matching `Lang` / `ONION_NOTIFY_LANG_*` values and map
+   `meta.id` in `notify_i18n.c` / `toolbox_i18n.cpp`.
+5. If the PS5 system language should pick it when Toolbox language is
+   `system`, add that id in `onion_notify_resolve_language`
+   (`10`/`11` → `zh-Hans`, `21` → `ar`; everything else is `en`).
 
-To add another language later you must, at minimum:
-
-1. Add `<locale>.json` with the same keys as `en-US.json`
-2. Extend the generator, CMake `DEPENDS`, and both catalog table shapes
-3. Extend language parse/serialize and the Toolbox language list
-4. Decide how PS5 system-language ids map onto the new locale
-   (ids `10` and `11` currently become `zh-Hans`; everything else is `en`)
-
-Until that lands, do not add `ja-JP.json` or similar — it will be ignored.
+XOR trial banners stay bilingual (zh / en). Arabic and any later locale
+use the English banner.
 
 ## Intentional exclusions
 
@@ -109,19 +116,19 @@ These user-visible strings are **not** in the JSON catalogs on purpose:
 
 Logs (`LOG_*`) are developer-facing and stay English.
 
-## Current zh / en coverage
+## Current coverage
 
 Checked against call sites (not just the JSON files):
 
 - Toolbox menus, game-options cheat entry, PKG `GetString` hooks, and
   About donor/WeChat labels go through `toolbox_i18n::tr()`.
 - Daemon / util / shellui / bootstrapper / trial toasts go through
-  `notify.*` keys. Host tests cover zh and en lookup.
+  `notify.*` keys. Host tests cover zh, en, and ar lookup.
 - Four toolbox keys are unused leftovers from an older menu grouping:
   `group.lang`, `group.lang.sub`, `group.shortcuts`, `group.shortcuts.sub`.
   They are translated but not shown.
 - Welcome toast still concatenates `version + notify.boot.made_by + author`.
-  That word order is correct for current zh and en only.
+  That word order is correct for current zh and en; Arabic uses the same
+  concatenation.
 
-So for the two shipped locales, user-facing ShellUI / daemon / util text
-is localized, except the intentional exclusions above.
+Arabic is a complete key-for-key trial locale, not a native RTL layout.
