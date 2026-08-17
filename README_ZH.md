@@ -66,7 +66,7 @@ OnionHEN 面向已越狱的 PS5，提供一套能日常使用、也方便维护�
 - **Payload 管理** — 启动和停止普通 `.elf` payload，可选自动启动
 - **游戏监控条** — 游戏中显示 FPS、CPU、GPU、内存、温度和网络信息
 - **金手指** — 本地 JSON、SHN、MC4、ShnExt 文件，运行中即可开关
-- **主机工具** — 休息模式、远程游玩、外接硬盘、Title ID、风扇、快捷键和游戏选项
+- **主机工具** — 休息模式、账号激活、外接硬盘、Title ID、风扇、快捷键和游戏选项
 - **应用越狱** — 白名单自制软件可通过守护进程沙盒 FIFO 申请提权
 - **可恢复运行时** — 关键守护进程和工具守护进程分开；主进程可以拉起工具进程
 - **统一配置** — 工具箱和守护进程共用一份带版本号的 `config.ini`
@@ -203,7 +203,7 @@ OnionHEN 在下面两处读写同一份配置：
 | 配置项 | 默认值 | 可用值 |
 | --- | --- | --- |
 | `meta.schema_version` | `1` | `1` |
-| `toolbox.language` | `system` | `system`, `zh-Hans`, `zh-Hant`, `en`, `ja`, `ko`, `fr`, `de`, `it`, `es`, `pt-BR`, `pl`, `ru`, `ar` |
+| `toolbox.language` | `system` | `system`, `zh-Hans`, `zh-Hant`, `en`, `ja`, `ko`, `fr`, `de`, `it`, `es`, `pt-BR`, `pl`, `ru`, `ar`, `th` |
 | `startup.open_after_load` | `none` | `none`, `home_menu` |
 | `home_screen.show_title_ids` | `false` | `true`, `false` |
 | `game_menu.show_onionhen_options` | `true` | `true`, `false` |

@@ -16,9 +16,9 @@ RouteResult resolve_resource(const RouteInput &in) {
   out.flags.is_debug_settings = (in.resource == in.names.debug_settings_xml);
   out.flags.is_cheats = (in.resource == in.names.cheats_xml);
   out.flags.is_auto_payload = (in.resource == kAutoPayloadsXml);
+  out.flags.is_account = (in.resource == kAccountXml);
   out.flags.is_plapps = (in.resource == kPlappsXml);
   out.flags.is_su_menu = (in.resource == kSuperuserXml);
-  out.flags.is_remote_play = (in.resource == in.names.remote_play_xml);
 
   if (in.cheats_shortcut || in.cheats_shortcut_not_open) {
     out.flags.is_debug_settings = false;
@@ -35,8 +35,8 @@ RouteResult resolve_resource(const RouteInput &in) {
     out.clear_cheat_shortcuts_after = true;
   } else if (out.flags.is_auto_payload) {
     out.page = Page::AutoPayloads;
-  } else if (out.flags.is_remote_play) {
-    out.page = Page::RemotePlay;
+  } else if (out.flags.is_account) {
+    out.page = Page::Account;
   } else if (out.flags.is_plapps) {
     out.page = Page::Plapps;
   } else if (out.flags.is_su_menu) {

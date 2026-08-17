@@ -211,8 +211,3 @@ int Activator::GetEntityNumber(int a, int d, int e)
 {
     return onion_reg_entity_number(a, d, e);
 }
-
-void Activator::GetPSAccount(std::string& account)
-{   
-    
-}

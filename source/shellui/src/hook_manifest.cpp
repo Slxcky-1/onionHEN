@@ -5,17 +5,16 @@
 #include "external_symbols.hpp"
 #include "shellui_state.hpp"
 #include "onpress_policy.hpp"
-#include "remote_play_page.hpp"
 #include "toolbox_route.hpp"
 #include <onion/platform.h>
 #include <string>
 
 extern MonoClass *MemoryStream_IO;
 extern MonoObject *MemoryStream_Instance;
-extern std::string payloads_xml, remote_play_xml, debug_settings_xml, cheats_xml;
+extern std::string payloads_xml, debug_settings_xml, cheats_xml;
 extern std::string UI3_dec, legacy_dec;
 void generate_payload_xml(std::string &xml_buffer, bool list_page);
-void generate_remote_play_xml(std::string &xml_buffer);
+void generate_account_xml(std::string &xml_buffer);
 void generate_plapps_xml(std::string &new_xml);
 void generate_toolbox_xml(std::string &new_xml);
 void generate_cheats_xml(std::string &new_xml, std::string &not_open_tid,
@@ -52,14 +51,11 @@ uint64_t GetManifestResourceStream_Hook(uint64_t inst, MonoString *FileName) {
               .payloads_xml = payloads_xml,
               .debug_settings_xml = debug_settings_xml,
               .cheats_xml = cheats_xml,
-              .remote_play_xml = remote_play_xml,
           },
       .cheats_shortcut = g_ui.cheats_shortcut_activated,
       .cheats_shortcut_not_open = g_ui.cheats_shortcut_activated_not_open,
   });
 
-  if (route.page == toolbox::Page::RemotePlay)
-    BeginRemotePlayPageLoad(g_ui.active_page);
   g_ui.set_active_page(toolbox::active_page_after_resource(
       g_ui.active_page, route.page, resourceName));
 
@@ -121,8 +117,8 @@ uint64_t GetManifestResourceStream_Hook(uint64_t inst, MonoString *FileName) {
     g_ui.auto_payloads_list.clear();
     generate_payload_xml(new_xml_string, false);
     break;
-  case toolbox::Page::RemotePlay:
-    generate_remote_play_xml(new_xml_string);
+  case toolbox::Page::Account:
+    generate_account_xml(new_xml_string);
     break;
   case toolbox::Page::Plapps:
     g_ui.payloads_apps_list.clear();

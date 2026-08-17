@@ -1,6 +1,6 @@
-/* Copyright (C) 2025 OnionHEN / LightningMods — OnPress misc (kstuff, RP, credits) */
+/* Copyright (C) 2025 OnionHEN / LightningMods — OnPress misc (kstuff, account, credits) */
 #include "onpress.hpp"
-#include <fstream>
+#include "account_activator.h"
 #include <unistd.h>
 
 static OnPressResult id_kstuff_autoload(OnPressContext &ctx) {
@@ -28,24 +28,23 @@ static OnPressResult id_delete_kstuff(OnPressContext &ctx) {
   return OnPressResult::Handled;
 }
 
-static OnPressResult id_save_rp_info(OnPressContext &ctx) {
-  (void)ctx;
-  if (usbpath() == -1) {
-    notify("notify.rp.usb_missing");
-    return OnPressResult::EarlyReturn;
+static OnPressResult id_activate_account(OnPressContext &ctx) {
+  ctx.dirty = false;
+  Activator activator(true);
+  if (!activator.Valid()) {
+    notify("notify.account.invalid");
+    return OnPressResult::Consumed;
   }
-  std::string usb_rp_path =
-      "/usb" + std::to_string(usbpath()) + "/remote_play_info.txt";
-  LOG_DEBUG("Saving Remote Play info to %s", usb_rp_path.c_str());
-  std::ofstream rp_file(usb_rp_path);
-  if (!rp_file.is_open()) {
-    notify("notify.rp.save_open_failed");
-    return OnPressResult::EarlyReturn;
+  if (!activator.IsNotActivated()) {
+    notify("notify.account.already");
+    return OnPressResult::Consumed;
   }
-  rp_file << g_ui.remote_play_info;
-  rp_file.close();
-  notify("notify.rp.saved", usb_rp_path.c_str());
-  return OnPressResult::Handled;
+  if (!activator.Activate()) {
+    notify("notify.account.failed");
+    return OnPressResult::Consumed;
+  }
+  notify("notify.account.activated");
+  return OnPressResult::Consumed;
 }
 
 static OnPressResult id_lm_test(OnPressContext &ctx) {
@@ -76,16 +75,16 @@ static const OnPressExactEntry kRootExact[] = {
     {"id_donator_szx", id_presentation_card},
 };
 
-static const OnPressExactEntry kRemotePlayExact[] = {
-    {"id_save_rp_info", id_save_rp_info},
-};
-
 const OnPressExactEntry *onpress_misc_root_exact(size_t *count) {
   *count = sizeof(kRootExact) / sizeof(kRootExact[0]);
   return kRootExact;
 }
 
-const OnPressExactEntry *onpress_remote_play_exact(size_t *count) {
-  *count = sizeof(kRemotePlayExact) / sizeof(kRemotePlayExact[0]);
-  return kRemotePlayExact;
+static const OnPressExactEntry kAccountExact[] = {
+    {"id_activate_account", id_activate_account},
+};
+
+const OnPressExactEntry *onpress_account_exact(size_t *count) {
+  *count = sizeof(kAccountExact) / sizeof(kAccountExact[0]);
+  return kAccountExact;
 }

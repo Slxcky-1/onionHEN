@@ -5,7 +5,7 @@
  */
 
 #include "hooked_funcs.hpp"
-#include "remote_play.h"
+#include "account_activator.h"
 #include "defs.h"
 #include "external_symbols.hpp"
 #include "ipc.hpp"
@@ -14,8 +14,6 @@
 #include "toolbox_values.hpp"
 #include "onion_cjson.hpp"
 
-#define ACCOUNT_ID_BASE64_SIZE 16
-
 #include <dirent.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -23,7 +21,6 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
-#include <sstream>
 #include <unordered_map>
 #include <unordered_set>
 #include <random>
@@ -198,77 +195,45 @@ void append_cheat_entries(G& page, cJSON* root, const std::string& tid,
 
 } // namespace
 
-void generate_remote_play_xml(std::string& xml_buffer) {
-  char AccountID[ACCOUNT_ID_BASE64_SIZE] = {0};
-  uint64_t dec_account_id = 0;
-  bool activated_now = false;
-  bzero(AccountID, ACCOUNT_ID_BASE64_SIZE);
-
-  LOG_DEBUG("Starting remote play");
-  StopConfirmRegistLoop();
-  const bool remote_play_initialized = InitRemotePlay();
-
-  ps5ui::Page page("remote_play_pin_display", toolbox_i18n::tr("rp.title"));
+void generate_account_xml(std::string& xml_buffer) {
+  Activator activator(true);
+  ps5ui::Page page("id_account_activation", toolbox_i18n::tr("account.title"));
   page.root_style(ps5ui::Style::Center);
 
-  if (!remote_play_initialized) {
-    page.label("remote_play_init_error", toolbox_i18n::tr("rp.init_error"),
+  if (!activator.Valid()) {
+    page.label("id_account_error", toolbox_i18n::tr("account.error.read"),
                ps5ui::Style::Center);
     xml_buffer = page.build();
     return;
   }
 
-  if (!GetEncodedAccountID(AccountID, dec_account_id, activated_now)) {
-    page.label("remote_play_account_error",
-               toolbox_i18n::tr("rp.account_error"), ps5ui::Style::Center);
-    xml_buffer = page.build();
-    return;
-  }
-
-  if (activated_now) {
-    page.label("id_pin_2", toolbox_i18n::tr("rp.need_reboot"),
-               ps5ui::Style::Center);
-    xml_buffer = page.build();
-    return;
-  }
-
-  LOG_DEBUG("Get encoded account id ==> %s", AccountID);
-
-  std::stringstream account_id_stream;
-  account_id_stream << std::hex << std::uppercase << dec_account_id;
-  const std::string decoded_account_id = account_id_stream.str();
-
-  g_ui.remote_play_info =
-      toolbox_i18n::format("rp.account_id_fmt", AccountID);
-  g_ui.remote_play_info +=
-      std::string("\n") +
-      toolbox_i18n::format("rp.account_id_decoded_fmt", decoded_account_id.c_str());
-
-  uint32_t pinCode = 0;
-  const bool pin_ready = GeneratePINCode(pinCode);
-  std::string pin_display;
-  if (pin_ready) {
-    LOG_DEBUG("Pin code => %u", pinCode);
-    pin_display = toolbox_i18n::format("rp.pin_fmt", pinCode / 10000u,
-                                      pinCode % 10000u);
-    LOG_DEBUG("Pin code str => %s", pin_display.c_str());
-  } else {
-    pin_display = toolbox_i18n::tr("rp.pin_error");
-  }
-  g_ui.remote_play_info += "\n" + pin_display;
-
-  page.label("id_pin", pin_display, ps5ui::Style::Center)
-      .label("base64_account_id",
-             toolbox_i18n::format("rp.account_id_fmt", AccountID), ps5ui::Style::Center)
-      .label("decoded_account_id",
-             toolbox_i18n::format("rp.account_id_decoded_fmt",
-                       decoded_account_id.c_str()),
+  const char* username = activator.currentUser.Username.empty()
+                             ? "-"
+                             : activator.currentUser.Username.c_str();
+  page.label("id_account_user",
+             toolbox_i18n::format("account.user_fmt", username),
              ps5ui::Style::Center);
 
-  if (usbpath() != -1)
-    page.button("id_save_rp_info", toolbox_i18n::tr("rp.save_usb"),
-                toolbox_i18n::tr("rp.save_usb.sub"), std::nullopt, std::nullopt,
-                ps5ui::Style::Center);
+  if (!activator.IsNotActivated()) {
+    char id_hex[17] = {};
+    std::snprintf(id_hex, sizeof(id_hex), "%016llX",
+                  static_cast<unsigned long long>(activator.currentUser.accountID));
+    page.label("id_account_status", toolbox_i18n::tr("account.status.activated"),
+               ps5ui::Style::Center)
+        .label("id_account_id", toolbox_i18n::format("account.id_fmt", id_hex),
+               ps5ui::Style::Center);
+  } else {
+    page.label("id_account_status",
+               toolbox_i18n::tr("account.status.not_activated"),
+               ps5ui::Style::Center)
+        .label("id_account_warning", toolbox_i18n::tr("account.warning"),
+               ps5ui::Style::Center)
+        .button("id_activate_account", toolbox_i18n::tr("account.activate"),
+                toolbox_i18n::tr("account.activate.sub"), std::nullopt,
+                std::nullopt, ps5ui::Style::Center,
+                toolbox_i18n::tr("account.activate.confirm"),
+                toolbox_i18n::tr("account.activate.confirm_phrase"));
+  }
 
   xml_buffer = page.build();
 }
@@ -426,11 +391,6 @@ void generate_plapps_xml(std::string& new_xml) {
 
 namespace {
 
-/* Temporarily hide Remote Play from the toolbox homepage. Flip to 1 to restore. */
-#ifndef ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY
-#define ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY 0
-#endif
-
 constexpr const char* kIconPkg =
     "/user/data/OnionHEN/assets/icon_xml_package.png";
 constexpr const char* kIconPlugins =
@@ -438,10 +398,8 @@ constexpr const char* kIconPlugins =
 constexpr const char* kIconGame = "/user/data/OnionHEN/assets/icon_xml_game.png";
 constexpr const char* kIconMonitor =
     "/user/data/OnionHEN/assets/icon_xml_monitor.png";
-#if ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY
 constexpr const char* kIconAccount =
     "/user/data/OnionHEN/assets/icon_xml_account.png";
-#endif
 constexpr const char* kIconSettings =
     "/user/data/OnionHEN/assets/icon_xml_settings.png";
 constexpr const char* kIconShortcuts =
@@ -466,10 +424,6 @@ constexpr const char* kIconHardDrive =
     "/user/data/OnionHEN/assets/icon_xml_hardrive.png";
 constexpr const char* kIconDiscLicense =
     "/user/data/OnionHEN/assets/icon_xml_disc_license.png";
-#if ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY
-constexpr const char* kIconRemotePlay =
-    "/user/data/OnionHEN/assets/icon_xml_remote_play.png";
-#endif
 constexpr const char* kIconDonations =
     "/user/data/OnionHEN/assets/icon_xml_donations.png";
 constexpr const char* kIconThanks =
@@ -573,13 +527,10 @@ void append_toolbox_display_group(ps5ui::Group& g) {
               kIconMenuOption);
 }
 
-#if ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY
-void append_toolbox_connection_group(ps5ui::Group& g) {
-  g.link("remote_play", toolbox_i18n::tr("remote_play.link"),
-         "remote_play.xml", toolbox_i18n::tr("remote_play.link.sub"),
-         kIconRemotePlay);
+void append_toolbox_account_group(ps5ui::Group& g) {
+  g.link("id_account_activation", toolbox_i18n::tr("account.link"),
+         "account.xml", toolbox_i18n::tr("account.link.sub"), kIconAccount);
 }
-#endif
 
 void append_toolbox_system_group(ps5ui::Group& g) {
   g.group(
@@ -825,13 +776,11 @@ void generate_toolbox_xml(std::string& new_xml) {
           [](ps5ui::Group& g) { append_toolbox_display_group(g); },
           toolbox_i18n::tr("group.display.sub"), kIconMonitor,
           "id_overlay_opts")
-#if ONIONHEN_TOOLBOX_SHOW_REMOTE_PLAY
       .group(
-          "id_group_connection", toolbox_i18n::tr("group.connection"),
-          [](ps5ui::Group& g) { append_toolbox_connection_group(g); },
-          toolbox_i18n::tr("group.connection.sub"), kIconAccount,
-          "remote_play")
-#endif
+          "id_group_account", toolbox_i18n::tr("group.account"),
+          [](ps5ui::Group& g) { append_toolbox_account_group(g); },
+          toolbox_i18n::tr("group.account.sub"), kIconAccount,
+          "id_account_activation")
       .group(
           "id_group_system", toolbox_i18n::tr("group.system"),
           [](ps5ui::Group& g) { append_toolbox_system_group(g); },

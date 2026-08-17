@@ -6,7 +6,6 @@
 #include "hooked_funcs.hpp"
 #include "external_symbols.hpp"
 #include "ipc.hpp"
-#include "account_activator.h"
 #include <cctype>
 #include <cstring>
 #include <string>

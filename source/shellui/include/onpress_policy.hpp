@@ -16,7 +16,7 @@ enum class OnPressDomain : unsigned char {
   Payloads,
   AutoPayloads,
   Cheats,
-  RemotePlay,
+  Account,
   Plapps,
 };
 
@@ -34,8 +34,8 @@ constexpr OnPressDomain onpress_domain_for_page(Page page) {
     return OnPressDomain::AutoPayloads;
   case Page::Cheats:
     return OnPressDomain::Cheats;
-  case Page::RemotePlay:
-    return OnPressDomain::RemotePlay;
+  case Page::Account:
+    return OnPressDomain::Account;
   case Page::Plapps:
     return OnPressDomain::Plapps;
   case Page::None:

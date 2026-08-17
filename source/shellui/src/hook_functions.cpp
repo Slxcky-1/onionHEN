@@ -43,14 +43,11 @@ extern bool is_6xx, is_3xx;
 /* ================================= ORIG HOOKED MONO FUNCS ============================================= */
 int (*oOnPress)(MonoObject* Instance, MonoObject* element, MonoObject* e) = nullptr;
 int (*oOnPreCreate)(MonoObject* Instance, MonoObject* element) = nullptr;
-void (*oOnActivated)(MonoObject* Instance, int transition) = nullptr;
-void (*oOnDeactivating)(MonoObject* Instance, int transition) = nullptr;
 MonoString* (*CxmlUri)(MonoObject* obj, MonoString* uri) = nullptr;
 uint64_t(*GetManifestResourceStream_Original)(uint64_t inst, MonoString* FileName) = nullptr;
 uint64_t(*GetManifestResourceInternal_Orig)(MonoObject* instance, MonoString* name, int* size, MonoObject& module) = nullptr;
 void (*DebugSettings_GetModel_Orig)(MonoObject* instance, MonoObject* param, MonoObject* promise) = nullptr;
 void (*ReactNavigatorManager_UpdateNavigationState_Orig)(MonoObject* instance, MonoObject* state) = nullptr;
-bool (*CheckRemotePlayRestriction_Orig)(MonoObject* instance) = nullptr;
 void (*oTerminate)(void) = nullptr;
 GamePadData (*GetData)(int deviceIndex) = nullptr;
 

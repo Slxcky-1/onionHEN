@@ -8,7 +8,6 @@
 #include "external_symbols.hpp"
 #include "ipc.hpp"
 #include "onpress_policy.hpp"
-#include "remote_play_page.hpp"
 #include "toolbox_values.hpp"
 
 #include "shellui_state.hpp"
@@ -77,8 +76,6 @@ int OnPreCreate_Hook(MonoObject *Instance, MonoObject *element) {
   }
 
   const std::string id = GetPropertyValue(element, "Id");
-  if (id == "id_pin")
-    AttachRemotePlayPage(Instance);
 
   if (!toolbox::toolbox_owns_settings_page(g_ui.active_page)) {
     return call_original(Instance, element);

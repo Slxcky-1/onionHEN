@@ -13,11 +13,17 @@ struct FileSignature {
   uint64_t size = 0;
   uint64_t inode = 0;
   int64_t mtime = 0;
+  int64_t mtime_nsec = 0;
   int64_t ctime = 0;
+  int64_t ctime_nsec = 0;
 
+  bool sameIdentity(const FileSignature &o) const {
+    return size == o.size && inode == o.inode && mtime == o.mtime &&
+           mtime_nsec == o.mtime_nsec && ctime == o.ctime &&
+           ctime_nsec == o.ctime_nsec;
+  }
   bool operator==(const FileSignature &o) const {
-    return path == o.path && size == o.size && inode == o.inode &&
-           mtime == o.mtime && ctime == o.ctime;
+    return path == o.path && sameIdentity(o);
   }
   bool operator!=(const FileSignature &o) const { return !(*this == o); }
 };
@@ -28,7 +34,13 @@ struct FileSignature {
  */
 class CheatRepository {
 public:
-  /** Resolve existing cheat file for title+version; empty if none. */
+  /**
+   * Resolve an existing cheat file for title+version.
+   *
+   * Standard names are preferred. A bounded compatibility lookup accepts
+   * website-specific suffixes after the version when they represent the
+   * legacy eboot scope.
+   */
   static std::string resolvePath(const game_context_t &game);
 
   static bool fileExists(const std::string &path);

@@ -67,8 +67,8 @@ OnPressResult dispatch_toolbox_press(toolbox::OnPressDomain domain,
   case toolbox::OnPressDomain::Cheats:
     run_prefix(onpress_cheats_prefix);
     break;
-  case toolbox::OnPressDomain::RemotePlay:
-    run_exact(onpress_remote_play_exact);
+  case toolbox::OnPressDomain::Account:
+    run_exact(onpress_account_exact);
     break;
   case toolbox::OnPressDomain::Plapps:
     run_prefix(onpress_packages_prefix);

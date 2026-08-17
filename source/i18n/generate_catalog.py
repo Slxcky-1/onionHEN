@@ -37,6 +37,7 @@ FILENAME_IDS = {
     "pl-PL.json": ("pl", False),
     "ru-RU.json": ("ru", False),
     "ar-SA.json": ("ar", False),
+    "th-TH.json": ("th", False),
 }
 
 

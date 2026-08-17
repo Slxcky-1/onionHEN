@@ -13,7 +13,6 @@ static ResourceNames test_names() {
       .payloads_xml = "payloads.xml",
       .debug_settings_xml = "debug_settings.xml",
       .cheats_xml = "cheats.xml",
-      .remote_play_xml = "remote_play.xml",
   };
 }
 
@@ -69,10 +68,10 @@ static int test_auto_payloads_and_plapps(void) {
   return 0;
 }
 
-static int test_remote_play(void) {
-  RouteResult r = resolve_resource(make_in("remote_play.xml"));
-  TEST_ASSERT_TRUE(r.page == Page::RemotePlay);
-  TEST_ASSERT_TRUE(r.flags.is_remote_play);
+static int test_account_page(void) {
+  RouteResult r = resolve_resource(make_in(kAccountXml));
+  TEST_ASSERT_TRUE(r.page == Page::Account);
+  TEST_ASSERT_TRUE(r.flags.is_account);
   return 0;
 }
 
@@ -153,7 +152,7 @@ extern "C" int test_toolbox_route_suite(void) {
   fails += onion_test_run("route.debug", test_debug_settings_page);
   fails += onion_test_run("route.cheats", test_cheats_page);
   fails += onion_test_run("route.auto_plapps", test_auto_payloads_and_plapps);
-  fails += onion_test_run("route.remote_play", test_remote_play);
+  fails += onion_test_run("route.account", test_account_page);
   fails += onion_test_run("route.superuser", test_superuser_pass_through);
   fails += onion_test_run("route.og_debug", test_og_debug_redirect);
   fails += onion_test_run("route.shortcut_force", test_shortcut_force_cheats);

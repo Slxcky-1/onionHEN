@@ -18,7 +18,6 @@ along with this program; see the file COPYING. If not, see
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include <vector>
 #include "external_symbols.hpp"
 #include "hooked_funcs.hpp"
 
@@ -35,9 +34,6 @@ along with this program; see the file COPYING. If not, see
 #define ACCOUNT_ENTITY_FLAGS_NUMBER    0x7800800
 #define ACCOUNT_ENTITY_FLAGS_NUMBER_2  0x7940800
 
-
-#define REMOTE_PLAY_ENABLE_REGISTRY     0x41810000
-
 #define ACCOUNT_TYPE_MAX 17
 
 extern "C" int sceUserServiceInitialize(uint32_t*);
@@ -51,9 +47,6 @@ extern "C" int sceRegMgrGetBin(int, void*, size_t);
 extern "C" int sceRegMgrSetInt(int, int);
 extern "C" int sceRegMgrSetBin(int, const void*, size_t);
 extern "C" int sceRegMgrSetStr(int, const char*, size_t);
-
-typedef std::vector<std::string> AccountList;
-
 
 struct User
 {
@@ -69,7 +62,6 @@ class Activator
 public:
     Activator(bool skip_userservice_init = false);
     bool Activate();
-    void GetPSAccount(std::string& account);
 
     inline bool Valid() const {
         return currentUser.account_number >= 1 && currentUser.account_number <= 16;
