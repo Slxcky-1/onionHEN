@@ -74,6 +74,9 @@ temperature_threshold_celsius=77
 # enabled shows or hides the complete game monitor bar.
 # Available values: true, false
 enabled=true
+# background controls the translucent panel behind the monitor bar.
+# Available values: true, false
+background=true
 # edge chooses the screen edge used by the monitor bar.
 # Available values: top, bottom
 edge=top

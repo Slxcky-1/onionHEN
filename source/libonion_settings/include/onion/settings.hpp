@@ -107,6 +107,8 @@ struct Settings {
   // [overlay]
   /** Master visibility switch for the complete ShellUI game monitor bar. */
   bool overlay_enabled = true;
+  /** Show the translucent background panel behind the game monitor bar. */
+  bool overlay_background = true;
   bool overlay_ram = true;
   bool overlay_cpu = true;
   bool overlay_gpu = true;

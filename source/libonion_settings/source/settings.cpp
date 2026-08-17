@@ -463,6 +463,8 @@ bool apply_parser(IniParser *parser, Settings *out) {
                       out->fan_threshold, 0, 100);
   out->overlay_enabled =
       parse_bool(ini_get(parser, "overlay.enabled"), out->overlay_enabled);
+  out->overlay_background = parse_bool(
+      ini_get(parser, "overlay.background"), out->overlay_background);
   out->overlay_pos =
       parse_overlay_edge(ini_get(parser, "overlay.edge"), out->overlay_pos);
   out->overlay_cpu =
@@ -615,6 +617,9 @@ std::string settings_serialize(const Settings &in) {
   b += "# enabled shows or hides the complete game monitor bar.\n";
   b += "# Available values: true, false\n";
   b += "enabled=" + bool_text(in.overlay_enabled) + "\n";
+  b += "# background controls the translucent panel behind the monitor bar.\n";
+  b += "# Available values: true, false\n";
+  b += "background=" + bool_text(in.overlay_background) + "\n";
   b += "# edge chooses the screen edge used by the monitor bar.\n";
   b += "# Available values: top, bottom\n";
   b += "edge=" + std::string(overlay_edge_name(in.overlay_pos)) + "\n";

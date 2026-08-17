@@ -35,6 +35,10 @@ static OnPressResult id_overlay_enabled(OnPressContext &ctx) {
   return toggle_overlay_flag(ctx, g_settings.overlay_enabled);
 }
 
+static OnPressResult id_overlay_background(OnPressContext &ctx) {
+  return toggle_overlay_flag(ctx, g_settings.overlay_background);
+}
+
 static OnPressResult id_overlay_gpu(OnPressContext &ctx) {
   return toggle_overlay_flag(ctx, g_settings.overlay_gpu);
 }
@@ -85,6 +89,7 @@ static OnPressResult id_overlay_change_pos(OnPressContext &ctx) {
 
 static const OnPressExactEntry kExact[] = {
     {"id_overlay_enabled", id_overlay_enabled},
+    {"id_overlay_background", id_overlay_background},
     {"id_overlay_gpu", id_overlay_gpu},
     {"id_overlay_cpu", id_overlay_cpu},
     {"id_overlay_ram", id_overlay_ram},

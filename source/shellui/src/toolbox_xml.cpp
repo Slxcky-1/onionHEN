@@ -586,6 +586,10 @@ void append_toolbox_display_group(ps5ui::Group& g) {
          o.toggle("id_overlay_enabled", toolbox_i18n::tr("overlay.enabled"),
                   toolbox_on("id_overlay_enabled"), std::nullopt,
                   toolbox_i18n::tr("overlay.enabled.desc"))
+             .toggle("id_overlay_background",
+                     toolbox_i18n::tr("overlay.background"),
+                     toolbox_on("id_overlay_background"), std::nullopt,
+                     toolbox_i18n::tr("overlay.background.desc"))
              .list("id_overlay_change_pos", toolbox_i18n::tr("overlay.pos"),
                    [](ps5ui::ListBuilder& L) {
                      L.item("id_overlay_pos_1",
