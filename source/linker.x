@@ -52,8 +52,6 @@ SECTIONS {
 
     .rodata : {
         *(.rodata .rodata.*);
-        /* ELF self-integrity record (outside executable PT_LOAD / signed range). */
-        KEEP(*(.onion_signature))
     } : phdr_rodata
 
 	.gcc_except_table : {

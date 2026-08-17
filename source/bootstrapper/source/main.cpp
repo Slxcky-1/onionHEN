@@ -53,7 +53,6 @@ along with this program; see the file COPYING. If not, see
 #include <onion/log_settings.hpp>
 #include <onion/platform.h>
 #include <onion/notify.h>
-#include <onion/obf_str.h>
 #include <onion/platform.h>
 #include <onion/proc_query.h>
 #include <onion/payload.h>
@@ -64,7 +63,6 @@ along with this program; see the file COPYING. If not, see
   ******************************************************************************/
  #include <freebsd-helper.h>
  #include <elfldr_remote.h>
- #include <onion/integrity.h>
  
  extern "C" {
  #include "elfldr.h"
@@ -679,31 +677,12 @@ static bool launch_blob(const uint8_t *elf, size_t size, const char *label,
 }
 
 /**
- * ELF integrity gate — must run before private elfldr / util / daemon.
- * On failure nothing from the embedded chain is started.
- */
-static int onion_boot_gates(void) {
-  /* Verify embedded signed daemon.elf before any component is launched. */
-  if (onion_elf_verify_signed_image(daemon_start, daemon_size) != 0) {
-    LOG_ERROR("daemon.elf self-integrity verification failed — aborting boot");
-    /* Obfuscated en/zh — not plain C strings in .rodata. */
-    onion_notify_debug_integrity_failed();
-    return -1;
-  }
-  return 0;
-}
-
-/**
  * Launch util → kstuff → daemon via the selected elfldr port (serialized).
  * Soft-fails kstuff; hard-fails missing elfldr / util / daemon.
  * Returns 0 or -2.
  */
 static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
   char buz[100] = {0};
-
-  /* Block util / private elfldr / daemon when trial or ELF integrity fails. */
-  if (onion_boot_gates() != 0)
-    return -2;
 
   if (!elfldr_remote_available()) {
     LOG_DEBUG("FATAL: no elfldr on 127.0.0.1:9021");

@@ -58,13 +58,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_link_directories	(${PROJECT_NAME} PUBLIC "${ONIONHEN_PS5_STUB_DIR}")
 add_dependencies(${PROJECT_NAME} onion_version util onion_elfldr_server NineS shellui hijacker onion_settings onion_ipc onion_proc onion_platform onion_ready onion_elfldr)
 # Supervises private :9020 via external :9021, then restarts embedded util via :9020.
-target_link_libraries	(${PROJECT_NAME} PUBLIC onion_ipc onion_settings onion_proc onion_platform onion_ready onion_elfldr onion_integrity hijacker SceSystemService SceNotification SceUserService SceNetCtl SceSysCore kernel_sys NineS)
-add_dependencies(${PROJECT_NAME} onion_integrity)
+target_link_libraries	(${PROJECT_NAME} PUBLIC onion_ipc onion_settings onion_proc onion_platform onion_ready onion_elfldr hijacker SceSystemService SceNotification SceUserService SceNetCtl SceSysCore kernel_sys NineS)
 
-if(ONION_ENABLE_ELF_PROTECTION)
-	target_compile_definitions(${PROJECT_NAME} PRIVATE ONION_ENABLE_ELF_PROTECTION=1)
-endif()
-
-# Strip first; scripts/build.sh post-signs daemon.elf when ELF protection is on
-# (signing must run after strip so the signed bytes match the shipped image).
 onion_strip_debug(${PROJECT_NAME})
