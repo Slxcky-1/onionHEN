@@ -41,7 +41,6 @@ Binary: `source/util/build/host-tests/onion-host-tests`
 | `test_x64_relocator` | relocation-aware trampolines: RIP-relative memory/call, rel8/rel32 call/jmp/jcc, internal targets, safe rejection |
 | `test_http_github` | GitHub commits JSON → `sha` (object + array) |
 | `test_reg_entity` | registry entity-id formula (account slots) |
-| `test_account_id_b64` | uint64 account id → base64 |
 | `test_toolbox_helpers` | UI path rewrite + payload .elf basename filter |
 | `test_settings` | semantic schema serialize/round-trip, partial INI defaults |
 | `test_ready` | ready markers, PID-bound process instances, path builder, name rejection, **fps_overlay / util_booted** flags, toolbox runtime-root marker |

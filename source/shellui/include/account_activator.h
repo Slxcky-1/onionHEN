@@ -18,7 +18,6 @@ along with this program; see the file COPYING. If not, see
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include <vector>
 #include "external_symbols.hpp"
 #include "hooked_funcs.hpp"
 
@@ -49,9 +48,6 @@ extern "C" int sceRegMgrSetInt(int, int);
 extern "C" int sceRegMgrSetBin(int, const void*, size_t);
 extern "C" int sceRegMgrSetStr(int, const char*, size_t);
 
-typedef std::vector<std::string> AccountList;
-
-
 struct User
 {
     std::string Username;
@@ -66,7 +62,6 @@ class Activator
 public:
     Activator(bool skip_userservice_init = false);
     bool Activate();
-    void GetPSAccount(std::string& account);
 
     inline bool Valid() const {
         return currentUser.account_number >= 1 && currentUser.account_number <= 16;

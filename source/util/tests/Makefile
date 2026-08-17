@@ -89,7 +89,6 @@ TEST_C_SRCS := \
 	test_aes_cbc.c \
 	test_hde64.c \
 	test_reg_entity.c \
-	test_account_id_b64.c \
 	test_ready.c \
 	test_platform_fs.c \
 	test_platform_log.c \
