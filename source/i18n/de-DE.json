@@ -243,6 +243,7 @@
     "notify.loader.recover_failed": "Wiederherstellung des Laufzeitladers :9020 fehlgeschlagen; externes elfldr :9021 erforderlich",
     "notify.payload.autostart_skipped": "Automatischer Start von Nutzer-Payloads übersprungen: privates elfldr :9020 nicht verfügbar",
     "notify.rest.reactivating": "Verlassen des Ruhemodus — OnionHEN-Toolbox wird erneut aktiviert...",
+    "notify.rest.service_restored": "Ruhemodus beendet — Dienste wiederhergestellt",
     "notify.jailbreak.granted": "App (PID %i) hat einen Jailbreak erhalten",
     "notify.settings.created": "OnionHEN-Konfiguration erstellt: /data/OnionHEN/config.ini",
     "notify.settings.read_failed": "Einstellungsdatei konnte nicht gelesen werden",

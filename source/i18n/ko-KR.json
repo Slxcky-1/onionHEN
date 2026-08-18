@@ -243,6 +243,7 @@
     "notify.loader.recover_failed": "런타임 로더 :9020 복구에 실패했습니다. 외부 elfldr :9021이 필요합니다",
     "notify.payload.autostart_skipped": "사용자 Payload 자동 시작을 건너뛰었습니다: 내부 elfldr :9020을 사용할 수 없습니다",
     "notify.rest.reactivating": "휴식 모드에서 나오는 중 — OnionHEN 툴박스를 다시 활성화합니다...",
+    "notify.rest.service_restored": "휴식 모드에서 나왔습니다 — 서비스가 복원되었습니다",
     "notify.jailbreak.granted": "앱(PID %i)에 탈옥 권한을 부여했습니다",
     "notify.settings.created": "OnionHEN 설정을 만들었습니다: /data/OnionHEN/config.ini",
     "notify.settings.read_failed": "설정 파일을 읽지 못했습니다",

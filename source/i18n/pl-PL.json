@@ -243,6 +243,7 @@
     "notify.loader.recover_failed": "Nie udało się odzyskać loadera :9020; potrzebny zewnętrzny elfldr :9021",
     "notify.payload.autostart_skipped": "Pominięto autostart payloadów użytkownika: prywatny elfldr :9020 niedostępny",
     "notify.rest.reactivating": "Wyjście z trybu spoczynku — ponowna aktywacja narzędzi OnionHEN...",
+    "notify.rest.service_restored": "Tryb spoczynku zakończony — usługi przywrócone",
     "notify.jailbreak.granted": "Aplikacja (PID %i) otrzymała jailbreak",
     "notify.settings.created": "Utworzono konfigurację OnionHEN: /data/OnionHEN/config.ini",
     "notify.settings.read_failed": "Nie udało się odczytać pliku ustawień",

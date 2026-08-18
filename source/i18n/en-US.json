@@ -243,6 +243,7 @@
     "notify.loader.recover_failed": "Failed to recover runtime loader :9020; external elfldr :9021 is required",
     "notify.payload.autostart_skipped": "User payload autostart skipped: private elfldr :9020 is unavailable",
     "notify.rest.reactivating": "Coming out of Rest Mode — re-activating the OnionHEN toolbox...",
+    "notify.rest.service_restored": "Rest Mode exited — services restored",
     "notify.jailbreak.granted": "App (PID %i) has been granted a jailbreak",
     "notify.settings.created": "OnionHEN config created! @ /data/OnionHEN/config.ini",
     "notify.settings.read_failed": "Failed to Read the Settings file",

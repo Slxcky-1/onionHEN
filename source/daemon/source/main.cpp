@@ -162,6 +162,7 @@ void *resume_watchdog_thread(void *arg) {
       usleep(1000000);  // let the network stack settle
       restart_crit_ipc_server();
       control_tcp_restart();
+      onion_notify(true, "notify.rest.service_restored");
     }
     sleep(1);
   }

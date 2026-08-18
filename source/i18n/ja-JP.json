@@ -243,6 +243,7 @@
     "notify.loader.recover_failed": "ランタイムローダー :9020 の復旧に失敗しました。外部 elfldr :9021 が必要です",
     "notify.payload.autostart_skipped": "ユーザー Payload の自動起動をスキップしました：内部 elfldr :9020 が使えません",
     "notify.rest.reactivating": "レストモードから復帰しています——OnionHEN ツールボックスを再有効化します...",
+    "notify.rest.service_restored": "レストモードから復帰しました——サービスを復元しました",
     "notify.jailbreak.granted": "アプリ（PID %i）に脱獄権限を付与しました",
     "notify.settings.created": "OnionHEN 設定を作成しました：/data/OnionHEN/config.ini",
     "notify.settings.read_failed": "設定ファイルの読み込みに失敗しました",

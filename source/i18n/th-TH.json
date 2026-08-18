@@ -243,6 +243,7 @@
     "notify.loader.recover_failed": "กู้คืนตัวโหลดรันไทม์ :9020 ไม่สำเร็จ; ต้องใช้ elfldr ภายนอก :9021",
     "notify.payload.autostart_skipped": "ข้ามการเริ่ม payload อัตโนมัติของผู้ใช้: elfldr ส่วนตัว :9020 ไม่พร้อมใช้งาน",
     "notify.rest.reactivating": "ออกจากโหมดพักเครื่อง — กำลังเปิดใช้งาน toolbox ของ OnionHEN อีกครั้ง...",
+    "notify.rest.service_restored": "ออกจากโหมดพักเครื่องแล้ว — กู้คืนบริการแล้ว",
     "notify.jailbreak.granted": "แอป (PID %i) ได้รับการเจลเบรกแล้ว",
     "notify.settings.created": "สร้างการตั้งค่า OnionHEN แล้ว! @ /data/OnionHEN/config.ini",
     "notify.settings.read_failed": "อ่านไฟล์การตั้งค่าไม่สำเร็จ",

@@ -243,6 +243,7 @@
     "notify.loader.recover_failed": "恢复运行时加载器 :9020 失败；需要外部 elfldr :9021",
     "notify.payload.autostart_skipped": "已跳过用户 Payload 自动启动：私有 elfldr :9020 不可用",
     "notify.rest.reactivating": "正在退出休息模式——重新激活 OnionHEN 工具箱...",
+    "notify.rest.service_restored": "已退出休息模式——服务已恢复",
     "notify.jailbreak.granted": "应用（PID %i）已获得越狱权限",
     "notify.settings.created": "OnionHEN 配置已创建：/data/OnionHEN/config.ini",
     "notify.settings.read_failed": "读取设置文件失败",

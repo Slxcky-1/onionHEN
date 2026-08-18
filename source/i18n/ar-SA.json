@@ -243,6 +243,7 @@
     "notify.loader.recover_failed": "فشل استعادة محمّل وقت التشغيل :9020؛ يلزم elfldr الخارجي :9021",
     "notify.payload.autostart_skipped": "تم تخطي التشغيل التلقائي لحمولة المستخدم: elfldr الخاص :9020 غير متاح",
     "notify.rest.reactivating": "الخروج من وضع الراحة — إعادة تفعيل صندوق أدوات OnionHEN...",
+    "notify.rest.service_restored": "تم الخروج من وضع الراحة — تمت استعادة الخدمات",
     "notify.jailbreak.granted": "مُنح التطبيق (PID %i) كسر الحماية",
     "notify.settings.created": "أُنشئ إعداد OnionHEN! @ /data/OnionHEN/config.ini",
     "notify.settings.read_failed": "فشل قراءة ملف الإعدادات",

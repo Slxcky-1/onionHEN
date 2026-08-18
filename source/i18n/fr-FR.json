@@ -243,6 +243,7 @@
     "notify.loader.recover_failed": "Échec de la récupération du chargeur :9020 ; un elfldr externe :9021 est requis",
     "notify.payload.autostart_skipped": "Démarrage automatique des payloads utilisateur ignoré : elfldr privé :9020 indisponible",
     "notify.rest.reactivating": "Sortie du mode repos — réactivation de la boîte à outils OnionHEN...",
+    "notify.rest.service_restored": "Sortie du mode repos — services restaurés",
     "notify.jailbreak.granted": "L’application (PID %i) a obtenu un jailbreak",
     "notify.settings.created": "Configuration OnionHEN créée : /data/OnionHEN/config.ini",
     "notify.settings.read_failed": "Échec de la lecture du fichier de réglages",
