@@ -24,6 +24,8 @@ if(EXISTS "${ONION_LIBGIT2_DIR}/CMakeLists.txt")
 	set(SONAME OFF CACHE BOOL "" FORCE)
 	set(LIBGIT2_NO_FEATURES_H ON CACHE BOOL "" FORCE)
 
+	# add_subdirectory pulls libgit2's OBJECT target named "util".
+	# OnionHEN's daemon ELF target is therefore onion_util (OUTPUT_NAME util.elf).
 	add_subdirectory("${ONION_LIBGIT2_DIR}" "${CMAKE_BINARY_DIR}/libgit2"
 		EXCLUDE_FROM_ALL)
 	set(ONION_HAVE_LIBGIT2 ON)

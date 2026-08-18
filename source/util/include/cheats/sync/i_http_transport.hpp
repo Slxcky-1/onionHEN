@@ -14,6 +14,9 @@ struct HttpRequest {
   const char *host_allow = nullptr;
   const void *body = nullptr;
   size_t body_len = 0;
+  int timeout_ms = 0;
+  int status_min = 200;
+  int status_max = 299;
 };
 
 /**

@@ -37,6 +37,8 @@ static int test_slug_is_owner_repo(void) {
   TEST_ASSERT_TRUE(gh != nullptr && std::strchr(gh, '/') != nullptr);
   TEST_ASSERT_TRUE(cnb != nullptr && std::strchr(cnb, '/') != nullptr);
   TEST_ASSERT_TRUE(std::strstr(gh, "https://") == nullptr);
+  TEST_ASSERT_STREQ("TeeKay87/HEN-Cheats-Collection", gh);
+  TEST_ASSERT_STREQ("kylin-core/hen-cheats-cnb-mirror", cnb);
   return 0;
 }
 

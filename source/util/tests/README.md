@@ -33,6 +33,7 @@ Binary: `source/util/build/host-tests/onion-host-tests`
 | `test_cheat_flatten` | extension match, TITLE/VERSION/PROCESS/HASH parse, flat install names, version sanitize |
 | `test_cheat_repository` | resolve TITLE_VERSION[_PROCESS][_HASH], process vs generic, hash match |
 | `test_git_mirror_factory` | auto/explicit github vs cnb.cool; zh-Hans → cnb |
+| `test_http_probe` | generate_204-style HTTPS probe request range / empty URL |
 | `test_cheat_catalog` | registry + catalog layout/slug (no host URLs) |
 | `test_cheat_sync` | mock git clone/fetch/fallback + flatten root from catalog |
 | `test_payload` | `libonion_payload` ELF magic, package header, pid path/file, read_file |

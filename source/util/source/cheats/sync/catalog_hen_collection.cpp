@@ -14,7 +14,10 @@ public:
   const char *id() const override { return "hen-cheats-collection"; }
   const char *defaultBranch() const override { return "master"; }
 
-  const char *slugFor(CheatMirrorId) const override {
+  const char *slugFor(CheatMirrorId mirror) const override {
+    if (mirror == CheatMirrorId::Cnb) {
+      return "kylin-core/hen-cheats-cnb-mirror";
+    }
     return "TeeKay87/HEN-Cheats-Collection";
   }
 

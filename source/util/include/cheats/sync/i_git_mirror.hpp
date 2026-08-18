@@ -32,6 +32,10 @@ public:
   virtual CheatMirrorId id() const = 0;
   virtual const char *name() const = 0;
   virtual const char *host() const = 0;
+  /** Small HTTPS URL used for a generate_204-style reachability probe. */
+  virtual const char *probeUrl() const = 0;
+  /** Hostname allowlist for probeUrl() (may differ from git host()). */
+  virtual const char *probeHost() const = 0;
   virtual std::string cloneUrl(const ICheatCatalog &catalog) const = 0;
 };
 

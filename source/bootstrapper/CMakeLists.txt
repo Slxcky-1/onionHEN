@@ -163,7 +163,7 @@ target_link_libraries	(${PROJECT_NAME} PUBLIC onion_proc onion_platform onion_se
 add_custom_target(${PROJECT_NAME}_assets
 	DEPENDS ${_generated_icon_files} "${_icon_asm}" "${_icon_manifest}")
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_assets)
-add_dependencies(${PROJECT_NAME} daemon util shellui onion_elfldr_server onion_proc onion_platform onion_settings onion_payload onion_ready onion_elfldr)
+add_dependencies(${PROJECT_NAME} daemon onion_util shellui onion_elfldr_server onion_proc onion_platform onion_settings onion_payload onion_ready onion_elfldr)
 
 # Copy bootstrapper.elf as test.elf before processing
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

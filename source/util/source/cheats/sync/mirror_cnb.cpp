@@ -10,6 +10,10 @@ public:
   CheatMirrorId id() const override { return CheatMirrorId::Cnb; }
   const char *name() const override { return "cnb"; }
   const char *host() const override { return "cnb.cool"; }
+  const char *probeUrl() const override {
+    return "https://connect.rom.miui.com/generate_204";
+  }
+  const char *probeHost() const override { return "connect.rom.miui.com"; }
   std::string cloneUrl(const ICheatCatalog &catalog) const override {
     return https_clone_url(host(), catalog.slugFor(id()));
   }

@@ -13,6 +13,7 @@
 namespace onion::cheats::sync {
 
 class IGitClient;
+class IHttpTransport;
 
 struct CheatSyncStatus {
   enum class State { Idle, Running, Ok, Error } state = State::Idle;
@@ -21,6 +22,8 @@ struct CheatSyncStatus {
   std::string sha;
   std::string catalog_id;
   std::string error;
+  std::string phase;
+  int progress_percent = -1;
 };
 
 /**
@@ -40,9 +43,12 @@ public:
 
   /** Test seam: replace the git client. Null restores the production client. */
   void setGitClientForTest(IGitClient *client);
+  void setHttpTransportForTest(IHttpTransport *http);
 
   void worker(onion::Settings settings, std::string catalog_id,
               std::string mirror_override);
+
+  void noteProgress(const char *phase, int percent);
 
   CheatSyncService(const CheatSyncService &) = delete;
   CheatSyncService &operator=(const CheatSyncService &) = delete;
@@ -52,11 +58,13 @@ private:
   ~CheatSyncService();
 
   IGitClient &gitClient();
+  IHttpTransport &httpTransport();
 
   mutable std::mutex mu_;
   CheatSyncStatus status_{};
   bool running_ = false;
   IGitClient *test_git_ = nullptr;
+  IHttpTransport *test_http_ = nullptr;
 };
 
 } // namespace onion::cheats::sync

@@ -52,6 +52,7 @@ typedef int (*http_add_header_fn)(int, const char *, const char *);
 typedef int (*http_send_request_fn)(int, const void *, unsigned int);
 typedef int (*http_get_status_fn)(int, int *);
 typedef int (*http_read_data_fn)(int, void *, unsigned int, unsigned int *);
+typedef int (*http_set_timeout_fn)(int, unsigned int);
 
 struct SceHttpApi {
   bool resolved = false;
@@ -67,6 +68,9 @@ struct SceHttpApi {
   http_send_request_fn send_request = nullptr;
   http_get_status_fn get_status = nullptr;
   http_read_data_fn read_data = nullptr;
+  http_set_timeout_fn set_connect_timeout = nullptr;
+  http_set_timeout_fn set_send_timeout = nullptr;
+  http_set_timeout_fn set_recv_timeout = nullptr;
 };
 
 SceHttpApi &sce_http() {
@@ -99,6 +103,12 @@ SceHttpApi &sce_http() {
   api.get_status =
       reinterpret_cast<http_get_status_fn>(dlsym(mod, "sceHttpGetStatusCode"));
   api.read_data = reinterpret_cast<http_read_data_fn>(dlsym(mod, "sceHttpReadData"));
+  api.set_connect_timeout =
+      reinterpret_cast<http_set_timeout_fn>(dlsym(mod, "sceHttpSetConnectTimeOut"));
+  api.set_send_timeout =
+      reinterpret_cast<http_set_timeout_fn>(dlsym(mod, "sceHttpSetSendTimeOut"));
+  api.set_recv_timeout =
+      reinterpret_cast<http_set_timeout_fn>(dlsym(mod, "sceHttpSetRecvTimeOut"));
   return api;
 }
 
@@ -180,6 +190,19 @@ GitStatus Ps5HttpTransport::perform(
     }
     return GitStatus::Network;
   }
+  if (req.timeout_ms > 0) {
+    const unsigned int usec =
+        static_cast<unsigned int>(req.timeout_ms) * 1000u;
+    if (api.set_connect_timeout) {
+      (void)api.set_connect_timeout(request, usec);
+    }
+    if (api.set_send_timeout) {
+      (void)api.set_send_timeout(request, usec);
+    }
+    if (api.set_recv_timeout) {
+      (void)api.set_recv_timeout(request, usec);
+    }
+  }
   if (req.content_type && api.add_header) {
     (void)api.add_header(request, "Content-Type", req.content_type);
   }
@@ -198,7 +221,10 @@ GitStatus Ps5HttpTransport::perform(
   }
   if (api.get_status) {
     int code = 0;
-    if (api.get_status(request, &code) == 0 && (code < 200 || code >= 300)) {
+    const int min_code = req.status_min > 0 ? req.status_min : 200;
+    const int max_code = req.status_max > 0 ? req.status_max : 299;
+    if (api.get_status(request, &code) == 0 &&
+        (code < min_code || code > max_code)) {
       LOG_ERROR("Ps5HttpTransport: HTTP %d", code);
       if (api.delete_req) {
         api.delete_req(request);

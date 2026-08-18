@@ -419,6 +419,37 @@ bool IPC_Client::ToggleGameCheat(int pid, const std::string &tid,
   return true;
 }
 
+bool IPC_Client::DownloadCheats(const char *catalog, const char *mirror,
+                                std::string &out) {
+  if (!require_util("DownloadCheats")) {
+    return false;
+  }
+  cJSON *j = cJSON_CreateObject();
+  if (catalog && catalog[0]) {
+    cJSON_AddStringToObject(j, "catalog", catalog);
+  }
+  if (mirror && mirror[0]) {
+    cJSON_AddStringToObject(j, "mirror", mirror);
+  }
+  std::string json = json_object_str(j);
+  if (!IPCSendCommand(BREW_UTIL_DOWNLOAD_CHEATS, out, json)) {
+    LOG_ERROR("Failed to start cheat catalog download");
+    return false;
+  }
+  return true;
+}
+
+bool IPC_Client::CheatSyncStatus(std::string &out) {
+  if (!require_util("CheatSyncStatus")) {
+    return false;
+  }
+  if (!IPCSendCommand(BREW_UTIL_CHEAT_SYNC_STATUS, out, "{}")) {
+    LOG_ERROR("Failed to query cheat sync status");
+    return false;
+  }
+  return true;
+}
+
 void IPC_Client::SendRestModeAction() {
   if (!require_util("SendRestModeAction")) {
     return;

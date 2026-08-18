@@ -4,6 +4,7 @@
 #include "cheats/runtime.h"
 #include "cheats/sync/cheat_catalog_registry.hpp"
 #include "cheats/sync/git_mirror_factory.hpp"
+#include "cheats/sync/http_probe.hpp"
 #include "cheats/sync/http_transport_ps5.hpp"
 #include "cheats/sync/libgit2_client.hpp"
 
@@ -63,6 +64,23 @@ void *worker_thunk(void *raw) {
   return nullptr;
 }
 
+void on_git_progress(const GitProgress &progress, void *user) {
+  auto *svc = static_cast<CheatSyncService *>(user);
+  if (!svc) {
+    return;
+  }
+  int percent = -1;
+  if (progress.total > 0) {
+    percent = static_cast<int>((static_cast<unsigned long long>(progress.received) *
+                                100ull) /
+                               progress.total);
+    if (percent > 100) {
+      percent = 100;
+    }
+  }
+  svc->noteProgress(progress.phase ? progress.phase : "", percent);
+}
+
 } // namespace
 
 CheatSyncService &CheatSyncService::instance() {
@@ -78,18 +96,41 @@ void CheatSyncService::setGitClientForTest(IGitClient *client) {
   test_git_ = client;
 }
 
+void CheatSyncService::setHttpTransportForTest(IHttpTransport *http) {
+  std::lock_guard<std::mutex> lock(mu_);
+  test_http_ = http;
+}
+
+IHttpTransport &CheatSyncService::httpTransport() {
+  if (test_http_) {
+    return *test_http_;
+  }
+  static Ps5HttpTransport http;
+  return http;
+}
+
 IGitClient &CheatSyncService::gitClient() {
   if (test_git_) {
     return *test_git_;
   }
-  static Ps5HttpTransport http;
-  static LibGit2Client git(&http);
+  static LibGit2Client git(&httpTransport());
   return git;
 }
 
 CheatSyncStatus CheatSyncService::status() const {
   std::lock_guard<std::mutex> lock(mu_);
   return status_;
+}
+
+void CheatSyncService::noteProgress(const char *phase, int percent) {
+  std::lock_guard<std::mutex> lock(mu_);
+  if (!running_) {
+    return;
+  }
+  if (phase && phase[0]) {
+    status_.phase = phase;
+  }
+  status_.progress_percent = percent;
 }
 
 CheatSyncService::StartResult
@@ -109,6 +150,8 @@ CheatSyncService::start(const onion::Settings &settings, const char *catalog_id,
   status_.state = CheatSyncStatus::State::Running;
   status_.error.clear();
   status_.sha.clear();
+  status_.phase = "start";
+  status_.progress_percent = 0;
   status_.catalog_id = catalog_id ? catalog_id : "";
 
   auto *arg = new WorkerArg{this, settings, catalog_id ? catalog_id : "",
@@ -149,13 +192,43 @@ void CheatSyncService::worker(onion::Settings settings, std::string catalog_id,
   GitMirrorPick pick = GitMirrorFactory::create(
       pref, settings.ui_lang, read_system_language(settings));
 
-  onion_notify(true, "notify.cheats.sync.start", pick.primary->name());
-  LOG_INFO("cheat sync catalog=%s mirror=%s url=%s", catalog->id(),
-           pick.primary->name(), pick.primary->cloneUrl(*catalog).c_str());
+  noteProgress("probe", 0);
+  IGitMirror *chosen = pick.primary.get();
+  GitStatus probed =
+      http_probe(httpTransport(), chosen->probeUrl(), chosen->probeHost(),
+                 kHttpProbeTimeoutMs);
+  if (probed != GitStatus::Ok && pick.fallback) {
+    LOG_WARN("cheat sync probe %s failed, trying fallback", chosen->name());
+    GitStatus alt = http_probe(httpTransport(), pick.fallback->probeUrl(),
+                               pick.fallback->probeHost(), kHttpProbeTimeoutMs);
+    if (alt == GitStatus::Ok) {
+      chosen = pick.fallback.get();
+      probed = alt;
+    }
+  }
+  if (probed != GitStatus::Ok) {
+    done.state = CheatSyncStatus::State::Error;
+    done.error = "no_network";
+    done.catalog_id = catalog->id();
+    done.mirror = chosen->id();
+    onion_notify(true, "notify.cheats.sync.unreachable", chosen->host());
+    LOG_ERROR("cheat sync probe failed host=%s", chosen->host());
+    std::lock_guard<std::mutex> lock(mu_);
+    status_ = done;
+    running_ = false;
+    return;
+  }
 
-  CheatSyncEngine engine(gitClient(), flatten_existing, if_exists, rmtree);
+  onion_notify(true, "notify.cheats.sync.start", chosen->name());
+  LOG_INFO("cheat sync catalog=%s mirror=%s url=%s", catalog->id(),
+           chosen->name(), chosen->cloneUrl(*catalog).c_str());
+
+  IGitClient &git = gitClient();
+  git.setProgressHandler(on_git_progress, this);
+  CheatSyncEngine engine(git, flatten_existing, if_exists, rmtree);
   CheatSyncEngine::Result result =
-      engine.run(*catalog, *pick.primary, pick.fallback.get(), ONION_DATA_ROOT);
+      engine.run(*catalog, *chosen, nullptr, ONION_DATA_ROOT);
+  git.setProgressHandler(nullptr, nullptr);
 
   done.catalog_id = catalog->id();
   done.mirror = result.used_mirror;

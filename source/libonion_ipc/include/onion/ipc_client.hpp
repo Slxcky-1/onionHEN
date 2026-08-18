@@ -79,6 +79,9 @@ public:
   bool ToggleGameCheat(int pid, const std::string &tid, int cheat_index,
                        std::string &cheat_enabled,
                        const std::string &version = "");
+  bool DownloadCheats(const char *catalog, const char *mirror,
+                      std::string &out);
+  bool CheatSyncStatus(std::string &out);
   void SendRestModeAction();
   void Reload_Daemon_Settings();
   bool Launch_Elfldr();

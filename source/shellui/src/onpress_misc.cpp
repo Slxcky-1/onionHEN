@@ -21,6 +21,19 @@ static OnPressResult id_kstuff_autoload(OnPressContext &ctx) {
   return OnPressResult::Handled;
 }
 
+static OnPressResult id_download_cheats(OnPressContext &ctx) {
+  ctx.dirty = false;
+  std::string reply;
+  if (!IPC_Client::getInstance(true).DownloadCheats(nullptr, nullptr, reply)) {
+    notify("notify.cheats.sync.error", "ipc");
+    return OnPressResult::Consumed;
+  }
+  if (reply.find("already_running") != std::string::npos) {
+    notify("notify.cheats.sync.busy");
+  }
+  return OnPressResult::Consumed;
+}
+
 static OnPressResult id_delete_kstuff(OnPressContext &ctx) {
   (void)ctx;
   unlink("/user/data/OnionHEN/kstuff.elf");
@@ -67,6 +80,7 @@ static OnPressResult id_presentation_card(OnPressContext &ctx) {
 static const OnPressExactEntry kRootExact[] = {
     {"id_kstuff_autoload", id_kstuff_autoload},
     {"id_delete_kstuff", id_delete_kstuff},
+    {"id_download_cheats", id_download_cheats},
     {"id_lm_test", id_lm_test},
     {"id_onionhen_credits", id_onionhen_credits},
     {"id_author_0xp0co", id_presentation_card},

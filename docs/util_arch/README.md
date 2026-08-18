@@ -289,7 +289,7 @@ cheat_engine_runtime
 
 #### 下载 flatten
 
-在线 `DOWNLOAD_CHEATS` 走 `onion::cheats::sync`：Catalog（仓库身份）+ Mirror（github / cnb.cool）+ `IGitClient`（libgit2）克隆到 `/data/OnionHEN/cheats_repo/<catalog-id>/`，再调用现有 `onion_cheat_flatten_install_tree`。`[cheats] mirror=auto|github|cnb`；`auto` 时简体中文走 cnb.cool，其它地区走 GitHub。
+在线 `DOWNLOAD_CHEATS` 走 `onion::cheats::sync`：Catalog（仓库身份）+ Mirror（github / cnb.cool）+ `IGitClient`（libgit2）克隆到 `/data/OnionHEN/cheats_repo/<catalog-id>/`，再调用现有 `onion_cheat_flatten_install_tree`。工作树只检出 catalog 声明的 `flattenRoots`（HEN 集合为 `cheats/`），不把 `hencc-website` 写进磁盘。`[cheats] mirror=auto|github|cnb`；`auto` 时简体中文走 cnb.cool，其它地区走 GitHub。进度经 `CHEAT_SYNC_STATUS.progress` 回传 Toolbox。
 
 ---
 

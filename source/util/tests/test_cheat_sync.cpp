@@ -50,6 +50,8 @@ public:
   CheatMirrorId id() const override { return id_; }
   const char *name() const override { return name_; }
   const char *host() const override { return host_; }
+  const char *probeUrl() const override { return "https://example.test/generate_204"; }
+  const char *probeHost() const override { return "example.test"; }
   std::string cloneUrl(const ICheatCatalog &catalog) const override {
     return https_clone_url(host_, catalog.slugFor(id_));
   }
@@ -71,12 +73,24 @@ public:
   std::string last_dest;
   std::string remote;
   std::string sha = "63926528deadbeef";
+  std::vector<std::string> last_paths;
+
+  static void capture_paths(const GitCloneOpts &opts,
+                            std::vector<std::string> &out) {
+    out.clear();
+    for (size_t i = 0; i < opts.checkout_path_count; ++i) {
+      if (opts.checkout_paths && opts.checkout_paths[i]) {
+        out.emplace_back(opts.checkout_paths[i]);
+      }
+    }
+  }
 
   GitStatus clone(const char *url, const char *dest,
-                  const GitCloneOpts &) override {
+                  const GitCloneOpts &opts) override {
     ++clones;
     last_url = url ? url : "";
     last_dest = dest ? dest : "";
+    capture_paths(opts, last_paths);
     const GitStatus rc = next_clone_rc;
     next_clone_rc = clone_rc;
     if (rc == GitStatus::Ok) {
@@ -84,9 +98,10 @@ public:
     }
     return rc;
   }
-  GitStatus fetch(const char *repo_dir) override {
+  GitStatus fetch(const char *repo_dir, const GitCloneOpts &opts) override {
     ++fetches;
     last_dest = repo_dir ? repo_dir : "";
+    capture_paths(opts, last_paths);
     return fetch_rc;
   }
   GitStatus headSha(const char *, char *out, size_t out_size) override {
@@ -149,6 +164,8 @@ static int test_clone_then_flatten_from_catalog_root(void) {
   TEST_ASSERT_EQ_INT(1, git.clones);
   TEST_ASSERT_EQ_INT(0, git.fetches);
   TEST_ASSERT_STREQ("https://github.com/org/fake.git", git.last_url.c_str());
+  TEST_ASSERT_EQ_INT(1, static_cast<int>(git.last_paths.size()));
+  TEST_ASSERT_STREQ("cheats", git.last_paths[0].c_str());
   TEST_ASSERT_EQ_INT(1, static_cast<int>(r.flattened_roots.size()));
   TEST_ASSERT_STREQ("/tmp/onion-data/cheats_repo/fake-collection/cheats",
                     r.flattened_roots[0].c_str());

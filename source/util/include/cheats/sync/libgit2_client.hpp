@@ -13,14 +13,17 @@ public:
 
   GitStatus clone(const char *url, const char *dest,
                   const GitCloneOpts &opts) override;
-  GitStatus fetch(const char *repo_dir) override;
+  GitStatus fetch(const char *repo_dir, const GitCloneOpts &opts) override;
+  void setProgressHandler(GitProgressFn fn, void *user) override;
   GitStatus headSha(const char *repo_dir, char *out, size_t out_size) override;
   GitStatus remoteUrl(const char *repo_dir, char *out,
                       size_t out_size) override;
 
 private:
-  IHttpTransport *http_;
+  IHttpTransport *http_ = nullptr; // reserved for custom HTTPS (USE_HTTPS=OFF)
   bool ready_ = false;
+  GitProgressFn progress_fn_ = nullptr;
+  void *progress_user_ = nullptr;
 };
 
 } // namespace onion::cheats::sync

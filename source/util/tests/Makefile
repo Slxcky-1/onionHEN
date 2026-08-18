@@ -77,6 +77,7 @@ PROD_CXX_SRCS := \
 	$(UTIL_ROOT)/source/cheats/sync/mirror_cnb.cpp \
 	$(UTIL_ROOT)/source/cheats/sync/mirror_factory.cpp \
 	$(UTIL_ROOT)/source/cheats/sync/cheat_sync_engine.cpp \
+	$(UTIL_ROOT)/source/cheats/sync/http_probe.cpp \
 	$(UTIL_ROOT)/source/http_github.cpp \
 	$(THIRD_PARTY_ROOT)/cjson/cJSON.cpp \
 	$(REPO_ROOT)/source/libonion_settings/source/settings.cpp \
@@ -108,6 +109,7 @@ TEST_CXX_SRCS := \
 	test_cheat_parsers.cpp \
 	test_cheat_repository.cpp \
 	test_git_mirror_factory.cpp \
+	test_http_probe.cpp \
 	test_cheat_catalog.cpp \
 	test_cheat_sync.cpp \
 	test_settings.cpp \

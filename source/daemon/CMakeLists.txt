@@ -56,7 +56,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	"${PROJECT_ROOT}/include"
 )
 target_link_directories	(${PROJECT_NAME} PUBLIC "${ONIONHEN_PS5_STUB_DIR}")
-add_dependencies(${PROJECT_NAME} onion_version util onion_elfldr_server NineS shellui hijacker onion_settings onion_ipc onion_proc onion_platform onion_ready onion_elfldr)
+add_dependencies(${PROJECT_NAME} onion_version onion_util onion_elfldr_server NineS shellui hijacker onion_settings onion_ipc onion_proc onion_platform onion_ready onion_elfldr)
 # Supervises private :9020 via external :9021, then restarts embedded util via :9020.
 target_link_libraries	(${PROJECT_NAME} PUBLIC onion_ipc onion_settings onion_proc onion_platform onion_ready onion_elfldr hijacker SceSystemService SceNotification SceUserService SceNetCtl SceSysCore kernel_sys NineS)
 

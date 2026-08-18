@@ -21,8 +21,10 @@ static int test_auto_zh_hans_prefers_cnb(void) {
   TEST_ASSERT_STREQ("cnb", pick.primary->name());
   TEST_ASSERT_STREQ("github", pick.fallback->name());
   const std::string url = pick.primary->cloneUrl(cat);
-  TEST_ASSERT_TRUE(url.rfind("https://cnb.cool/", 0) == 0);
-  TEST_ASSERT_TRUE(url.find(cat.slugFor(CheatMirrorId::Cnb)) != std::string::npos);
+  TEST_ASSERT_STREQ("https://cnb.cool/kylin-core/hen-cheats-cnb-mirror.git",
+                    url.c_str());
+  TEST_ASSERT_TRUE(std::string(pick.primary->probeUrl()).find("miui.com") !=
+                   std::string::npos);
   return 0;
 }
 
@@ -37,6 +39,8 @@ static int test_auto_english_prefers_github(void) {
   const std::string url = pick.primary->cloneUrl(cat);
   TEST_ASSERT_TRUE(url.rfind("https://github.com/", 0) == 0);
   TEST_ASSERT_TRUE(url.find(cat.slugFor(CheatMirrorId::Github)) !=
+                   std::string::npos);
+  TEST_ASSERT_TRUE(std::string(pick.primary->probeUrl()).find("gstatic.com") !=
                    std::string::npos);
   return 0;
 }

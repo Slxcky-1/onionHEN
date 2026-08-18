@@ -59,6 +59,8 @@ const ExactValueEntry kExactValues[] = {
      +[]() -> std::string { return int_str(g_settings.fan_threshold); }},
     {"id_cheats_shortcut",
      +[]() -> std::string { return int_str(g_settings.cheats_shortcut_opt); }},
+    {"id_cheats_mirror",
+     +[]() -> std::string { return int_str(g_settings.cheats_mirror); }},
     {"id_ui_lang", +[]() -> std::string { return int_str(g_settings.ui_lang); }},
     {"id_log_level",
      +[]() -> std::string {

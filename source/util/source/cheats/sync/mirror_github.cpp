@@ -10,6 +10,10 @@ public:
   CheatMirrorId id() const override { return CheatMirrorId::Github; }
   const char *name() const override { return "github"; }
   const char *host() const override { return "github.com"; }
+  const char *probeUrl() const override {
+    return "https://www.gstatic.com/generate_204";
+  }
+  const char *probeHost() const override { return "gstatic.com"; }
   std::string cloneUrl(const ICheatCatalog &catalog) const override {
     return https_clone_url(host(), catalog.slugFor(id()));
   }

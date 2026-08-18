@@ -36,6 +36,9 @@ static int test_default_zh(void) {
                                "为 %s 启用/禁用 %s") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.game_menu"),
                                "★ OnionHEN 金手指") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.repo.download"),
+                               "下载金手指合集") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.repo.mirror.auto"), "自动") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("pkg.msg.options"),
                                "PKG 安装器选项") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("about.donors"), "★ 捐赠者 ★") == 0);
@@ -76,6 +79,8 @@ static int test_en(void) {
                                "string; the console reboots after saving") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.game_menu"),
                                "★ OnionHEN Cheats") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.repo.download"),
+                               "Download cheat collection") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("pkg.msg.installing"),
                                "OnionHEN is installing the selected PKG") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("pkg.msg.select_all"), "Select all") == 0);

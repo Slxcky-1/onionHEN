@@ -78,16 +78,18 @@ GitStatus CheatSyncEngine::tryOne(const ICheatCatalog &catalog,
       git_.remoteUrl(dest, have_url, sizeof(have_url)) == GitStatus::Ok &&
       same_remote(have_url, url);
 
+  GitCloneOpts opts;
+  opts.branch = catalog.defaultBranch();
+  opts.depth = 1;
+  opts.checkout_paths = catalog.flattenRoots(&opts.checkout_path_count);
+
   GitStatus st;
   if (have_repo) {
-    st = git_.fetch(dest);
+    st = git_.fetch(dest, opts);
   } else {
     if (exists_ && exists_(dest) && rmtree_) {
       (void)rmtree_(dest);
     }
-    GitCloneOpts opts;
-    opts.branch = catalog.defaultBranch();
-    opts.depth = 1;
     st = git_.clone(url.c_str(), dest, opts);
   }
   if (st != GitStatus::Ok) {

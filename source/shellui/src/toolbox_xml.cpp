@@ -475,9 +475,47 @@ void append_toolbox_payloads_group(ps5ui::Group& g) {
           "id_kstuff_autoload");
 }
 
+std::string cheat_sync_status_subtitle() {
+  auto& ipc = IPC_Client::getInstance(true);
+  const int previous_timeout = ipc.recv_timeout_ms();
+  ipc.set_recv_timeout_ms(800);
+  std::string json;
+  const bool ok = ipc.CheatSyncStatus(json);
+  ipc.set_recv_timeout_ms(previous_timeout);
+  if (!ok) {
+    return toolbox_i18n::tr("cheats.sync.idle");
+  }
+
+  onion_cjson::Root root(json);
+  const char* state = onion_cjson::string_item(root.get(), "state", "idle");
+  if (state && std::strcmp(state, "running") == 0) {
+    const int progress = onion_cjson::int_item(root.get(), "progress", -1);
+    if (progress >= 0) {
+      return toolbox_i18n::format("cheats.sync.running_fmt", progress);
+    }
+    return toolbox_i18n::tr("cheats.sync.running");
+  }
+  if (state && std::strcmp(state, "ok") == 0) {
+    const char* sha = onion_cjson::string_item(root.get(), "sha", "");
+    char short_sha[9] = {};
+    if (sha && sha[0]) {
+      std::snprintf(short_sha, sizeof(short_sha), "%.8s", sha);
+    }
+    return toolbox_i18n::format("cheats.sync.ok_fmt",
+                                short_sha[0] ? short_sha : "-");
+  }
+  return toolbox_i18n::tr("cheats.sync.idle");
+}
+
 void append_toolbox_game_group(ps5ui::Group& g) {
   g.link("id_cheats", toolbox_i18n::tr("cheats.link"), "cheats.xml",
-         toolbox_i18n::tr("cheats.link.sub"));
+         toolbox_i18n::tr("cheats.link.sub"))
+      .button("id_download_cheats", toolbox_i18n::tr("cheats.repo.download"),
+              cheat_sync_status_subtitle(),
+              toolbox_i18n::tr("cheats.repo.download.desc"), std::nullopt,
+              ps5ui::Style::None,
+              toolbox_i18n::tr("cheats.repo.download.confirm"),
+              toolbox_i18n::tr("cheats.repo.download.confirm_phrase"));
 }
 
 void append_toolbox_display_group(ps5ui::Group& g) {
@@ -592,6 +630,17 @@ void append_toolbox_preferences_group(ps5ui::Group& g) {
                .item("id_ui_lang_th", toolbox_i18n::tr("lang.th"), "14");
          },
          toolbox_i18n::tr("lang.list.sub"), toolbox_val("id_ui_lang", "0"))
+      .list("id_cheats_mirror", toolbox_i18n::tr("cheats.repo.mirror"),
+            [](ps5ui::ListBuilder& L) {
+              L.item("id_cheats_mirror_auto",
+                     toolbox_i18n::tr("cheats.repo.mirror.auto"), "0")
+                  .item("id_cheats_mirror_github",
+                        toolbox_i18n::tr("cheats.repo.mirror.github"), "1")
+                  .item("id_cheats_mirror_cnb",
+                        toolbox_i18n::tr("cheats.repo.mirror.cnb"), "2");
+            },
+            toolbox_i18n::tr("cheats.repo.mirror.sub"),
+            toolbox_val("id_cheats_mirror"))
       .list("id_cheats_shortcut", toolbox_i18n::tr("sc.cheats"),
             [](ps5ui::ListBuilder& L) {
               L.item("id_cheats_shortcut_0", toolbox_i18n::tr("sc.off"), "0")

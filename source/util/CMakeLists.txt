@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 3.20)
 
-set(basename "util")
+# Target cannot be named "util": libgit2 already adds an OBJECT library
+# of that name (third_party/libgit2/src/util). The ELF on disk stays util.elf.
+set(basename "onion_util")
 
 project(${basename} C CXX ASM)
 
@@ -11,7 +13,7 @@ onion_output_dirs()
 set(D_SRC ${D_CWD}/source)
 
 add_executable(${PROJECT_NAME})
-set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${PROJECT_NAME}.elf")
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "util.elf")
 
 target_compile_options(${PROJECT_NAME} PUBLIC
 	$<$<COMPILE_LANGUAGE:C>:${C_DEFS} ${C_FLAGS}>

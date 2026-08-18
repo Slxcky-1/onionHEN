@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <vector>
 
 #if defined(ONION_HAVE_LIBGIT2)
 #include <git2.h>
@@ -40,12 +41,81 @@ void copy_bounded(char *out, size_t out_size, const char *src) {
   }
   std::snprintf(out, out_size, "%s", src);
 }
+
+struct ProgressBridge {
+  GitProgressFn fn = nullptr;
+  void *user = nullptr;
+};
+
+int on_transfer(const git_indexer_progress *stats, void *payload) {
+  auto *bridge = static_cast<ProgressBridge *>(payload);
+  if (!bridge || !bridge->fn || !stats) {
+    return 0;
+  }
+  GitProgress p;
+  p.phase = "fetch";
+  p.received = stats->received_objects;
+  p.total = stats->total_objects;
+  bridge->fn(p, bridge->user);
+  return 0;
+}
+
+void on_checkout(const char *, size_t completed, size_t total, void *payload) {
+  auto *bridge = static_cast<ProgressBridge *>(payload);
+  if (!bridge || !bridge->fn) {
+    return;
+  }
+  GitProgress p;
+  p.phase = "checkout";
+  p.received = static_cast<unsigned>(completed);
+  p.total = static_cast<unsigned>(total);
+  bridge->fn(p, bridge->user);
+}
+
+void apply_checkout_filter(git_checkout_options *co, const GitCloneOpts &opts,
+                           std::vector<char *> *path_ptrs) {
+  if (!co || !path_ptrs || opts.checkout_path_count == 0 ||
+      !opts.checkout_paths) {
+    return;
+  }
+  path_ptrs->clear();
+  path_ptrs->reserve(opts.checkout_path_count);
+  for (size_t i = 0; i < opts.checkout_path_count; ++i) {
+    if (opts.checkout_paths[i] && opts.checkout_paths[i][0]) {
+      path_ptrs->push_back(const_cast<char *>(opts.checkout_paths[i]));
+    }
+  }
+  if (path_ptrs->empty()) {
+    return;
+  }
+  co->paths.strings = path_ptrs->data();
+  co->paths.count = path_ptrs->size();
+}
+
+void wire_progress(git_remote_callbacks *remote_cb, git_checkout_options *co,
+                   ProgressBridge *bridge) {
+  if (!bridge || !bridge->fn) {
+    return;
+  }
+  if (remote_cb) {
+    remote_cb->transfer_progress = on_transfer;
+    remote_cb->payload = bridge;
+  }
+  if (co) {
+    co->progress_cb = on_checkout;
+    co->progress_payload = bridge;
+  }
+}
 #endif
 
 } // namespace
 
 LibGit2Client::LibGit2Client(IHttpTransport *http) : http_(http) {
 #if defined(ONION_HAVE_LIBGIT2)
+  if (!http_) {
+    LOG_WARN("LibGit2Client: no IHttpTransport; HTTPS remotes need a "
+             "custom transport (libgit2 was built with USE_HTTPS=OFF)");
+  }
   if (git_libgit2_init() >= 0) {
     ready_ = true;
   } else {
@@ -65,6 +135,11 @@ LibGit2Client::~LibGit2Client() {
 #endif
 }
 
+void LibGit2Client::setProgressHandler(GitProgressFn fn, void *user) {
+  progress_fn_ = fn;
+  progress_user_ = user;
+}
+
 GitStatus LibGit2Client::clone(const char *url, const char *dest,
                                const GitCloneOpts &opts) {
 #if defined(ONION_HAVE_LIBGIT2)
@@ -78,6 +153,11 @@ GitStatus LibGit2Client::clone(const char *url, const char *dest,
   if (opts.depth > 0) {
     clone_opts.fetch_opts.depth = opts.depth;
   }
+  std::vector<char *> path_ptrs;
+  apply_checkout_filter(&clone_opts.checkout_opts, opts, &path_ptrs);
+  ProgressBridge bridge{progress_fn_, progress_user_};
+  wire_progress(&clone_opts.fetch_opts.callbacks, &clone_opts.checkout_opts,
+                &bridge);
   git_repository *repo = nullptr;
   const int rc = git_clone(&repo, url, dest, &clone_opts);
   if (repo) {
@@ -93,7 +173,7 @@ GitStatus LibGit2Client::clone(const char *url, const char *dest,
 #endif
 }
 
-GitStatus LibGit2Client::fetch(const char *repo_dir) {
+GitStatus LibGit2Client::fetch(const char *repo_dir, const GitCloneOpts &opts) {
 #if defined(ONION_HAVE_LIBGIT2)
   if (!ready_ || !repo_dir) {
     return GitStatus::Unavailable;
@@ -110,7 +190,9 @@ GitStatus LibGit2Client::fetch(const char *repo_dir) {
     return map_git_error(rc);
   }
   git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
-  fetch_opts.depth = 1;
+  fetch_opts.depth = opts.depth > 0 ? opts.depth : 1;
+  ProgressBridge bridge{progress_fn_, progress_user_};
+  wire_progress(&fetch_opts.callbacks, nullptr, &bridge);
   rc = git_remote_fetch(remote, nullptr, &fetch_opts, nullptr);
   if (rc == 0) {
     git_object *target = nullptr;
@@ -118,6 +200,9 @@ GitStatus LibGit2Client::fetch(const char *repo_dir) {
         git_revparse_single(&target, repo, "FETCH_HEAD") == 0) {
       git_checkout_options co = GIT_CHECKOUT_OPTIONS_INIT;
       co.checkout_strategy = GIT_CHECKOUT_FORCE;
+      std::vector<char *> path_ptrs;
+      apply_checkout_filter(&co, opts, &path_ptrs);
+      wire_progress(nullptr, &co, &bridge);
       (void)git_checkout_tree(repo, target, &co);
       git_object_free(target);
     }
@@ -127,6 +212,7 @@ GitStatus LibGit2Client::fetch(const char *repo_dir) {
   return map_git_error(rc);
 #else
   (void)repo_dir;
+  (void)opts;
   return GitStatus::Unavailable;
 #endif
 }
