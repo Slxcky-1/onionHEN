@@ -110,14 +110,16 @@ OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstu
 
 ### 金手指
 
-把金手指文件放到同一目录，文件名用 Title ID 和游戏版本：
+把金手指文件放到同一目录。文件名为 `TITLEID_VERSION`，进程名和 8 位十六进制 HASH 都可省略：
 
 ```text
-/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.json
-/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.shn
-/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.mc4
-/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.ShnExt
+/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<HASH>].json
+/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<HASH>].shn
+/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<HASH>].mc4
+/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<HASH>].ShnExt
 ```
+
+省略 `PROCESS` 表示 `eboot.bin`。省略 `HASH` 表示不区分 eboot 构建。带进程名的文件优先于通用 `TITLE_VERSION`；格式优先级为 json、shn、mc4、ShnExt。
 
 金手指从磁盘加载。文件有改动时会重新载入，不必重启整套进程。
 

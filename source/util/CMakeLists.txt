@@ -54,7 +54,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   "${PROJECT_ROOT}/libonion_elfldr/include"
   "${PROJECT_ROOT}/include"
 )
-# CBC for MC4 / ShnExt AES; no KCF/WMDW
+# CBC for MC4 / ShnExt AES
 target_compile_definitions(${PROJECT_NAME} PRIVATE CBC=1)
 target_link_directories(${PROJECT_NAME} PUBLIC
   "${ONIONHEN_PS5_STUB_DIR}"

@@ -30,7 +30,8 @@ Binary: `source/util/build/host-tests/onion-host-tests`
 |-------|----------------|
 | `test_cheat_utils` | hex decode, JSON extract, braces, replace_all, load buffer, ABI layout |
 | `test_cheat_parsers` | JSON / SHN / MC4 / ShnExt via factory + real fixtures |
-| `test_cheat_flatten` | extension match + GoldHEN-style flat install names + version sanitize |
+| `test_cheat_flatten` | extension match, TITLE/VERSION/PROCESS/HASH parse, flat install names, version sanitize |
+| `test_cheat_repository` | resolve TITLE_VERSION[_PROCESS][_HASH], process vs generic, hash match |
 | `test_payload` | `libonion_payload` ELF magic, package header, pid path/file, read_file |
 | `test_base64` | encode / decode / round-trip (MC4 codec) |
 | `test_aes_cbc` | AES-256-CBC encrypt/decrypt with MC4 key/IV |

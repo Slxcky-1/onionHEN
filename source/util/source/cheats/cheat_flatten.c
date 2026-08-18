@@ -66,31 +66,126 @@ static int ascii_iequals(const char *lhs, const char *rhs) {
   return strcasecmp(lhs, rhs) == 0;
 }
 
-static int ascii_icontains(const char *value, const char *needle) {
-  size_t value_len;
-  size_t needle_len;
-  size_t i;
+static int is_title_separator(char ch) {
+  return ch == '_' || ch == '-' || ch == ' ';
+}
 
-  if (value == NULL || needle == NULL || needle[0] == '\0') {
+static size_t title_id_len_at(const char *s) {
+  size_t i;
+  size_t digits = 0;
+
+  if (s == NULL) {
     return 0;
   }
-  value_len = strlen(value);
-  needle_len = strlen(needle);
-  if (value_len < needle_len) {
-    return 0;
-  }
-  for (i = 0; i + needle_len <= value_len; ++i) {
-    if (strncasecmp(value + i, needle, needle_len) == 0) {
-      return 1;
+  for (i = 0; i < 4; ++i) {
+    if (!isalpha((unsigned char)s[i])) {
+      return 0;
     }
   }
-  return 0;
+  for (; s[i] != '\0' && !is_title_separator(s[i]); ++i) {
+    if (isdigit((unsigned char)s[i])) {
+      ++digits;
+    } else if (!isalpha((unsigned char)s[i])) {
+      return 0;
+    }
+  }
+  if (i < 8 || digits < 4) {
+    return 0;
+  }
+  return i;
+}
+
+static const char *find_title_start(const char *base) {
+  const char *p;
+
+  if (title_id_len_at(base) > 0) {
+    return base;
+  }
+  for (p = base; *p != '\0'; ++p) {
+    if ((p == base || is_title_separator(p[-1])) && title_id_len_at(p) > 0) {
+      return p;
+    }
+  }
+  return NULL;
+}
+
+static int looks_like_process(const char *value) {
+  if (value == NULL || value[0] == '\0') {
+    return 0;
+  }
+  if (onion_cheat_is_eboot_process(value)) {
+    return 1;
+  }
+  return strchr(value, '.') != NULL;
+}
+
+static void lowercase_ascii(char *value) {
+  size_t i;
+  if (value == NULL) {
+    return;
+  }
+  for (i = 0; value[i] != '\0'; ++i) {
+    value[i] = (char)tolower((unsigned char)value[i]);
+  }
+}
+
+int onion_cheat_is_hex_hash(const char *value) {
+  size_t i;
+
+  if (value == NULL || value[0] == '\0' || strlen(value) != 8) {
+    return 0;
+  }
+  for (i = 0; i < 8; ++i) {
+    if (!isxdigit((unsigned char)value[i])) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+int onion_cheat_is_eboot_process(const char *process) {
+  return ascii_iequals(process, "eboot") ||
+         ascii_iequals(process, "eboot.bin");
+}
+
+static void split_process_and_hash(onion_cheat_filename_t *out) {
+  const char *last_us;
+  const char *process_or_author = out->suffix;
+  char prefix[ONION_CHEAT_SUFFIX_LEN];
+
+  if (out->suffix[0] == '\0') {
+    return;
+  }
+  if (onion_cheat_is_hex_hash(out->suffix)) {
+    snprintf(out->hash, sizeof(out->hash), "%s", out->suffix);
+    lowercase_ascii(out->hash);
+    return;
+  }
+
+  last_us = strrchr(out->suffix, '_');
+  if (last_us != NULL && onion_cheat_is_hex_hash(last_us + 1)) {
+    const size_t prefix_len = (size_t)(last_us - out->suffix);
+    if (prefix_len > 0 && prefix_len < sizeof(prefix)) {
+      memcpy(prefix, out->suffix, prefix_len);
+      prefix[prefix_len] = '\0';
+      process_or_author = prefix;
+    } else {
+      process_or_author = "";
+    }
+    snprintf(out->hash, sizeof(out->hash), "%s", last_us + 1);
+    lowercase_ascii(out->hash);
+  }
+
+  if (looks_like_process(process_or_author)) {
+    snprintf(out->process, sizeof(out->process), "%s", process_or_author);
+  }
 }
 
 int onion_cheat_parse_filename(const char *filename,
                                onion_cheat_filename_t *out) {
   char base[256];
   size_t extension_start = 0;
+  const char *title_at;
   const char *sep;
   const char *vstart;
   const char *vend;
@@ -116,16 +211,21 @@ int onion_cheat_parse_filename(const char *filename,
     base[extension_start - 4] = '\0';
   }
 
-  sep = base;
-  while (*sep && *sep != '_' && *sep != '-' && *sep != ' ') {
+  title_at = find_title_start(base);
+  if (title_at == NULL) {
+    title_at = base;
+  }
+
+  sep = title_at;
+  while (*sep && !is_title_separator(*sep)) {
     ++sep;
   }
-  title_len = (size_t)(sep - base);
+  title_len = (size_t)(sep - title_at);
   if (*sep == '\0' || title_len < 4 ||
       title_len >= sizeof(out->title_id)) {
     return -1;
   }
-  memcpy(out->title_id, base, title_len);
+  memcpy(out->title_id, title_at, title_len);
   out->title_id[title_len] = '\0';
 
   vstart = sep + 1;
@@ -142,7 +242,7 @@ int onion_cheat_parse_filename(const char *filename,
   memcpy(out->version, vstart, version_len);
   out->version[version_len] = '\0';
 
-  if (*vend == '_' || *vend == '-' || *vend == ' ') {
+  if (is_title_separator(*vend)) {
     ++vend;
   }
   suffix_len = strlen(vend);
@@ -150,6 +250,7 @@ int onion_cheat_parse_filename(const char *filename,
     return -1;
   }
   memcpy(out->suffix, vend, suffix_len + 1);
+  split_process_and_hash(out);
 
   for (i = 0; out->title_id[i]; ++i) {
     out->title_id[i] = (char)toupper((unsigned char)out->title_id[i]);
@@ -161,15 +262,106 @@ int onion_cheat_is_legacy_eboot_alias(const char *suffix) {
   if (suffix == NULL || suffix[0] == '\0') {
     return 0;
   }
-  if (ascii_icontains(suffix, ".bin") && !ascii_iequals(suffix, "eboot.bin")) {
+  if (looks_like_process(suffix) && !onion_cheat_is_eboot_process(suffix)) {
     return 0;
   }
   return 1;
 }
 
+static int processes_match(const char *lhs, const char *rhs) {
+  if (onion_cheat_is_eboot_process(lhs) && onion_cheat_is_eboot_process(rhs)) {
+    return 1;
+  }
+  if (lhs == NULL || rhs == NULL || lhs[0] == '\0' || rhs[0] == '\0') {
+    return 0;
+  }
+  return strcasecmp(lhs, rhs) == 0;
+}
+
+int onion_cheat_filename_compatible(const onion_cheat_filename_t *parts,
+                                    const char *process, const char *hash) {
+  if (parts == NULL) {
+    return 0;
+  }
+  if (parts->hash[0] != '\0' && hash != NULL && hash[0] != '\0' &&
+      strcasecmp(parts->hash, hash) != 0) {
+    return 0;
+  }
+
+  if (parts->process[0] != '\0') {
+    if (onion_cheat_is_eboot_process(parts->process)) {
+      return process == NULL || process[0] == '\0' ||
+             onion_cheat_is_eboot_process(process);
+    }
+    return processes_match(parts->process, process);
+  }
+
+  if (parts->hash[0] != '\0' || parts->suffix[0] != '\0') {
+    return process == NULL || process[0] == '\0' ||
+           onion_cheat_is_eboot_process(process);
+  }
+  return 1;
+}
+
+static int scope_rank(const onion_cheat_filename_t *parts) {
+  if (parts->process[0] != '\0') {
+    return 0;
+  }
+  if (parts->hash[0] == '\0' && parts->suffix[0] == '\0') {
+    return 1;
+  }
+  return 2;
+}
+
+static int hash_rank(const onion_cheat_filename_t *parts, const char *hash) {
+  if (parts->hash[0] != '\0' && hash != NULL && hash[0] != '\0' &&
+      strcasecmp(parts->hash, hash) == 0) {
+    return 0;
+  }
+  if (parts->hash[0] == '\0') {
+    return 1;
+  }
+  return 2;
+}
+
+int onion_cheat_filename_compare(const onion_cheat_filename_t *lhs,
+                                 const char *lhs_name,
+                                 const onion_cheat_filename_t *rhs,
+                                 const char *rhs_name, const char *process,
+                                 const char *hash) {
+  int left;
+  int right;
+
+  (void)process;
+  if (lhs == NULL || rhs == NULL) {
+    return lhs == rhs ? 0 : (lhs == NULL ? 1 : -1);
+  }
+
+  left = scope_rank(lhs);
+  right = scope_rank(rhs);
+  if (left != right) {
+    return left - right;
+  }
+
+  left = hash_rank(lhs, hash);
+  right = hash_rank(rhs, hash);
+  if (left != right) {
+    return left - right;
+  }
+
+  if (lhs->extension_rank != rhs->extension_rank) {
+    return lhs->extension_rank - rhs->extension_rank;
+  }
+  if (lhs_name != NULL && rhs_name != NULL) {
+    return strcasecmp(lhs_name, rhs_name);
+  }
+  return 0;
+}
+
 int onion_cheat_build_flat_name(const char *filename, char *out, size_t out_size) {
   onion_cheat_filename_t parts;
   const char *extension;
+  const char *process;
 
   if (out == NULL || out_size == 0) {
     return -1;
@@ -181,7 +373,24 @@ int onion_cheat_build_flat_name(const char *filename, char *out, size_t out_size
   if (extension == NULL) {
     return -1;
   }
-  snprintf(out, out_size, "%s_%s.%s", parts.title_id, parts.version, extension);
+
+  process = parts.process;
+  if (process[0] != '\0' && onion_cheat_is_eboot_process(process)) {
+    process = "";
+  }
+  if (process[0] != '\0' && parts.hash[0] != '\0') {
+    snprintf(out, out_size, "%s_%s_%s_%s.%s", parts.title_id, parts.version,
+             process, parts.hash, extension);
+  } else if (process[0] != '\0') {
+    snprintf(out, out_size, "%s_%s_%s.%s", parts.title_id, parts.version,
+             process, extension);
+  } else if (parts.hash[0] != '\0') {
+    snprintf(out, out_size, "%s_%s_%s.%s", parts.title_id, parts.version,
+             parts.hash, extension);
+  } else {
+    snprintf(out, out_size, "%s_%s.%s", parts.title_id, parts.version,
+             extension);
+  }
   return 0;
 }
 
@@ -257,7 +466,7 @@ static void walk_and_flatten(const char *dir, int *copied, int *skipped) {
 
 /**
  * Walk a tree (typically after zip extract) and install flat cheat files into
- * ONION_CHEATS_DIR as <TITLE_ID>_<VERSION>.<ext>.
+ * ONION_CHEATS_DIR as TITLEID_VERSION[_PROCESS][_HASH].ext.
  */
 void onion_cheat_normalize_filename_token(const char *value, char *out,
                                           size_t out_size) {

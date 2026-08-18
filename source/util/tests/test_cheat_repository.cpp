@@ -44,11 +44,12 @@ private:
 };
 
 game_context_t makeGame(const char *title_id, const char *version,
-                        const char *process) {
+                        const char *process, const char *hash = "") {
   game_context_t game{};
   std::snprintf(game.title_id, sizeof(game.title_id), "%s", title_id);
   std::snprintf(game.version, sizeof(game.version), "%s", version);
   std::snprintf(game.process_name, sizeof(game.process_name), "%s", process);
+  std::snprintf(game.process_hash, sizeof(game.process_hash), "%s", hash);
   return game;
 }
 
@@ -110,7 +111,7 @@ int test_alias_is_not_used_for_other_processes() {
   return 0;
 }
 
-int test_ambiguous_aliases_are_rejected() {
+int test_multiple_hashes_pick_lexicographic() {
   constexpr const char *first = "PPSA17172_01.004.000_11111111.json";
   constexpr const char *second = "PPSA17172_01.004.000_22222222.json";
   ScopedCheatFiles files({first, second});
@@ -119,7 +120,27 @@ int test_ambiguous_aliases_are_rejected() {
 
   const game_context_t game =
       makeGame("PPSA17172", "01.004.000", "eboot.bin");
-  TEST_ASSERT_TRUE(CheatRepository::resolvePath(game).empty());
+  const std::string expected = ScopedCheatFiles::path(first);
+  const std::string actual = CheatRepository::resolvePath(game);
+  TEST_ASSERT_STREQ(expected.c_str(), actual.c_str());
+  return 0;
+}
+
+int test_exact_hash_wins_among_aliases() {
+  constexpr const char *first = "PPSA17181_01.004.000_11111111.json";
+  constexpr const char *second = "PPSA17181_01.004.000_22222222.json";
+  ScopedCheatFiles files({first, second});
+  TEST_ASSERT_TRUE(files.create(first));
+  TEST_ASSERT_TRUE(files.create(second));
+
+  const std::string expected = ScopedCheatFiles::path(second);
+  const std::string actual = CheatRepository::resolvePath(
+      makeGame("PPSA17181", "01.004.000", "eboot.bin", "22222222"));
+  TEST_ASSERT_STREQ(expected.c_str(), actual.c_str());
+  TEST_ASSERT_TRUE(CheatRepository::resolvePath(
+                       makeGame("PPSA17181", "01.004.000", "eboot.bin",
+                                "33333333"))
+                       .empty());
   return 0;
 }
 
@@ -258,6 +279,84 @@ int test_eboot_without_bin_suffix_uses_alias() {
   return 0;
 }
 
+int test_process_hash_matches_running_process() {
+  constexpr const char *hashed = "CUSA00018_01.21_6584f95f.json";
+  constexpr const char *process =
+      "CUSA00018_01.21_default.elf_fc14a673.json";
+  ScopedCheatFiles files({hashed, process});
+  TEST_ASSERT_TRUE(files.create(hashed));
+  TEST_ASSERT_TRUE(files.create(process));
+
+  const std::string process_path = ScopedCheatFiles::path(process);
+  const std::string hashed_path = ScopedCheatFiles::path(hashed);
+  const std::string default_elf = CheatRepository::resolvePath(
+      makeGame("CUSA00018", "01.21", "default.elf"));
+  const std::string eboot = CheatRepository::resolvePath(
+      makeGame("CUSA00018", "01.21", "eboot.bin"));
+  TEST_ASSERT_STREQ(process_path.c_str(), default_elf.c_str());
+  TEST_ASSERT_STREQ(hashed_path.c_str(), eboot.c_str());
+  return 0;
+}
+
+int test_process_scoped_beats_generic() {
+  constexpr const char *generic = "PPSA05686_01.002.000.shn";
+  constexpr const char *process = "PPSA05686_01.002.000_tllr-boot.bin.shn";
+  ScopedCheatFiles files({generic, process});
+  TEST_ASSERT_TRUE(files.create(generic));
+  TEST_ASSERT_TRUE(files.create(process));
+
+  const std::string process_path = ScopedCheatFiles::path(process);
+  const std::string generic_path = ScopedCheatFiles::path(generic);
+  const std::string tllr = CheatRepository::resolvePath(
+      makeGame("PPSA05686", "01.002.000", "tllr-boot.bin"));
+  const std::string eboot = CheatRepository::resolvePath(
+      makeGame("PPSA05686", "01.002.000", "eboot.bin"));
+  TEST_ASSERT_STREQ(process_path.c_str(), tllr.c_str());
+  TEST_ASSERT_STREQ(generic_path.c_str(), eboot.c_str());
+  return 0;
+}
+
+int test_generic_fallback_for_unknown_process() {
+  constexpr const char *generic = "PPSA05687_01.002.000.json";
+  ScopedCheatFiles files({generic});
+  TEST_ASSERT_TRUE(files.create(generic));
+
+  const std::string expected = ScopedCheatFiles::path(generic);
+  const std::string actual = CheatRepository::resolvePath(
+      makeGame("PPSA05687", "01.002.000", "tllr-boot.bin"));
+  TEST_ASSERT_STREQ(expected.c_str(), actual.c_str());
+  return 0;
+}
+
+int test_underscored_process_hash() {
+  constexpr const char *name =
+      "CUSA02343_01.00_big2-ps4_Shipping.elf_8feca873.json";
+  ScopedCheatFiles files({name});
+  TEST_ASSERT_TRUE(files.create(name));
+
+  const std::string expected = ScopedCheatFiles::path(name);
+  const std::string actual = CheatRepository::resolvePath(
+      makeGame("CUSA02343", "01.00", "big2-ps4_Shipping.elf"));
+  TEST_ASSERT_STREQ(expected.c_str(), actual.c_str());
+  TEST_ASSERT_TRUE(CheatRepository::resolvePath(
+                       makeGame("CUSA02343", "01.00", "eboot.bin"))
+                       .empty());
+  return 0;
+}
+
+int test_game_name_prefix_resolves() {
+  constexpr const char *name =
+      "Assassins-Creed-Mirage_PPSA07231_01.012.000.ShnExt";
+  ScopedCheatFiles files({name});
+  TEST_ASSERT_TRUE(files.create(name));
+
+  const std::string expected = ScopedCheatFiles::path(name);
+  const std::string actual = CheatRepository::resolvePath(
+      makeGame("PPSA07231", "01.012.000", "eboot.bin"));
+  TEST_ASSERT_STREQ(expected.c_str(), actual.c_str());
+  return 0;
+}
+
 int test_file_signature_identity() {
   constexpr const char *name = "PPSA17180_01.004.000.json";
   ScopedCheatFiles files({name});
@@ -288,8 +387,10 @@ extern "C" int test_cheat_repository_suite(void) {
                              test_process_name_has_priority);
   failures += onion_test_run("repository.non_eboot_rejects_alias",
                              test_alias_is_not_used_for_other_processes);
-  failures += onion_test_run("repository.ambiguous_aliases",
-                             test_ambiguous_aliases_are_rejected);
+  failures += onion_test_run("repository.multiple_hashes_lexicographic",
+                             test_multiple_hashes_pick_lexicographic);
+  failures += onion_test_run("repository.exact_hash_wins",
+                             test_exact_hash_wins_among_aliases);
   failures += onion_test_run("repository.deleted_cache_rescan",
                              test_deleted_cached_alias_is_rescanned);
   failures += onion_test_run("repository.thousands_standard_name",
@@ -307,5 +408,15 @@ extern "C" int test_cheat_repository_suite(void) {
                              test_eboot_without_bin_suffix_uses_alias);
   failures += onion_test_run("repository.file_signature",
                              test_file_signature_identity);
+  failures += onion_test_run("repository.process_hash_matches",
+                             test_process_hash_matches_running_process);
+  failures += onion_test_run("repository.process_beats_generic",
+                             test_process_scoped_beats_generic);
+  failures += onion_test_run("repository.generic_fallback_process",
+                             test_generic_fallback_for_unknown_process);
+  failures += onion_test_run("repository.underscored_process_hash",
+                             test_underscored_process_hash);
+  failures += onion_test_run("repository.game_name_prefix",
+                             test_game_name_prefix_resolves);
   return failures;
 }

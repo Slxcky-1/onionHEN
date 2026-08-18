@@ -180,7 +180,7 @@ util handleIPC ──► param.json / sfo ──► version 字符串
   │ GET_GAME_CHEAT(tid, version)
   ▼
 cheat_service_export_list
-  │  resolve /data/OnionHEN/cheats/<TID>_<VER>.{json,shn,mc4,ShnExt}
+  │  resolve /data/OnionHEN/cheats/<TID>_<VER>[_PROCESS][_HASH].{json,shn,mc4,ShnExt}
   │  load + parse → 写 /user/data/OnionHEN/<tid>_cheats
   ▼
 ShellUI 读列表 JSON，渲染开关
@@ -262,11 +262,11 @@ cheat_engine_runtime
 #### 路径与格式
 
 ```text
-/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.{json,shn,mc4,ShnExt}
+/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<HASH>].{json,shn,mc4,ShnExt}
 ```
 
-解析优先级：`json` → `shn` → `mc4` → `ShnExt`。  
-**不支持** KCF / WMDW。
+`PROCESS` 与 8 位十六进制 `HASH` 均可省略。匹配顺序：进程限定文件 → 通用 `TITLE_VERSION` → 哈希/作者 eboot 别名。  
+解析优先级：`json` → `shn` → `mc4` → `ShnExt`。
 
 #### 热重载
 

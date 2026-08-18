@@ -112,14 +112,16 @@ OnionHEN remembers that choice with a matching `.auto_start` file next to the EL
 
 ### Cheats
 
-Put cheat files in one directory, named with the Title ID and game version:
+Put cheat files in one directory. Names are `TITLEID_VERSION`, with optional process and 8-hex hash:
 
 ```text
-/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.json
-/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.shn
-/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.mc4
-/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.ShnExt
+/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<HASH>].json
+/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<HASH>].shn
+/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<HASH>].mc4
+/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<HASH>].ShnExt
 ```
+
+`PROCESS` is omitted for `eboot.bin`. `HASH` is omitted when the file is not build-specific. A process-scoped file wins over a generic `TITLE_VERSION` file; json beats shn, mc4, then ShnExt.
 
 Cheats load from disk. If a file changes, OnionHEN reloads it without restarting the whole stack.
 
