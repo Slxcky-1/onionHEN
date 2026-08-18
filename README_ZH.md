@@ -300,6 +300,14 @@ OnionHEN 在下面两处读写同一份配置：
 
 OnionHEN 离不开 PS5 自制软件与逆向工程社区。
 
+### 贡献者
+
+<p align="center">
+  <a href="https://github.com/aydencharles/onionHEN/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=aydencharles/onionHEN" alt="OnionHEN 贡献者"/>
+  </a>
+</p>
+
 ### 来源
 
 - [etaHEN](https://github.com/LightningMods/etaHEN) — LightningMods 与贡献者；本仓库的源码基线

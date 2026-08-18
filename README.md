@@ -305,6 +305,14 @@ If OnionHEN is useful to you, consider supporting further development. Thank you
 
 OnionHEN exists because of the PS5 homebrew and reverse-engineering community.
 
+### Contributors
+
+<p align="center">
+  <a href="https://github.com/aydencharles/onionHEN/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=aydencharles/onionHEN" alt="OnionHEN contributors"/>
+  </a>
+</p>
+
 ### Based on
 
 - [etaHEN](https://github.com/LightningMods/etaHEN) — LightningMods and contributors; source base of this tree
