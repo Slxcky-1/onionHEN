@@ -22,6 +22,8 @@ struct CheatSyncStatus {
   std::string error;
   std::string phase;
   int progress_percent = -1;
+  size_t completed = 0;
+  size_t total = 0;
 };
 
 /**
@@ -44,7 +46,8 @@ public:
   void worker(onion::Settings settings, std::string catalog_id,
               std::string mirror_override);
 
-  void noteProgress(const char *phase, int percent);
+  void noteProgress(const char *phase, int percent, size_t completed,
+                    size_t total);
 
   CheatSyncService(const CheatSyncService &) = delete;
   CheatSyncService &operator=(const CheatSyncService &) = delete;

@@ -78,7 +78,7 @@ void on_sync_progress(const char *phase, size_t completed, size_t total,
       percent = 100;
     }
   }
-  svc->noteProgress(phase ? phase : "", percent);
+  svc->noteProgress(phase ? phase : "", percent, completed, total);
 }
 
 } // namespace
@@ -109,7 +109,8 @@ CheatSyncStatus CheatSyncService::status() const {
   return status_;
 }
 
-void CheatSyncService::noteProgress(const char *phase, int percent) {
+void CheatSyncService::noteProgress(const char *phase, int percent,
+                                    size_t completed, size_t total) {
   int notify_percent = -1;
   {
     std::lock_guard<std::mutex> lock(mu_);
@@ -120,6 +121,8 @@ void CheatSyncService::noteProgress(const char *phase, int percent) {
       status_.phase = phase;
     }
     status_.progress_percent = percent;
+    status_.completed = completed;
+    status_.total = total;
 
     const bool transfer_phase = phase && std::strcmp(phase, "download") == 0;
     if (transfer_phase && percent >= 25) {
@@ -156,6 +159,8 @@ CheatSyncService::start(const onion::Settings &settings, const char *catalog_id,
   status_.error.clear();
   status_.phase = "start";
   status_.progress_percent = 0;
+  status_.completed = 0;
+  status_.total = 0;
   status_.catalog_id = catalog_id ? catalog_id : "";
   last_progress_notify_percent_ = -1;
 

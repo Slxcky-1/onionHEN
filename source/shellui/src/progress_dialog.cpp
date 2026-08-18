@@ -50,6 +50,9 @@ struct CheatProgress {
   SyncState state = SyncState::Idle;
   int progress = 0;
   int displayed_progress = 0;
+  int completed = 0;
+  int total = 0;
+  int indeterminate_progress = 0;
   std::string phase;
   std::string error;
   BoundWidget host;
@@ -59,7 +62,7 @@ struct CheatProgress {
   BoundWidget percent_label;
   BoundWidget cancel_label;
   BoundWidget progress_bar;
-  std::string applied_title;
+  bool title_cleared = false;
   std::string applied_phase;
   std::string applied_percent;
   bool percent_applied = false;
@@ -90,7 +93,7 @@ void release_bound_widgets_locked() {
   release_widget(g_progress.percent_label);
   release_widget(g_progress.cancel_label);
   release_widget(g_progress.progress_bar);
-  g_progress.applied_title.clear();
+  g_progress.title_cleared = false;
   g_progress.applied_phase.clear();
   g_progress.applied_percent.clear();
   g_progress.percent_applied = false;
@@ -139,6 +142,14 @@ struct ProgressPresentation {
   int bar_status = 0;
 };
 
+std::string downloaded_size_text(int bytes) {
+  constexpr int kMegabyte = 1024 * 1024;
+  const int safe_bytes = std::max(bytes, 0);
+  const int whole = safe_bytes / kMegabyte;
+  const int tenths = ((safe_bytes % kMegabyte) * 10) / kMegabyte;
+  return std::to_string(whole) + '.' + std::to_string(tenths) + " MB";
+}
+
 ProgressPresentation presentation_locked() {
   ProgressPresentation view;
   switch (g_progress.state) {
@@ -170,6 +181,9 @@ ProgressPresentation presentation_locked() {
     if (g_progress.progress >= 0 && phase != SyncPhase::Start) {
       view.bar_progress = g_progress.displayed_progress;
       view.percent = std::to_string(view.bar_progress) + '%';
+    } else if (phase == SyncPhase::Download) {
+      view.bar_progress = g_progress.indeterminate_progress;
+      view.percent = downloaded_size_text(g_progress.completed);
     }
     return view;
   }
@@ -432,14 +446,12 @@ void apply_progress_locked() {
   if (!g_progress.progress_bar.object)
     return;
 
-  const std::string title =
-      toolbox_i18n::tr("cheats.sync.dialog.title");
   advance_displayed_progress_locked();
   const ProgressPresentation view = presentation_locked();
 
-  if (g_progress.title_label.object && g_progress.applied_title != title) {
-    if (set_label_text(g_progress.title_label.object, title))
-      g_progress.applied_title = title;
+  if (g_progress.title_label.object && !g_progress.title_cleared) {
+    if (set_label_text(g_progress.title_label.object, ""))
+      g_progress.title_cleared = true;
   }
   if (g_progress.phase_label.object &&
       g_progress.applied_phase != view.phase) {
@@ -559,20 +571,32 @@ void *cheat_progress_poll(void * /*arg*/) {
     const char *phase = onion_cjson::string_item(root.get(), "phase", "");
     const char *error = onion_cjson::string_item(root.get(), "error", "");
     const int progress = onion_cjson::int_item(root.get(), "progress", -1);
+    const int completed = onion_cjson::int_item(root.get(), "completed", 0);
+    const int total = onion_cjson::int_item(root.get(), "total", 0);
 
     {
       std::lock_guard<std::mutex> lock(g_progress.mu);
       const std::string next_phase = phase ? phase : "";
       if (g_progress.phase != next_phase) {
         g_progress.displayed_progress = 0;
+        g_progress.indeterminate_progress = 0;
       }
       g_progress.phase = next_phase;
       g_progress.error = error ? error : "";
       g_progress.progress =
           progress < 0 ? -1 : std::clamp(progress, 0, 100);
+      g_progress.completed = std::max(completed, 0);
+      g_progress.total = std::max(total, 0);
 
       if (state && std::strcmp(state, "running") == 0) {
         g_progress.state = SyncState::Running;
+        if (parse_phase(g_progress.phase) == SyncPhase::Download &&
+            g_progress.progress < 0) {
+          // Keep an unknown-length transfer visibly active without labeling
+          // the synthetic bar position as a percentage.
+          g_progress.indeterminate_progress =
+              (g_progress.indeterminate_progress + 1) % 101;
+        }
       } else if (state && std::strcmp(state, "ok") == 0) {
         g_progress.state = SyncState::Ok;
         g_progress.progress = 100;
@@ -587,9 +611,10 @@ void *cheat_progress_poll(void * /*arg*/) {
       if (terminal)
         g_thread_started.store(false);
 
-      LOG_DEBUG("cheat_progress_xml: state=%s phase=%s progress=%d error=%s",
-                state ? state : "", phase ? phase : "", progress,
-                error ? error : "");
+      LOG_DEBUG("cheat_progress_xml: state=%s phase=%s progress=%d "
+                "completed=%d total=%d error=%s",
+                state ? state : "", phase ? phase : "", progress, completed,
+                total, error ? error : "");
     }
 
     if (terminal)
@@ -620,6 +645,9 @@ void cheat_progress_show(void) {
     g_progress.state = SyncState::Running;
     g_progress.progress = 0;
     g_progress.displayed_progress = 0;
+    g_progress.completed = 0;
+    g_progress.total = 0;
+    g_progress.indeterminate_progress = 0;
     g_progress.phase = "start";
     g_progress.error.clear();
   }
