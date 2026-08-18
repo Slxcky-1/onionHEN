@@ -16,6 +16,8 @@ along with this program; see the file COPYING. If not, see
 
 #include "ipc.hpp"
 #include "cheats/cheat_service.hpp"
+#include "rest_mode.hpp"
+#include "util_toolbox.h"
 #include <onion/settings.hpp>
 #include <onion/log_settings.hpp>
 #include <onion/platform.h>
@@ -57,11 +59,8 @@ extern bool is_handler_enabled;
 
 onion::SettingsStore g_settings;
 void start_ip_thread(void);
-void patch_checker(bool rest_resume);
 void* IPC_loop(void* args);
 bool shellui_patch(void);
-
-extern atomic_bool no_network_rest_mode_action;
 
 jmp_buf g_catch_buf;
 uintptr_t kernel_base = 0;
@@ -106,7 +105,6 @@ int main(void) {
     (void)syscall(SYS_thr_set_name, -1, "onion_util.elf");
 
     pthread_t ipc_server = 0;
-    char tmp_buf[200];
     
     sceNetCtlInit();
     sceUserServiceInitialize(NULL);
@@ -145,7 +143,7 @@ int main(void) {
     if (onion_ready_is_set(ONION_FLAG_UTIL_BOOTED)) {
         /* onion_util.elf restarted mid-session (crash recover / re-launch) — not rest. */
         LOG_WARN("util already booted once — toolbox reinject (not rest)");
-        patch_checker(/*rest_resume=*/false);
+        toolbox_reinject(/*rest_resume=*/false);
     }
     /* Mark that util completed cold start (typed flag; replaces util_first_boot file). */
     onion_ready_signal(ONION_FLAG_UTIL_BOOTED);
@@ -153,27 +151,12 @@ int main(void) {
     LOG_INFO("Initializing cheat engine...");
     onion::cheats::CheatService::instance().ensureDir();
 
+    /* Rest-mode recovery: SIGCONT resume signal + network-up confirmation.
+     * See rest_mode.hpp / rest_mode.cpp. */
+    onion::rest_mode::install();
+
     for (;;) {
-        // Rest Mode: wait until network is back, then reinject toolbox if needed.
-        if (get_ip_address(&tmp_buf[0], sizeof(tmp_buf)) < 0) {
-            sleep(1);
-
-            bool fail1 = get_ip_address(&tmp_buf[0], sizeof(tmp_buf)) < 0;
-            if (!fail1)
-                continue;
-
-            sleep(2);
-
-            bool fail2 = get_ip_address(&tmp_buf[0], sizeof(tmp_buf)) < 0;
-            if (!fail2)
-                continue;
-
-            if (no_network_rest_mode_action) {
-                patch_checker(/*rest_resume=*/true);
-            }
-            continue;
-        }
-        no_network_rest_mode_action = false;
+        onion::rest_mode::poll();
         sleep(1);
     }
 

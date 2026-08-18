@@ -63,7 +63,7 @@ bool cmd_enable_toolbox(){
      * cold start.
      * util_booted is true almost immediately after util starts (before this
      * inject), so gating on it alone hung first toolbox load for delay seconds.
-     * Rest re-activation delay lives in util patch_checker / check_addr_change.
+     * Rest re-activation delay lives in util toolbox_reinject (rest_mode::Recovery).
      */
     LoadSettings();
     {

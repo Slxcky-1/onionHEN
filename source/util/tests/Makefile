@@ -120,8 +120,9 @@ TEST_CXX_SRCS := \
 	test_onpress_policy.cpp \
 	test_toolbox_helpers.cpp \
 	test_toolbox_i18n.cpp \
-	test_toolbox_injection.cpp \
-	test_overlay_text_metrics.cpp \
+  test_toolbox_injection.cpp \
+  test_overlay_text_metrics.cpp \
+  test_rest_mode_recovery.cpp \
 	test_trampoline_arena.cpp \
 	test_hook_lifecycle.cpp \
 	test_hotpatch.cpp \

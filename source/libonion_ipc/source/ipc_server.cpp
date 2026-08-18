@@ -252,44 +252,71 @@ void *ipc_server_loop(void *options_ptr) {
   }
 
   const char *tag = opts->tag ? opts->tag : "ipc";
-  int serverSocket = ipc_network_listen(opts->socket_path);
-  if (serverSocket < 0) {
-    LOG_ERROR("[%s] networkListen error %s", tag, strerror(errno));
-    return nullptr;
-  }
-
+  const bool stoppable = (opts->running != nullptr);
   int cli_new = 0;
-  while (true) {
-    int clientSocket = ipc_network_accept(serverSocket);
-    if (clientSocket < 0) {
-      LOG_ERROR("[%s] networkAccept error %s", tag, strerror(errno));
+
+  while (!stoppable || opts->running->load()) {
+    int serverSocket = ipc_network_listen(opts->socket_path);
+    if (serverSocket < 0) {
+      LOG_ERROR("[%s] networkListen error %s", tag, strerror(errno));
+      return nullptr;
+    }
+    if (opts->server_fd)
+      opts->server_fd->store(serverSocket);
+
+    int clientSocket;
+    while ((clientSocket = ipc_network_accept(serverSocket)) >= 0) {
+      LOG_DEBUG("[%s] Connection Accepted cl_nmb %i", tag, cli_new);
+
+      auto *client = new IpcClientArgs();
+      client->ip = "localhost";
+      client->socket = clientSocket;
+      client->cl_nmb = cli_new;
+
+      auto *pack = new ClientThreadArgs{client, opts->handler, tag};
+      pthread_t thr{};
+      if (pthread_create(&thr, nullptr, client_thread, pack) != 0) {
+        LOG_ERROR("[%s] pthread_create failed", tag);
+        ipc_network_close(clientSocket);
+        delete client;
+        delete pack;
+        continue;
+      }
+      if (opts->detach_clients) {
+        pthread_detach(thr);
+      }
+      cli_new++;
+    }
+
+    // accept() failed: the listener is gone (e.g. after a standby resume the
+    // socket may be dead). Re-listen to restore service unless a permanent
+    // stop was requested.
+    ipc_network_close(serverSocket);
+    if (opts->server_fd)
+      opts->server_fd->store(-1);
+    if (stoppable && !opts->running->load())
       break;
-    }
-
-    LOG_DEBUG("[%s] Connection Accepted cl_nmb %i", tag, cli_new);
-
-    auto *client = new IpcClientArgs();
-    client->ip = "localhost";
-    client->socket = clientSocket;
-    client->cl_nmb = cli_new;
-
-    auto *pack = new ClientThreadArgs{client, opts->handler, tag};
-    pthread_t thr{};
-    if (pthread_create(&thr, nullptr, client_thread, pack) != 0) {
-      LOG_ERROR("[%s] pthread_create failed", tag);
-      ipc_network_close(clientSocket);
-      delete client;
-      delete pack;
-      continue;
-    }
-    if (opts->detach_clients) {
-      pthread_detach(thr);
-    }
-    cli_new++;
+    LOG_WARN("[%s] networkAccept error %s; re-listening", tag, strerror(errno));
+    sleep(1);
   }
 
-  ipc_network_close(serverSocket);
   return nullptr;
+}
+
+void ipc_server_stop(IpcServerOptions *opts) {
+  if (!opts)
+    return;
+  if (opts->running)
+    opts->running->store(false);
+  ipc_server_restart(opts);
+}
+
+void ipc_server_restart(IpcServerOptions *opts) {
+  if (!opts || !opts->server_fd)
+    return;
+  const int fd = opts->server_fd->load();
+  if (fd >= 0)
+    shutdown(fd, SHUT_RDWR);
 }
 
 } // namespace onion

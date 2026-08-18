@@ -4,6 +4,7 @@
  */
 #include <onion/platform.h>
 #include "ipc.hpp"
+#include "rest_mode.hpp"
 #include <msg.hpp>
 #include <onion/settings.hpp>
 #include "common_utils.h"
@@ -28,18 +29,15 @@ extern "C" {
 #include <memory>
 #include <sfo.hpp>
 #include <sstream>
-#include <atomic>
 #include <string>
 #include <vector>
 
-extern atomic_bool no_network_rest_mode_action, real_rest_mode_detected;
 extern bool is_handler_enabled;
 
 void reply(int sender_socket, bool error, std::string out_var = "Nothing");
 extern "C" {
 bool load_payload(const char *path);
 int launchApp(const char *titleId);
-extern char ip_address[];
 }
 std::string GetPS5Version(const std::string &jsonpath);
 std::vector<uint8_t> readFile(std::string filename);
@@ -72,7 +70,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   }
   case BREW_UTIL_SHELLUI_ON_STANDBY: {
     LOG_INFO("ShellUI on standby");
-    real_rest_mode_detected = no_network_rest_mode_action = true;
+    onion::rest_mode::on_standby();
     reply(sender_app, false);
     break;
   }

@@ -4,7 +4,7 @@
  *
  * Cold start: util signals util_booted before daemon injects — that must NOT
  * apply rest_mode.resume_reinject_delay_seconds (would hang first toolbox load).
- * Rest resume: only then apply configured delay (util patch_checker path).
+ * Rest resume: only then apply configured delay (util toolbox_reinject path).
  */
 
 #pragma once

@@ -26,6 +26,7 @@ extern "C" int test_debug_settings_route_policy_suite(void);
 extern "C" int test_ipc_harden_suite(void);
 extern "C" int test_toolbox_timing_suite(void);
 extern "C" int test_toolbox_injection_suite(void);
+extern "C" int test_rest_mode_recovery_suite(void);
 extern "C" int test_trampoline_arena_suite(void);
 extern "C" int test_hook_lifecycle_suite(void);
 extern "C" int test_hijack_retry_suite(void);
@@ -65,6 +66,7 @@ int main() {
   failures += test_ipc_harden_suite();
   failures += test_toolbox_timing_suite();
   failures += test_toolbox_injection_suite();
+  failures += test_rest_mode_recovery_suite();
   failures += test_trampoline_arena_suite();
   failures += test_hook_lifecycle_suite();
   failures += test_hijack_retry_suite();
