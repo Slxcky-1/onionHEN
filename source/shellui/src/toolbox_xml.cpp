@@ -504,12 +504,10 @@ std::string cheat_sync_status_subtitle() {
 void append_toolbox_game_group(ps5ui::Group& g) {
   g.link("id_cheats", toolbox_i18n::tr("cheats.link"), "cheats.xml",
          toolbox_i18n::tr("cheats.link.sub"))
-      .button("id_download_cheats", toolbox_i18n::tr("cheats.repo.download"),
-              cheat_sync_status_subtitle(),
-              toolbox_i18n::tr("cheats.repo.download.desc"), std::nullopt,
-              ps5ui::Style::None,
-              toolbox_i18n::tr("cheats.repo.download.confirm"),
-              toolbox_i18n::tr("cheats.repo.download.confirm_phrase"));
+      .link("id_download_cheats", toolbox_i18n::tr("cheats.repo.download"),
+            "cheat_progress.xml", cheat_sync_status_subtitle(), std::nullopt,
+            toolbox_i18n::tr("cheats.repo.download.confirm"),
+            toolbox_i18n::tr("cheats.repo.download.confirm_phrase"));
 }
 
 void append_toolbox_display_group(ps5ui::Group& g) {

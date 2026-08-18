@@ -3,7 +3,69 @@
 
 #include "cheats/runtime.h"
 
+#include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+static size_t flatten_progress_calls;
+static size_t flatten_progress_completed;
+static size_t flatten_progress_total;
+
+static void capture_flatten_progress(size_t completed, size_t total,
+                                     void *user) {
+  (void)user;
+  ++flatten_progress_calls;
+  flatten_progress_completed = completed;
+  flatten_progress_total = total;
+}
+
+static int write_text(const char *path, const char *text) {
+  FILE *file = fopen(path, "wb");
+  if (file == NULL) {
+    return -1;
+  }
+  if (fwrite(text, 1, strlen(text), file) != strlen(text)) {
+    fclose(file);
+    return -1;
+  }
+  return fclose(file);
+}
+
+static int test_flatten_progress(void) {
+  const char *source = ONION_DATA_ROOT "/flatten-progress";
+  const char *first_source = ONION_DATA_ROOT
+      "/flatten-progress/CUSA99991_01.00.json";
+  const char *second_source = ONION_DATA_ROOT
+      "/flatten-progress/CUSA99992_01.00.shn";
+  const char *ignored_source = ONION_DATA_ROOT "/flatten-progress/readme.txt";
+  const char *first_dest = ONION_CHEATS_DIR "/CUSA99991_01.00.json";
+  const char *second_dest = ONION_CHEATS_DIR "/CUSA99992_01.00.shn";
+
+  (void)mkdir(ONION_DATA_ROOT, 0777);
+  (void)mkdir(ONION_CHEATS_DIR, 0777);
+  (void)mkdir(source, 0777);
+  TEST_ASSERT_EQ_INT(0, write_text(first_source, "{}"));
+  TEST_ASSERT_EQ_INT(0, write_text(second_source, "fixture"));
+  TEST_ASSERT_EQ_INT(0, write_text(ignored_source, "ignored"));
+
+  flatten_progress_calls = 0;
+  flatten_progress_completed = 0;
+  flatten_progress_total = 0;
+  TEST_ASSERT_EQ_INT(0, onion_cheat_flatten_install_tree_with_progress(
+                            source, capture_flatten_progress, NULL));
+  TEST_ASSERT_EQ_U64(2, flatten_progress_total);
+  TEST_ASSERT_EQ_U64(flatten_progress_total, flatten_progress_completed);
+  TEST_ASSERT_EQ_U64(3, flatten_progress_calls);
+
+  unlink(first_source);
+  unlink(second_source);
+  unlink(ignored_source);
+  unlink(first_dest);
+  unlink(second_dest);
+  rmdir(source);
+  return 0;
+}
 
 static int test_match_ext_known(void) {
   char ext[16];
@@ -323,6 +385,7 @@ int test_cheat_flatten_suite(void) {
   failures += onion_test_run("flatten.match_ext_known", test_match_ext_known);
   failures += onion_test_run("flatten.match_ext_reject", test_match_ext_reject);
   failures += onion_test_run("flatten.flat_simple", test_flat_simple);
+  failures += onion_test_run("flatten.progress", test_flatten_progress);
   failures += onion_test_run("flatten.flat_strips_process",
                              test_flat_strips_process_suffix);
   failures +=

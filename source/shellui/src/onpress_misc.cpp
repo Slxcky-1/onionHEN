@@ -1,6 +1,7 @@
 /* Copyright (C) 2025 OnionHEN / LightningMods — OnPress misc (kstuff, account, credits) */
 #include "onpress.hpp"
 #include "account_activator.h"
+#include "progress_dialog.hpp"
 #include <unistd.h>
 
 static OnPressResult id_kstuff_autoload(OnPressContext &ctx) {
@@ -31,7 +32,9 @@ static OnPressResult id_download_cheats(OnPressContext &ctx) {
   if (reply.find("already_running") != std::string::npos) {
     notify("notify.cheats.sync.busy");
   }
-  return OnPressResult::Consumed;
+  /* Start tracking before the link opens cheat_progress.xml. */
+  cheat_progress_show();
+  return OnPressResult::Handled;
 }
 
 static OnPressResult id_delete_kstuff(OnPressContext &ctx) {

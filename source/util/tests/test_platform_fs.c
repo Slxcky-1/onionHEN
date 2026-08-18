@@ -63,10 +63,47 @@ static int test_rmtree_nested(void) {
   return 0;
 }
 
+static size_t progress_calls;
+static size_t progress_completed;
+static size_t progress_total;
+
+static void capture_rmtree_progress(size_t completed, size_t total,
+                                    void *user) {
+  (void)user;
+  ++progress_calls;
+  progress_completed = completed;
+  progress_total = total;
+}
+
+static int test_rmtree_progress(void) {
+  char dir[64];
+  char sub[128];
+  char file[160];
+  TEST_ASSERT_EQ_INT(0, make_temp_dir(dir, sizeof(dir)));
+  snprintf(sub, sizeof(sub), "%s/nested", dir);
+  TEST_ASSERT_EQ_INT(0, mkdir(sub, 0777));
+  snprintf(file, sizeof(file), "%s/a.txt", sub);
+  TEST_ASSERT_TRUE(touch_file(file));
+  snprintf(file, sizeof(file), "%s/b.txt", dir);
+  TEST_ASSERT_TRUE(touch_file(file));
+
+  progress_calls = 0;
+  progress_completed = 0;
+  progress_total = 0;
+  TEST_ASSERT_TRUE(
+      rmtree_with_progress(dir, capture_rmtree_progress, NULL));
+  TEST_ASSERT_TRUE(!if_exists(dir));
+  TEST_ASSERT_EQ_U64(4, progress_total);
+  TEST_ASSERT_EQ_U64(progress_total, progress_completed);
+  TEST_ASSERT_EQ_U64(5, progress_calls);
+  return 0;
+}
+
 int test_platform_fs_suite(void) {
   int failures = 0;
   failures += onion_test_run("fs_if_exists_null_missing", test_if_exists_null_and_missing);
   failures += onion_test_run("fs_touch_and_exists", test_touch_and_exists);
   failures += onion_test_run("fs_rmtree_nested", test_rmtree_nested);
+  failures += onion_test_run("fs_rmtree_progress", test_rmtree_progress);
   return failures;
 }

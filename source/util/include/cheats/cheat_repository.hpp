@@ -4,6 +4,7 @@
 #include <string>
 
 #include "cheats/cheat_engine.h"
+#include "cheats/runtime.h"
 #include "util_platform.h"
 
 namespace onion::cheats {
@@ -53,6 +54,8 @@ public:
   static void ensureCheatsDir();
   /** Flatten nested repo tree into ONION_CHEATS_DIR. */
   static int flattenInstallTree(const std::string &root);
+  static int flattenInstallTree(const std::string &root,
+                                onion_cheat_progress_fn progress, void *user);
 };
 
 } // namespace onion::cheats

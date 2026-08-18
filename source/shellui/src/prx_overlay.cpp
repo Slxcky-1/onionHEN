@@ -511,4 +511,11 @@ void OnRender_Hook(MonoObject* instance) {
   }
 
   OnRender_orig(instance);
+
+  /*
+   * Legacy's own UpdateProgressPanel lifecycle runs inside OnRender_orig and
+   * can restore its default Progress=1.0. Apply our value after that update so
+   * the final value committed for this frame is the daemon state.
+   */
+  shellui_poll_cheat_progress();
 }

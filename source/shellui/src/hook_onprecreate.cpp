@@ -81,6 +81,10 @@ int OnPreCreate_Hook(MonoObject *Instance, MonoObject *element) {
     return call_original(Instance, element);
   }
 
+  if (g_ui.active_page == toolbox::Page::CheatProgress) {
+    return call_original(Instance, element);
+  }
+
   if (!ensure_set_value_method())
     return -1;
 

@@ -6,6 +6,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,6 +20,13 @@ bool touch_file(const char *path);
 
 /** Recursively delete directory tree at path. */
 bool rmtree(const char *path);
+
+typedef void (*onion_fs_progress_fn)(size_t completed, size_t total,
+                                     void *user);
+
+/** Recursively delete a tree and report completed entries, including dirs. */
+bool rmtree_with_progress(const char *path, onion_fs_progress_fn progress,
+                          void *user);
 
 #ifdef __cplusplus
 }

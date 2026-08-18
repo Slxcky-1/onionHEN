@@ -71,9 +71,30 @@ bool mkdir_tree(const std::string &path) {
   return mkdir(current.c_str(), 0777) == 0 || errno == EEXIST;
 }
 
-void cleanup_temp(const std::string &root, const std::string &parent) {
+struct PhaseProgress {
+  const char *phase = nullptr;
+  SyncProgressFn fn = nullptr;
+  void *user = nullptr;
+};
+
+void on_phase_progress(size_t completed, size_t total, void *user) {
+  const auto *progress = static_cast<const PhaseProgress *>(user);
+  if (progress && progress->fn) {
+    progress->fn(progress->phase, completed, total, progress->user);
+  }
+}
+
+void cleanup_temp(const std::string &root, const std::string &parent,
+                  SyncProgressFn progress = nullptr,
+                  void *progress_user = nullptr) {
   if (if_exists(root.c_str())) {
-    (void)rmtree(root.c_str());
+    PhaseProgress bridge{"cleanup", progress, progress_user};
+    if (progress) {
+      progress("cleanup", 0, 0, progress_user);
+    }
+    (void)rmtree_with_progress(root.c_str(),
+                               progress ? on_phase_progress : nullptr,
+                               &bridge);
   }
   (void)rmdir(parent.c_str());
 }
@@ -168,7 +189,7 @@ SyncStatus CheatSyncEngine::tryOne(const ICheatCatalog &catalog,
     out.error = status == SyncStatus::Tls      ? "tls_verify"
                 : status == SyncStatus::Clock  ? "system_clock"
                                                : "archive download failed";
-    cleanup_temp(temp_root, temp_parent);
+    cleanup_temp(temp_root, temp_parent, progress_, progress_user_);
     return status;
   }
 
@@ -178,23 +199,25 @@ SyncStatus CheatSyncEngine::tryOne(const ICheatCatalog &catalog,
                              root_count, progress_, progress_user_);
   if (status != SyncStatus::Ok) {
     out.error = "archive extract failed";
-    cleanup_temp(temp_root, temp_parent);
+    cleanup_temp(temp_root, temp_parent, progress_, progress_user_);
     return status;
   }
 
   for (size_t i = 0; i < root_count; ++i) {
     const std::string root = join_path(extract_root, roots[i]);
-    if (flatten_(root.c_str()) != 0) {
-      out.error = "install failed";
-      cleanup_temp(temp_root, temp_parent);
-      return SyncStatus::Io;
-    }
+    PhaseProgress bridge{"install", progress_, progress_user_};
     if (progress_) {
-      progress_("install", i + 1, root_count, progress_user_);
+      progress_("install", 0, 0, progress_user_);
+    }
+    if (flatten_(root.c_str(), progress_ ? on_phase_progress : nullptr,
+                 &bridge) != 0) {
+      out.error = "install failed";
+      cleanup_temp(temp_root, temp_parent, progress_, progress_user_);
+      return SyncStatus::Io;
     }
   }
 
-  cleanup_temp(temp_root, temp_parent);
+  cleanup_temp(temp_root, temp_parent, progress_, progress_user_);
   out.error.clear();
   return SyncStatus::Ok;
 }

@@ -7,6 +7,7 @@
 
 #include <miniz.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -25,6 +26,14 @@ namespace {
 
 std::vector<std::string> g_flatten_roots;
 int g_flatten_result = 0;
+
+struct ProgressEvent {
+  std::string phase;
+  size_t completed = 0;
+  size_t total = 0;
+};
+
+std::vector<ProgressEvent> g_progress_events;
 
 const std::filesystem::path &test_root() {
   static const std::filesystem::path root =
@@ -114,7 +123,9 @@ std::vector<unsigned char> make_archive() {
   return out;
 }
 
-int capture_flatten(const char *root) {
+int capture_flatten(const char *root,
+                    CheatSyncEngine::InstallProgressFn progress,
+                    void *progress_user) {
   g_flatten_roots.emplace_back(root ? root : "");
   if (g_flatten_result != 0 || !root) {
     return g_flatten_result;
@@ -122,7 +133,22 @@ int capture_flatten(const char *root) {
   std::ifstream input(std::filesystem::path(root) / "game.json");
   std::string contents;
   std::getline(input, contents);
-  return contents == "{\"name\":\"fixture\"}" ? 0 : -1;
+  if (contents != "{\"name\":\"fixture\"}") {
+    return -1;
+  }
+  if (progress) {
+    progress(0, 3, progress_user);
+    progress(1, 3, progress_user);
+    progress(2, 3, progress_user);
+    progress(3, 3, progress_user);
+  }
+  return 0;
+}
+
+void capture_progress(const char *phase, size_t completed, size_t total,
+                      void *) {
+  g_progress_events.push_back(
+      ProgressEvent{phase ? phase : "", completed, total});
 }
 
 void reset_test_root() {
@@ -131,6 +157,7 @@ void reset_test_root() {
   std::filesystem::create_directories(test_root(), error);
   g_flatten_roots.clear();
   g_flatten_result = 0;
+  g_progress_events.clear();
 }
 
 bool temp_was_removed() {
@@ -148,6 +175,7 @@ static int test_download_extract_install_cleanup(void) {
   http.archive = make_archive();
   TEST_ASSERT_TRUE(!http.archive.empty());
   CheatSyncEngine engine(http, capture_flatten);
+  engine.setProgressHandler(capture_progress, nullptr);
   const auto result = engine.run(catalog, mirror, nullptr, test_root().c_str());
   TEST_ASSERT_TRUE(result.status == SyncStatus::Ok);
   TEST_ASSERT_TRUE(result.used_mirror == CheatMirrorId::Github);
@@ -156,6 +184,25 @@ static int test_download_extract_install_cleanup(void) {
   TEST_ASSERT_TRUE(http.max_body_bytes == 64ull * 1024ull * 1024ull);
   TEST_ASSERT_EQ_INT(1, static_cast<int>(g_flatten_roots.size()));
   TEST_ASSERT_TRUE(temp_was_removed());
+  const auto install_begin = std::find_if(
+      g_progress_events.begin(), g_progress_events.end(),
+      [](const ProgressEvent &event) {
+        return event.phase == "install" && event.completed == 0;
+      });
+  const auto install_end = std::find_if(
+      g_progress_events.begin(), g_progress_events.end(),
+      [](const ProgressEvent &event) {
+        return event.phase == "install" && event.completed == 3 &&
+               event.total == 3;
+      });
+  const auto cleanup = std::find_if(
+      g_progress_events.begin(), g_progress_events.end(),
+      [](const ProgressEvent &event) { return event.phase == "cleanup"; });
+  TEST_ASSERT_TRUE(install_begin != g_progress_events.end());
+  TEST_ASSERT_TRUE(install_end != g_progress_events.end());
+  TEST_ASSERT_TRUE(cleanup != g_progress_events.end());
+  TEST_ASSERT_TRUE(install_begin < install_end);
+  TEST_ASSERT_TRUE(install_end < cleanup);
   return 0;
 }
 

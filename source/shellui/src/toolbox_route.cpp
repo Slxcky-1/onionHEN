@@ -18,6 +18,7 @@ RouteResult resolve_resource(const RouteInput &in) {
   out.flags.is_auto_payload = (in.resource == kAutoPayloadsXml);
   out.flags.is_account = (in.resource == kAccountXml);
   out.flags.is_plapps = (in.resource == kPlappsXml);
+  out.flags.is_cheat_progress = (in.resource == kCheatProgressXml);
   out.flags.is_su_menu = (in.resource == kSuperuserXml);
 
   if (in.cheats_shortcut || in.cheats_shortcut_not_open) {
@@ -39,6 +40,8 @@ RouteResult resolve_resource(const RouteInput &in) {
     out.page = Page::Account;
   } else if (out.flags.is_plapps) {
     out.page = Page::Plapps;
+  } else if (out.flags.is_cheat_progress) {
+    out.page = Page::CheatProgress;
   } else if (out.flags.is_su_menu) {
     out.page = Page::SuperuserPass;
   } else {

@@ -171,6 +171,9 @@ void shellui_request_display_tids_home_reload(void);
 /** Drain one-shot home reload; call only from UI thread after hooks ready. */
 void shellui_poll_display_tids_home_reload(void);
 
+/** UI-thread ticker for the cheat-download XML progress page. */
+void shellui_poll_cheat_progress(void);
+
 bool SetVersionString(const char* str);
 int SendShelluiNotify();
 void Terminate();
@@ -320,6 +323,7 @@ result Invoke(MonoImage* Assembly_Image, MonoClass* klass, MonoObject* Instance,
 /* ================================= ORIG HOOKED MONO FUNCS ============================================= */
 extern int (*oOnPress)(MonoObject* Instance, MonoObject* element, MonoObject* e);
 extern int (*oOnPreCreate)(MonoObject* Instance, MonoObject* element);
+extern void (*oUserCustomElementReset)(MonoObject* Instance, MonoObject* item);
 extern MonoString* (*CxmlUri)(MonoObject* obj,MonoString* uri);
 extern void (*oTerminate)(void);
 
@@ -360,6 +364,7 @@ MonoObject* New_Object(MonoClass* Klass);
 MonoString *GetString_Hook(MonoObject *Instance, MonoString *str);
 int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e);
 int OnPreCreate_Hook(MonoObject* Instance, MonoObject* element);
+void UserCustomElementReset_Hook(MonoObject* Instance, MonoObject* item);
 MonoImage * getDLLimage(const char* dll_file);
 MonoString* CxmlUri_Hook(MonoObject* obj, MonoString* uri);
 MonoObject* InvokeByDesc(MonoClass* p_Class, const char* p_MethodDesc, void* p_Instance, void* p_Args);

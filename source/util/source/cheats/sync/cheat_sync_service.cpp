@@ -23,9 +23,12 @@ extern "C" int sceSystemServiceParamGetInt(int param_id, int *value);
 namespace onion::cheats::sync {
 namespace {
 
-int flatten_existing(const char *root) {
+int flatten_existing(const char *root,
+                     CheatSyncEngine::InstallProgressFn progress,
+                     void *progress_user) {
   CheatRepository::ensureCheatsDir();
-  return CheatRepository::flattenInstallTree(root ? root : "");
+  return CheatRepository::flattenInstallTree(root ? root : "", progress,
+                                             progress_user);
 }
 
 int read_system_language(const onion::Settings &settings) {

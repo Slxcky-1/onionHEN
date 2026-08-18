@@ -21,6 +21,7 @@ enum class Page : unsigned char {
   AutoPayloads,
   Account,
   Plapps,
+  CheatProgress,
   SuperuserPass,      /**< recognized; still use original stream */
   RedirectOgDebug,    /**< og_debug.xml → debug_settings resource */
 };
@@ -47,6 +48,7 @@ struct RouteFlags {
   bool is_auto_payload = false;
   bool is_account = false;
   bool is_plapps = false;
+  bool is_cheat_progress = false;
 };
 
 struct RouteResult {
@@ -65,6 +67,8 @@ inline constexpr std::string_view kAccountXml =
     "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.account.xml";
 inline constexpr std::string_view kPlappsXml =
     "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.plapps.xml";
+inline constexpr std::string_view kCheatProgressXml =
+    "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.cheat_progress.xml";
 inline constexpr std::string_view kSuperuserXml =
     "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.superuser.xml";
 inline constexpr std::string_view kOgDebugXml =

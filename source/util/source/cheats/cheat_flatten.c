@@ -420,7 +420,41 @@ static int copy_file(const char *src, const char *dst) {
   return 0;
 }
 
-static void walk_and_flatten(const char *dir, int *copied, int *skipped) {
+static size_t count_flatten_files(const char *dir) {
+  DIR *d = opendir(dir);
+  struct dirent *ent;
+  size_t count = 0;
+
+  if (d == NULL) {
+    return 0;
+  }
+  while ((ent = readdir(d)) != NULL) {
+    char path[512];
+    char flat[256];
+    struct stat st;
+
+    if (ent->d_name[0] == '.') {
+      continue;
+    }
+    snprintf(path, sizeof(path), "%s/%s", dir, ent->d_name);
+    if (stat(path, &st) != 0) {
+      continue;
+    }
+    if (S_ISDIR(st.st_mode)) {
+      count += count_flatten_files(path);
+    } else if (S_ISREG(st.st_mode) &&
+               onion_cheat_build_flat_name(ent->d_name, flat, sizeof(flat)) ==
+                   0) {
+      ++count;
+    }
+  }
+  closedir(d);
+  return count;
+}
+
+static void walk_and_flatten(const char *dir, int *copied, int *skipped,
+                             size_t *completed, size_t total,
+                             onion_cheat_progress_fn progress, void *user) {
   DIR *d = opendir(dir);
   struct dirent *ent;
 
@@ -441,7 +475,7 @@ static void walk_and_flatten(const char *dir, int *copied, int *skipped) {
       continue;
     }
     if (S_ISDIR(st.st_mode)) {
-      walk_and_flatten(path, copied, skipped);
+      walk_and_flatten(path, copied, skipped, completed, total, progress, user);
       continue;
     }
     if (!S_ISREG(st.st_mode)) {
@@ -452,6 +486,10 @@ static void walk_and_flatten(const char *dir, int *copied, int *skipped) {
     }
     snprintf(dest, sizeof(dest), ONION_CHEATS_DIR "/%s", flat);
     if (strcmp(path, dest) == 0) {
+      ++(*completed);
+      if (progress != NULL) {
+        progress(*completed, total, user);
+      }
       continue;
     }
     if (copy_file(path, dest) == 0) {
@@ -459,6 +497,10 @@ static void walk_and_flatten(const char *dir, int *copied, int *skipped) {
       LOG_INFO("[flatten] %s -> %s", path, dest);
     } else {
       (*skipped)++;
+    }
+    ++(*completed);
+    if (progress != NULL) {
+      progress(*completed, total, user);
     }
   }
   closedir(d);
@@ -494,8 +536,15 @@ void onion_cheat_normalize_version(const char *version, char *out,
 }
 
 int onion_cheat_flatten_install_tree(const char *root) {
+  return onion_cheat_flatten_install_tree_with_progress(root, NULL, NULL);
+}
+
+int onion_cheat_flatten_install_tree_with_progress(
+    const char *root, onion_cheat_progress_fn progress, void *user) {
   int copied = 0;
   int skipped = 0;
+  size_t completed = 0;
+  size_t total;
 
   mkdir(ONION_DATA_ROOT, 0777);
   mkdir(ONION_CHEATS_DIR, 0777);
@@ -503,7 +552,11 @@ int onion_cheat_flatten_install_tree(const char *root) {
   if (root == NULL || root[0] == '\0') {
     root = ONION_CHEATS_DIR;
   }
-  walk_and_flatten(root, &copied, &skipped);
+  total = count_flatten_files(root);
+  if (progress != NULL) {
+    progress(0, total, user);
+  }
+  walk_and_flatten(root, &copied, &skipped, &completed, total, progress, user);
   LOG_WARN("[flatten] installed %d cheat file(s), skipped %d", copied,
                    skipped);
   return copied > 0 ? 0 : -1;

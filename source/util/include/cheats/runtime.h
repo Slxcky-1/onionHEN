@@ -126,6 +126,13 @@ void onion_cheat_normalize_version(const char *version, char *out,
 /** Walk @p root and copy cheats into ONION_CHEATS_DIR as flat names. */
 int onion_cheat_flatten_install_tree(const char *root);
 
+typedef void (*onion_cheat_progress_fn)(size_t completed, size_t total,
+                                        void *user);
+
+/** Flatten a tree while reporting recognized files attempted. */
+int onion_cheat_flatten_install_tree_with_progress(
+    const char *root, onion_cheat_progress_fn progress, void *user);
+
 #ifdef __cplusplus
 }
 #endif

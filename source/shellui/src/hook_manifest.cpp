@@ -5,6 +5,7 @@
 #include "external_symbols.hpp"
 #include "shellui_state.hpp"
 #include "onpress_policy.hpp"
+#include "progress_dialog.hpp"
 #include "toolbox_route.hpp"
 #include <onion/platform.h>
 #include <string>
@@ -123,6 +124,9 @@ uint64_t GetManifestResourceStream_Hook(uint64_t inst, MonoString *FileName) {
   case toolbox::Page::Plapps:
     g_ui.payloads_apps_list.clear();
     generate_plapps_xml(new_xml_string);
+    break;
+  case toolbox::Page::CheatProgress:
+    generate_cheat_progress_xml(new_xml_string);
     break;
   default:
     return GetManifestResourceStream_Original(inst, FileName);

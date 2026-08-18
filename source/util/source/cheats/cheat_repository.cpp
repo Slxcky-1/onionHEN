@@ -279,4 +279,11 @@ int CheatRepository::flattenInstallTree(const std::string &root) {
   return onion_cheat_flatten_install_tree(root.c_str());
 }
 
+int CheatRepository::flattenInstallTree(const std::string &root,
+                                        onion_cheat_progress_fn progress,
+                                        void *user) {
+  return onion_cheat_flatten_install_tree_with_progress(root.c_str(), progress,
+                                                        user);
+}
+
 } // namespace onion::cheats
