@@ -30,11 +30,11 @@
                                     └──────┬───────┘
            ┌───────────────────────────────┼───────────────────────────────┐
            ▼                               ▼                               ▼
-    ShellUI / fps_elf                                          游戏进程
+    ShellUI                                                    游戏进程
     (Unix socket 客户端)                               mdbg|kdirect 写内存
 ```
 
-**典型客户端**：`shellui.elf`、`fps_elf` 通过 `IPC_Client(util_daemon=true)` 连 util socket。
+**典型客户端**：`shellui.elf` 通过 `IPC_Client(util_daemon=true)` 连 util socket。
 
 ---
 
