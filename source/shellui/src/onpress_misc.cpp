@@ -32,9 +32,12 @@ static OnPressResult id_download_cheats(OnPressContext &ctx) {
   if (reply.find("already_running") != std::string::npos) {
     notify("notify.cheats.sync.busy");
   }
-  /* Start tracking before the link opens cheat_progress.xml. */
+  /* Button confirmation has completed before this handler runs. */
   cheat_progress_show();
-  return OnPressResult::Handled;
+  if (!cheat_progress_open_page()) {
+    notify("notify.cheats.sync.error", "navigation");
+  }
+  return OnPressResult::Consumed;
 }
 
 static OnPressResult id_delete_kstuff(OnPressContext &ctx) {

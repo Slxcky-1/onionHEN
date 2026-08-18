@@ -478,11 +478,11 @@ void append_toolbox_payloads_group(ps5ui::Group& g) {
 void append_toolbox_game_group(ps5ui::Group& g) {
   g.link("id_cheats", toolbox_i18n::tr("cheats.link"), "cheats.xml",
          toolbox_i18n::tr("cheats.link.sub"))
-      .link("id_download_cheats", toolbox_i18n::tr("cheats.repo.download"),
-            "cheat_progress.xml",
-            toolbox_i18n::tr("cheats.repo.download.desc"), std::nullopt,
-            toolbox_i18n::tr("cheats.repo.download.confirm"),
-            toolbox_i18n::tr("cheats.repo.download.confirm_phrase"));
+      .button("id_download_cheats", toolbox_i18n::tr("cheats.repo.download"),
+              toolbox_i18n::tr("cheats.repo.download.desc"), std::nullopt,
+              std::nullopt, ps5ui::Style::None,
+              toolbox_i18n::tr("cheats.repo.download.confirm"),
+              toolbox_i18n::tr("cheats.repo.download.confirm_phrase"));
 }
 
 void append_toolbox_display_group(ps5ui::Group& g) {

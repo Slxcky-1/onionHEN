@@ -14,6 +14,9 @@
 /** Reset progress state and start the detached IPC status poller. */
 void cheat_progress_show(void);
 
+/** Push cheat_progress.xml on the active Legacy Settings page stack. */
+bool cheat_progress_open_page(void);
+
 /** Generate the dynamic cheat_progress.xml document. */
 void generate_cheat_progress_xml(std::string &xml_buffer);
 
