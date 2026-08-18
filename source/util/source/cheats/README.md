@@ -22,8 +22,8 @@ IPC / main
 IPC DOWNLOAD_CHEATS
   └─ onion::cheats::sync::CheatSyncService
        ├─ CheatCatalogRegistry / ICheatCatalog
-       ├─ GitMirrorFactory / IGitMirror
-       ├─ IGitClient (libgit2)
+       ├─ CheatMirrorFactory / ICheatMirror
+       ├─ IHttpTransport + miniz archive extractor
        └─ CheatRepository::flattenInstallTree   # reuse
 ```
 
@@ -33,8 +33,8 @@ IPC DOWNLOAD_CHEATS
 |---------|--------|
 | Facade | `CheatService` |
 | Singleton | `CheatService::instance()` |
-| Strategy | `IMemoryBackend`, `ICheatParser`, `ICheatCatalog`, `IGitMirror` |
-| Factory | `MemoryBackendFactory`, `CheatParserFactory`, `GitMirrorFactory` |
+| Strategy | `IMemoryBackend`, `ICheatParser`, `ICheatCatalog`, `ICheatMirror` |
+| Factory | `MemoryBackendFactory`, `CheatParserFactory`, `CheatMirrorFactory` |
 | Adapter | `ShnExtCheatParser` |
 | RAII | `std::lock_guard` on service state |
 

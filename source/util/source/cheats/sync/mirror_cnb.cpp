@@ -1,28 +1,29 @@
-#include "cheats/sync/i_git_mirror.hpp"
+#include "cheats/sync/i_cheat_mirror.hpp"
 
 #include <memory>
 
 namespace onion::cheats::sync {
 namespace {
 
-class CnbCoolMirror final : public IGitMirror {
+class CnbCoolMirror final : public ICheatMirror {
 public:
   CheatMirrorId id() const override { return CheatMirrorId::Cnb; }
   const char *name() const override { return "cnb"; }
-  const char *host() const override { return "cnb.cool"; }
-  const char *probeUrl() const override {
-    return "https://connect.rom.miui.com/generate_204";
-  }
-  const char *probeHost() const override { return "connect.rom.miui.com"; }
-  std::string cloneUrl(const ICheatCatalog &catalog) const override {
-    return https_clone_url(host(), catalog.slugFor(id()));
+  const char *archiveHost() const override { return "cnb.cool"; }
+  std::string archiveUrl(const ICheatCatalog &catalog) const override {
+    std::string url = "https://cnb.cool/";
+    url += catalog.slugFor(id());
+    url += "/-/git/archive/refs/heads/";
+    url += catalog.defaultBranch();
+    url += ".zip";
+    return url;
   }
 };
 
 } // namespace
 
-std::unique_ptr<IGitMirror> make_cnb_mirror() {
-  return std::unique_ptr<IGitMirror>(new CnbCoolMirror());
+std::unique_ptr<ICheatMirror> make_cnb_mirror() {
+  return std::unique_ptr<ICheatMirror>(new CnbCoolMirror());
 }
 
 } // namespace onion::cheats::sync

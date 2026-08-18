@@ -163,7 +163,7 @@ target_link_libraries	(${PROJECT_NAME} PUBLIC onion_proc onion_platform onion_se
 add_custom_target(${PROJECT_NAME}_assets
 	DEPENDS ${_generated_icon_files} "${_icon_asm}" "${_icon_manifest}")
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_assets)
-add_dependencies(${PROJECT_NAME} daemon onion_util shellui onion_elfldr_server onion_proc onion_platform onion_settings onion_payload onion_ready onion_elfldr)
+add_dependencies(${PROJECT_NAME} daemon util shellui onion_elfldr_server onion_proc onion_platform onion_settings onion_payload onion_ready onion_elfldr)
 
 # Copy bootstrapper.elf as test.elf before processing
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
@@ -174,10 +174,19 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 # Add post-build command
 onion_strip_debug(${PROJECT_NAME})
 
-# Portable size + lzma pack (Linux GNU stat / macOS BSD stat; lzma or xz)
-# PROJECT_ROOT is source/; pack script lives at repo scripts/
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E env "TARGET_ELF=$<TARGET_FILE:${PROJECT_NAME}>"
-            ${PROJECT_ROOT}/../scripts/pack_bootstrapper.sh
-    COMMENT "Recording size and compressing bootstrapper with lzma"
+# Declare the compressed payload as a real build output.  The unpacker embeds
+# these files, so a POST_BUILD-only command can otherwise leave it stale until
+# a second Ninja invocation.
+set(_bootstrapper_lzma "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bootstrapper.elf.lzma")
+set(_bootstrapper_lzma_size "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bootstrapper.elf.lzma.size")
+add_custom_command(
+	OUTPUT "${_bootstrapper_lzma}" "${_bootstrapper_lzma_size}"
+	COMMAND ${CMAKE_COMMAND} -E env "TARGET_ELF=$<TARGET_FILE:${PROJECT_NAME}>"
+			${PROJECT_ROOT}/../scripts/pack_bootstrapper.sh
+	DEPENDS ${PROJECT_NAME}
+	COMMENT "Recording size and compressing bootstrapper with lzma"
+	VERBATIM
 )
+add_custom_target(${PROJECT_NAME}_packed
+	DEPENDS "${_bootstrapper_lzma}" "${_bootstrapper_lzma_size}")
+add_dependencies(${PROJECT_NAME}_packed ${PROJECT_NAME})

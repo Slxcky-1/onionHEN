@@ -21,12 +21,6 @@ static int test_primary_id_and_layout(void) {
   TEST_ASSERT_TRUE(n >= 1);
   TEST_ASSERT_STREQ("cheats", roots[0]);
 
-  size_t d = 0;
-  const char *const *junk = cat.discardAfterSync(&d);
-  TEST_ASSERT_TRUE(junk != nullptr);
-  TEST_ASSERT_TRUE(d >= 1);
-  TEST_ASSERT_TRUE(junk[0] != nullptr);
-  TEST_ASSERT_TRUE(std::strcmp(junk[0], "cheats") != 0);
   return 0;
 }
 

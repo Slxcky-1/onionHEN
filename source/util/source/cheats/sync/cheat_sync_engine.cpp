@@ -1,10 +1,20 @@
 #include "cheats/sync/cheat_sync_engine.hpp"
 
-#include <cstring>
+#include "cheats/sync/zip_archive.hpp"
+
+#include <onion/fs.h>
+#include <onion/log.h>
+
+#include <cerrno>
+#include <cstdio>
 #include <string>
+#include <sys/stat.h>
+#include <unistd.h>
 
 namespace onion::cheats::sync {
 namespace {
+
+constexpr size_t kMaxArchiveBytes = 64ull * 1024ull * 1024ull;
 
 bool valid_catalog_id(const char *id) {
   if (!id || !id[0]) {
@@ -25,22 +35,8 @@ bool starts_with_https(const std::string &url) {
   return url.rfind("https://", 0) == 0;
 }
 
-std::string strip_dot_git(std::string url) {
-  if (url.size() >= 4 && url.compare(url.size() - 4, 4, ".git") == 0) {
-    url.resize(url.size() - 4);
-  }
-  while (!url.empty() && url.back() == '/') {
-    url.pop_back();
-  }
-  return url;
-}
-
-bool same_remote(const std::string &have, const std::string &want) {
-  return strip_dot_git(have) == strip_dot_git(want);
-}
-
-std::string join_path(const char *a, const char *b) {
-  std::string out = a ? a : "";
+std::string join_path(const std::string &a, const char *b) {
+  std::string out = a;
   if (!out.empty() && out.back() == '/') {
     out.pop_back();
   }
@@ -54,106 +50,173 @@ std::string join_path(const char *a, const char *b) {
   return out;
 }
 
+bool mkdir_tree(const std::string &path) {
+  if (path.empty() || path.size() >= 1024) {
+    return false;
+  }
+  std::string current;
+  current.reserve(path.size());
+  for (char ch : path) {
+    current.push_back(ch);
+    if (ch != '/' || current.size() == 1) {
+      continue;
+    }
+    current.pop_back();
+    if (!current.empty() && mkdir(current.c_str(), 0777) != 0 &&
+        errno != EEXIST) {
+      return false;
+    }
+    current.push_back('/');
+  }
+  return mkdir(current.c_str(), 0777) == 0 || errno == EEXIST;
+}
+
+void cleanup_temp(const std::string &root, const std::string &parent) {
+  if (if_exists(root.c_str())) {
+    (void)rmtree(root.c_str());
+  }
+  (void)rmdir(parent.c_str());
+}
+
+struct DownloadProgress {
+  SyncProgressFn fn = nullptr;
+  void *user = nullptr;
+};
+
+void on_download_progress(size_t completed, size_t total, void *user) {
+  const auto *progress = static_cast<const DownloadProgress *>(user);
+  if (progress && progress->fn) {
+    progress->fn("download", completed, total, progress->user);
+  }
+}
+
+SyncStatus download_archive(IHttpTransport &http, const char *url,
+                            const char *host, const char *path,
+                            SyncProgressFn progress, void *progress_user) {
+  FILE *file = std::fopen(path, "wb");
+  if (!file) {
+    LOG_ERROR("cheat archive create failed path=%s errno=%d", path, errno);
+    return SyncStatus::Io;
+  }
+
+  DownloadProgress bridge{progress, progress_user};
+  HttpRequest req;
+  req.url = url;
+  req.method = "GET";
+  req.user_agent = "OnionHEN";
+  req.host_allow = host;
+  req.status_min = 200;
+  req.status_max = 299;
+  req.max_body_bytes = kMaxArchiveBytes;
+  req.on_progress = on_download_progress;
+  req.progress_user = &bridge;
+
+  const SyncStatus status = http.perform(
+      req, [file](const void *data, size_t len) {
+        if (!data || len == 0) {
+          return SyncStatus::Ok;
+        }
+        return std::fwrite(data, 1, len, file) == len ? SyncStatus::Ok
+                                                      : SyncStatus::Io;
+      });
+  const bool closed = std::fclose(file) == 0;
+  if (status != SyncStatus::Ok || !closed) {
+    (void)unlink(path);
+    return status != SyncStatus::Ok ? status : SyncStatus::Io;
+  }
+  return SyncStatus::Ok;
+}
+
 } // namespace
 
-CheatSyncEngine::CheatSyncEngine(IGitClient &git, FlattenFn flatten,
-                                 ExistsFn exists, RmtreeFn rmtree)
-    : git_(git), flatten_(flatten), exists_(exists), rmtree_(rmtree) {}
+CheatSyncEngine::CheatSyncEngine(IHttpTransport &http, FlattenFn flatten)
+    : http_(http), flatten_(flatten) {}
 
-GitStatus CheatSyncEngine::tryOne(const ICheatCatalog &catalog,
-                                  const IGitMirror &mirror, const char *dest,
-                                  Result &out) {
-  const std::string url = mirror.cloneUrl(catalog);
-  if (!starts_with_https(url)) {
-    out.error = "refusing non-https remote";
-    return GitStatus::Rejected;
+void CheatSyncEngine::setProgressHandler(SyncProgressFn fn, void *user) {
+  progress_ = fn;
+  progress_user_ = user;
+}
+
+SyncStatus CheatSyncEngine::tryOne(const ICheatCatalog &catalog,
+                                   const ICheatMirror &mirror,
+                                   const char *data_root, Result &out) {
+  const std::string url = mirror.archiveUrl(catalog);
+  if (!starts_with_https(url) || !mirror.archiveHost() ||
+      !mirror.archiveHost()[0]) {
+    out.error = "refusing non-https archive";
+    return SyncStatus::Rejected;
   }
   out.url = url;
   out.used_mirror = mirror.id();
 
-  const std::string git_dir = join_path(dest, ".git");
-  char have_url[512] = {};
-  const bool have_repo =
-      exists_ && exists_(git_dir.c_str()) &&
-      git_.remoteUrl(dest, have_url, sizeof(have_url)) == GitStatus::Ok &&
-      same_remote(have_url, url);
+  const std::string temp_parent = join_path(data_root, "cheats_tmp");
+  const std::string temp_root = join_path(temp_parent, catalog.id());
+  const std::string zip_path = join_path(temp_root, "archive.zip");
+  const std::string extract_root = join_path(temp_root, "extract");
+  cleanup_temp(temp_root, temp_parent);
+  if (!mkdir_tree(temp_root)) {
+    out.error = "temp directory failed";
+    return SyncStatus::Io;
+  }
 
-  GitCloneOpts opts;
-  opts.branch = catalog.defaultBranch();
-  opts.depth = 1;
-  opts.checkout_paths = catalog.flattenRoots(&opts.checkout_path_count);
+  LOG_INFO("cheat archive download mirror=%s url=%s", mirror.name(),
+           url.c_str());
+  SyncStatus status = download_archive(http_, url.c_str(), mirror.archiveHost(),
+                                       zip_path.c_str(), progress_,
+                                       progress_user_);
+  if (status != SyncStatus::Ok) {
+    out.error = status == SyncStatus::Tls      ? "tls_verify"
+                : status == SyncStatus::Clock  ? "system_clock"
+                                               : "archive download failed";
+    cleanup_temp(temp_root, temp_parent);
+    return status;
+  }
 
-  GitStatus st;
-  if (have_repo) {
-    st = git_.fetch(dest, opts);
-  } else {
-    if (exists_ && exists_(dest) && rmtree_) {
-      (void)rmtree_(dest);
+  size_t root_count = 0;
+  const char *const *roots = catalog.flattenRoots(&root_count);
+  status = extract_cheat_zip(zip_path.c_str(), extract_root.c_str(), roots,
+                             root_count, progress_, progress_user_);
+  if (status != SyncStatus::Ok) {
+    out.error = "archive extract failed";
+    cleanup_temp(temp_root, temp_parent);
+    return status;
+  }
+
+  for (size_t i = 0; i < root_count; ++i) {
+    const std::string root = join_path(extract_root, roots[i]);
+    if (flatten_(root.c_str()) != 0) {
+      out.error = "install failed";
+      cleanup_temp(temp_root, temp_parent);
+      return SyncStatus::Io;
     }
-    st = git_.clone(url.c_str(), dest, opts);
-  }
-  if (st != GitStatus::Ok) {
-    out.error = have_repo ? "git fetch failed" : "git clone failed";
-    return st;
+    if (progress_) {
+      progress_("install", i + 1, root_count, progress_user_);
+    }
   }
 
-  char sha[64] = {};
-  if (git_.headSha(dest, sha, sizeof(sha)) == GitStatus::Ok) {
-    out.sha = sha;
-  }
-  return GitStatus::Ok;
+  cleanup_temp(temp_root, temp_parent);
+  out.error.clear();
+  return SyncStatus::Ok;
 }
 
 CheatSyncEngine::Result CheatSyncEngine::run(const ICheatCatalog &catalog,
-                                             const IGitMirror &primary,
-                                             const IGitMirror *fallback,
+                                             const ICheatMirror &primary,
+                                             const ICheatMirror *fallback,
                                              const char *data_root) {
   Result out;
-  if (!flatten_ || !exists_ || !rmtree_ || !data_root || !data_root[0]) {
-    out.error = "sync collaborators missing";
-    return out;
-  }
-  if (!valid_catalog_id(catalog.id())) {
-    out.error = "invalid catalog id";
+  if (!flatten_ || !data_root || !data_root[0] ||
+      !valid_catalog_id(catalog.id())) {
+    out.error = "sync input rejected";
     return out;
   }
 
-  const std::string dest =
-      join_path(join_path(data_root, "cheats_repo").c_str(), catalog.id());
-
-  GitStatus st = tryOne(catalog, primary, dest.c_str(), out);
-  if (is_network_failure(st) && fallback) {
-    st = tryOne(catalog, *fallback, dest.c_str(), out);
+  SyncStatus status = tryOne(catalog, primary, data_root, out);
+  if (is_source_failure(status) && fallback) {
+    LOG_WARN("cheat archive mirror=%s failed status=%s; trying %s",
+             primary.name(), sync_status_name(status), fallback->name());
+    status = tryOne(catalog, *fallback, data_root, out);
   }
-  if (st != GitStatus::Ok) {
-    out.status = st;
-    return out;
-  }
-
-  size_t n = 0;
-  const char *const *roots = catalog.flattenRoots(&n);
-  for (size_t i = 0; i < n; ++i) {
-    const std::string root = join_path(dest.c_str(), roots[i]);
-    if (flatten_(root.c_str()) != 0) {
-      out.status = GitStatus::Io;
-      out.error = "flatten failed";
-      return out;
-    }
-    out.flattened_roots.push_back(root);
-  }
-
-  size_t junk_n = 0;
-  const char *const *junk = catalog.discardAfterSync(&junk_n);
-  for (size_t i = 0; i < junk_n; ++i) {
-    const std::string path = join_path(dest.c_str(), junk[i]);
-    if (exists_(path.c_str())) {
-      (void)rmtree_(path.c_str());
-    }
-    out.discarded_paths.push_back(path);
-  }
-
-  out.status = GitStatus::Ok;
-  out.error.clear();
+  out.status = status;
   return out;
 }
 

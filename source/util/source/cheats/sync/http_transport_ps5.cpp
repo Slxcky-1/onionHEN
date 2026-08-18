@@ -2,35 +2,67 @@
 
 #include <onion/log.h>
 
-#include <cstdlib>
+#include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <string>
 
 #if !defined(ONION_HOST_TEST)
-#include <dlfcn.h>
+#include <curl/curl.h>
+
+#include <functional>
+
+extern "C" {
+__asm__(
+    ".pushsection .rodata\n"
+    ".balign 1\n"
+    ".global onion_curl_ca_bundle_start\n"
+    "onion_curl_ca_bundle_start:\n"
+    ".incbin \"" ONION_CURL_CA_BUNDLE "\"\n"
+    ".global onion_curl_ca_bundle_end\n"
+    "onion_curl_ca_bundle_end:\n"
+    ".popsection\n");
+extern const unsigned char onion_curl_ca_bundle_start[];
+extern const unsigned char onion_curl_ca_bundle_end[];
+}
 #endif
 
 namespace onion::cheats::sync {
 namespace {
 
-bool host_allowed(const char *url, const char *allow) {
+const char *scheme_host(const char *url) {
   if (!url) {
-    return false;
+    return nullptr;
   }
-  if (std::strncmp(url, "https://", 8) != 0) {
+  if (std::strncmp(url, "https://", 8) == 0) {
+    return url + 8;
+  }
+  if (std::strncmp(url, "http://", 7) == 0) {
+    return url + 7;
+  }
+  return nullptr;
+}
+
+bool host_allowed(const char *url, const char *allow) {
+  const char *host = scheme_host(url);
+  if (!host) {
     return false;
   }
   if (!allow || !allow[0]) {
     return true;
   }
-  const char *host = url + 8;
   const char *slash = std::strchr(host, '/');
-  const size_t host_len = slash ? static_cast<size_t>(slash - host) : std::strlen(host);
+  const char *colon = std::strchr(host, ':');
+  size_t host_len = std::strlen(host);
+  if (colon && (!slash || colon < slash)) {
+    host_len = static_cast<size_t>(colon - host);
+  } else if (slash) {
+    host_len = static_cast<size_t>(slash - host);
+  }
   const size_t allow_len = std::strlen(allow);
   if (host_len == allow_len && std::strncmp(host, allow, allow_len) == 0) {
     return true;
   }
-  /* Allow "www." prefix mismatch only if the allow host is an exact suffix. */
   if (host_len > allow_len + 1 && host[host_len - allow_len - 1] == '.' &&
       std::strncmp(host + host_len - allow_len, allow, allow_len) == 0) {
     return true;
@@ -38,238 +70,279 @@ bool host_allowed(const char *url, const char *allow) {
   return false;
 }
 
-#if !defined(ONION_HOST_TEST)
-typedef int (*http_init_fn)(int, int);
-typedef int (*http_term_fn)(void);
-typedef int (*http_create_fn)(int, int, int *);
-typedef int (*http_delete_fn)(int);
-typedef int (*http_create_conn_fn)(int, const char *, const char *, unsigned short,
-                                   int, int *);
-typedef int (*http_delete_conn_fn)(int);
-typedef int (*http_create_req_fn)(int, int, const char *, const char *, int *);
-typedef int (*http_delete_req_fn)(int);
-typedef int (*http_add_header_fn)(int, const char *, const char *);
-typedef int (*http_send_request_fn)(int, const void *, unsigned int);
-typedef int (*http_get_status_fn)(int, int *);
-typedef int (*http_read_data_fn)(int, void *, unsigned int, unsigned int *);
-typedef int (*http_set_timeout_fn)(int, unsigned int);
+// OpenSSL X509 verify codes surfaced via CURLINFO_SSL_VERIFYRESULT.
+constexpr long kX509CertNotYetValid = 9;  // X509_V_ERR_CERT_NOT_YET_VALID
+constexpr long kX509CertHasExpired = 10;  // X509_V_ERR_CERT_HAS_EXPIRED
 
-struct SceHttpApi {
-  bool resolved = false;
-  http_init_fn init = nullptr;
-  http_term_fn term = nullptr;
-  http_create_fn create = nullptr;
-  http_delete_fn destroy = nullptr;
-  http_create_conn_fn create_conn = nullptr;
-  http_delete_conn_fn delete_conn = nullptr;
-  http_create_req_fn create_req = nullptr;
-  http_delete_req_fn delete_req = nullptr;
-  http_add_header_fn add_header = nullptr;
-  http_send_request_fn send_request = nullptr;
-  http_get_status_fn get_status = nullptr;
-  http_read_data_fn read_data = nullptr;
-  http_set_timeout_fn set_connect_timeout = nullptr;
-  http_set_timeout_fn set_send_timeout = nullptr;
-  http_set_timeout_fn set_recv_timeout = nullptr;
+#if !defined(ONION_HOST_TEST)
+extern "C" int sceNetInit(void);
+
+struct CurlXfer {
+  const std::function<SyncStatus(const void *, size_t)> *on_data = nullptr;
+  HttpProgressFn on_progress = nullptr;
+  void *progress_user = nullptr;
+  SyncStatus st = SyncStatus::Ok;
+  size_t bytes = 0;
+  size_t max_body_bytes = 0;
+  size_t last_progress_bytes = 0;
+  int last_progress_percent = -2;
 };
 
-SceHttpApi &sce_http() {
-  static SceHttpApi api;
-  if (api.resolved) {
-    return api;
+size_t curl_size(curl_off_t value) {
+  if (value <= 0) {
+    return 0;
   }
-  api.resolved = true;
-  void *mod = dlopen("libSceHttp.sprx", RTLD_NOW);
-  if (!mod) {
-    LOG_ERROR("Ps5HttpTransport: dlopen libSceHttp.sprx failed");
-    return api;
-  }
-  api.init = reinterpret_cast<http_init_fn>(dlsym(mod, "sceHttpInit"));
-  api.term = reinterpret_cast<http_term_fn>(dlsym(mod, "sceHttpTerm"));
-  api.create = reinterpret_cast<http_create_fn>(dlsym(mod, "sceHttpCreateTemplate"));
-  api.destroy = reinterpret_cast<http_delete_fn>(dlsym(mod, "sceHttpDeleteTemplate"));
-  api.create_conn =
-      reinterpret_cast<http_create_conn_fn>(dlsym(mod, "sceHttpCreateConnectionWithURL"));
-  api.delete_conn =
-      reinterpret_cast<http_delete_conn_fn>(dlsym(mod, "sceHttpDeleteConnection"));
-  api.create_req =
-      reinterpret_cast<http_create_req_fn>(dlsym(mod, "sceHttpCreateRequestWithURL"));
-  api.delete_req =
-      reinterpret_cast<http_delete_req_fn>(dlsym(mod, "sceHttpDeleteRequest"));
-  api.add_header =
-      reinterpret_cast<http_add_header_fn>(dlsym(mod, "sceHttpAddRequestHeader"));
-  api.send_request =
-      reinterpret_cast<http_send_request_fn>(dlsym(mod, "sceHttpSendRequest"));
-  api.get_status =
-      reinterpret_cast<http_get_status_fn>(dlsym(mod, "sceHttpGetStatusCode"));
-  api.read_data = reinterpret_cast<http_read_data_fn>(dlsym(mod, "sceHttpReadData"));
-  api.set_connect_timeout =
-      reinterpret_cast<http_set_timeout_fn>(dlsym(mod, "sceHttpSetConnectTimeOut"));
-  api.set_send_timeout =
-      reinterpret_cast<http_set_timeout_fn>(dlsym(mod, "sceHttpSetSendTimeOut"));
-  api.set_recv_timeout =
-      reinterpret_cast<http_set_timeout_fn>(dlsym(mod, "sceHttpSetRecvTimeOut"));
-  return api;
+  return static_cast<size_t>(value);
 }
 
-bool parse_url_host(const char *url, std::string &host, std::string &path,
-                    unsigned short &port) {
-  host.clear();
-  path = "/";
-  port = 443;
-  if (!url || std::strncmp(url, "https://", 8) != 0) {
+extern "C" int onion_curl_xferinfo(void *userdata, curl_off_t download_total,
+                                    curl_off_t download_now, curl_off_t,
+                                    curl_off_t) {
+  auto *xfer = static_cast<CurlXfer *>(userdata);
+  if (!xfer || !xfer->on_progress) {
+    return 0;
+  }
+
+  const size_t received = curl_size(download_now);
+  const size_t total = curl_size(download_total);
+  const int percent = total > 0
+                          ? static_cast<int>(std::min<size_t>(
+                                100, (received * 100) / total))
+                          : -1;
+  const bool report_percent =
+      percent >= 0 && percent != xfer->last_progress_percent;
+  const bool report_bytes =
+      percent < 0 &&
+      (xfer->last_progress_percent == -2 ||
+       received >= xfer->last_progress_bytes + 1024 * 1024);
+  if (report_percent || report_bytes) {
+    xfer->last_progress_percent = percent;
+    xfer->last_progress_bytes = received;
+    xfer->on_progress(received, total, xfer->progress_user);
+  }
+  return 0;
+}
+
+extern "C" size_t onion_curl_write(char *ptr, size_t size, size_t nmemb,
+                                   void *userdata) {
+  auto *xfer = static_cast<CurlXfer *>(userdata);
+  const size_t n = size * nmemb;
+  if (!xfer) {
+    return n;
+  }
+  if (xfer->max_body_bytes != 0 &&
+      (xfer->bytes > xfer->max_body_bytes ||
+       n > xfer->max_body_bytes - xfer->bytes)) {
+    xfer->st = SyncStatus::Protocol;
+    return 0;
+  }
+  xfer->bytes += n;
+  if (xfer->on_data && n > 0) {
+    xfer->st = (*xfer->on_data)(ptr, n);
+    if (xfer->st != SyncStatus::Ok) {
+      return 0;
+    }
+  }
+  return n;
+}
+
+extern "C" int onion_curl_debug(CURL *, curl_infotype type, char *data,
+                                size_t size, void *) {
+  const char *kind = nullptr;
+  switch (type) {
+  case CURLINFO_TEXT:
+    kind = "text";
+    break;
+  case CURLINFO_HEADER_IN:
+    kind = "hdr-in";
+    break;
+  case CURLINFO_HEADER_OUT:
+    kind = "hdr-out";
+    break;
+  default:
+    return 0;
+  }
+  while (size > 0 && (data[size - 1] == '\n' || data[size - 1] == '\r')) {
+    --size;
+  }
+  if (size == 0) {
+    return 0;
+  }
+  if (size > 240) {
+    size = 240;
+  }
+  LOG_DEBUG("curl %s %.*s", kind, static_cast<int>(size), data);
+  return 0;
+}
+
+bool ensure_curl() {
+  static int state = 0;
+  if (state != 0) {
+    return state > 0;
+  }
+
+  const int net = sceNetInit();
+  LOG_INFO("http curl sceNetInit rc=%d", net);
+
+  const CURLcode rc = curl_global_init(CURL_GLOBAL_DEFAULT);
+  if (rc != CURLE_OK) {
+    LOG_ERROR("http curl_global_init failed: %s (%d)", curl_easy_strerror(rc),
+              static_cast<int>(rc));
+    state = -1;
     return false;
   }
-  const char *p = url + 8;
-  const char *slash = std::strchr(p, '/');
-  const char *colon = std::strchr(p, ':');
-  if (colon && (!slash || colon < slash)) {
-    host.assign(p, colon);
-    port = static_cast<unsigned short>(std::atoi(colon + 1));
-  } else if (slash) {
-    host.assign(p, slash);
-  } else {
-    host = p;
-  }
-  if (slash) {
-    path = slash;
-  }
-  return !host.empty();
+  LOG_INFO("http curl ready version=%s", curl_version());
+  const size_t ca_bundle_size = static_cast<size_t>(
+      reinterpret_cast<uintptr_t>(onion_curl_ca_bundle_end) -
+      reinterpret_cast<uintptr_t>(onion_curl_ca_bundle_start));
+  LOG_INFO("http curl ca bundle embedded bytes=%zu verify=peer+host",
+           ca_bundle_size);
+  state = 1;
+  return true;
 }
 #endif
 
 } // namespace
 
-GitStatus Ps5HttpTransport::perform(
+SyncStatus Ps5HttpTransport::perform(
     const HttpRequest &req,
-    const std::function<GitStatus(const void *, size_t)> &on_data) {
+    const std::function<SyncStatus(const void *, size_t)> &on_data) {
+  const char *url = req.url ? req.url : "";
+  const char *method = req.method ? req.method : "GET";
+  const char *allow = req.host_allow ? req.host_allow : "";
+  LOG_INFO("http perform method=%s url=%s host_allow=%s timeout_ms=%d "
+           "status=%d-%d",
+           method, url, allow, req.timeout_ms, req.status_min, req.status_max);
+
   if (!host_allowed(req.url, req.host_allow)) {
-    LOG_ERROR("Ps5HttpTransport: url rejected");
-    return GitStatus::Rejected;
+    LOG_ERROR("http url rejected url=%s host_allow=%s", url, allow);
+    return SyncStatus::Rejected;
   }
 #if defined(ONION_HOST_TEST)
   (void)on_data;
-  return GitStatus::Unavailable;
+  return SyncStatus::Unavailable;
 #else
-  SceHttpApi &api = sce_http();
-  if (!api.init || !api.create || !api.create_conn || !api.create_req ||
-      !api.send_request || !api.read_data) {
-    LOG_ERROR("Ps5HttpTransport: SceHttp symbols missing");
-    return GitStatus::Unavailable;
+  if (!ensure_curl()) {
+    return SyncStatus::Unavailable;
   }
 
-  std::string host;
-  std::string path;
-  unsigned short port = 443;
-  if (!parse_url_host(req.url, host, path, port)) {
-    return GitStatus::Rejected;
+  CURL *curl = curl_easy_init();
+  if (!curl) {
+    LOG_ERROR("http curl_easy_init failed");
+    return SyncStatus::Unavailable;
   }
 
-  if (api.init(0, 0) < 0) {
-    /* Already initialized is fine on some firmwares; continue. */
+  CurlXfer xfer;
+  xfer.on_data = on_data ? &on_data : nullptr;
+  xfer.on_progress = req.on_progress;
+  xfer.progress_user = req.progress_user;
+  xfer.max_body_bytes = req.max_body_bytes;
+
+  curl_easy_setopt(curl, CURLOPT_URL, url);
+  curl_easy_setopt(curl, CURLOPT_USERAGENT,
+                   req.user_agent && req.user_agent[0] ? req.user_agent
+                                                       : "OnionHEN");
+  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+  curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 3L);
+  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+  const size_t ca_bundle_size = static_cast<size_t>(
+      reinterpret_cast<uintptr_t>(onion_curl_ca_bundle_end) -
+      reinterpret_cast<uintptr_t>(onion_curl_ca_bundle_start));
+  struct curl_blob ca_bundle {
+    const_cast<unsigned char *>(onion_curl_ca_bundle_start), ca_bundle_size,
+        CURL_BLOB_NOCOPY
+  };
+  curl_easy_setopt(curl, CURLOPT_CAINFO_BLOB, &ca_bundle);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, onion_curl_write);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &xfer);
+  if (req.on_progress) {
+    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+    curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, onion_curl_xferinfo);
+    curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &xfer);
   }
-  int tmpl = 0;
-  if (api.create(2, 0, &tmpl) < 0) {
-    return GitStatus::Network;
-  }
-  int conn = 0;
-  if (api.create_conn(tmpl, req.url, host.c_str(), port, 1, &conn) < 0) {
-    if (api.destroy) {
-      api.destroy(tmpl);
-    }
-    return GitStatus::Network;
-  }
-  const int method = (req.method && std::strcmp(req.method, "POST") == 0) ? 1 : 0;
-  int request = 0;
-  if (api.create_req(conn, method, req.url, path.c_str(), &request) < 0) {
-    if (api.delete_conn) {
-      api.delete_conn(conn);
-    }
-    if (api.destroy) {
-      api.destroy(tmpl);
-    }
-    return GitStatus::Network;
-  }
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS,
+                   req.timeout_ms > 0 && req.timeout_ms < 30000
+                       ? static_cast<long>(req.timeout_ms)
+                       : 30000L);
   if (req.timeout_ms > 0) {
-    const unsigned int usec =
-        static_cast<unsigned int>(req.timeout_ms) * 1000u;
-    if (api.set_connect_timeout) {
-      (void)api.set_connect_timeout(request, usec);
-    }
-    if (api.set_send_timeout) {
-      (void)api.set_send_timeout(request, usec);
-    }
-    if (api.set_recv_timeout) {
-      (void)api.set_recv_timeout(request, usec);
-    }
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, static_cast<long>(req.timeout_ms));
   }
-  if (req.content_type && api.add_header) {
-    (void)api.add_header(request, "Content-Type", req.content_type);
+  if (std::strcmp(method, "POST") == 0) {
+    curl_easy_setopt(curl, CURLOPT_POST, 1L);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, req.body ? req.body : "");
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE,
+                     static_cast<curl_off_t>(req.body_len));
   }
-  if (api.send_request(request, req.body,
-                       static_cast<unsigned int>(req.body_len)) < 0) {
-    if (api.delete_req) {
-      api.delete_req(request);
-    }
-    if (api.delete_conn) {
-      api.delete_conn(conn);
-    }
-    if (api.destroy) {
-      api.destroy(tmpl);
-    }
-    return GitStatus::Network;
+  struct curl_slist *headers = nullptr;
+  if (req.content_type && req.content_type[0]) {
+    std::string line = "Content-Type: ";
+    line += req.content_type;
+    headers = curl_slist_append(headers, line.c_str());
   }
-  if (api.get_status) {
-    int code = 0;
-    const int min_code = req.status_min > 0 ? req.status_min : 200;
-    const int max_code = req.status_max > 0 ? req.status_max : 299;
-    if (api.get_status(request, &code) == 0 &&
-        (code < min_code || code > max_code)) {
-      LOG_ERROR("Ps5HttpTransport: HTTP %d", code);
-      if (api.delete_req) {
-        api.delete_req(request);
-      }
-      if (api.delete_conn) {
-        api.delete_conn(conn);
-      }
-      if (api.destroy) {
-        api.destroy(tmpl);
-      }
-      return GitStatus::Network;
-    }
+  if (req.accept && req.accept[0]) {
+    std::string line = "Accept: ";
+    line += req.accept;
+    headers = curl_slist_append(headers, line.c_str());
+  }
+  if (headers) {
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+  }
+  if (onion_log_runtime_level >= ONION_LOG_DEBUG) {
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, onion_curl_debug);
   }
 
-  GitStatus st = GitStatus::Ok;
-  char buf[8192];
-  for (;;) {
-    unsigned int got = 0;
-    const int rr =
-        api.read_data(request, buf, static_cast<unsigned int>(sizeof(buf)), &got);
-    if (rr < 0) {
-      st = GitStatus::Network;
-      break;
-    }
-    if (got == 0) {
-      break;
-    }
-    if (on_data) {
-      st = on_data(buf, got);
-      if (st != GitStatus::Ok) {
-        break;
-      }
-    }
+  const CURLcode rc = curl_easy_perform(curl);
+  long http_code = 0;
+  char *primary_ip = nullptr;
+  double namelookup = 0;
+  double connect = 0;
+  double total = 0;
+  long ssl_verify = 0;
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+  curl_easy_getinfo(curl, CURLINFO_PRIMARY_IP, &primary_ip);
+  curl_easy_getinfo(curl, CURLINFO_NAMELOOKUP_TIME, &namelookup);
+  curl_easy_getinfo(curl, CURLINFO_CONNECT_TIME, &connect);
+  curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total);
+  if (rc == CURLE_PEER_FAILED_VERIFICATION) {
+    curl_easy_getinfo(curl, CURLINFO_SSL_VERIFYRESULT, &ssl_verify);
   }
 
-  if (api.delete_req) {
-    api.delete_req(request);
+  LOG_INFO("http result url=%s curl=%s(%d) http=%ld ip=%s dns=%.3fs "
+           "connect=%.3fs total=%.3fs bytes=%zu xfer=%s",
+           url, curl_easy_strerror(rc), static_cast<int>(rc), http_code,
+           primary_ip && primary_ip[0] ? primary_ip : "-", namelookup, connect,
+           total, xfer.bytes, sync_status_name(xfer.st));
+
+  if (headers) {
+    curl_slist_free_all(headers);
   }
-  if (api.delete_conn) {
-    api.delete_conn(conn);
+  curl_easy_cleanup(curl);
+
+  if (xfer.st != SyncStatus::Ok) {
+    return xfer.st;
   }
-  if (api.destroy) {
-    api.destroy(tmpl);
+  if (rc != CURLE_OK) {
+    if (rc == CURLE_PEER_FAILED_VERIFICATION) {
+      LOG_ERROR("http tls verify failed verify=%ld url=%s", ssl_verify, url);
+      if (ssl_verify == kX509CertNotYetValid ||
+          ssl_verify == kX509CertHasExpired) {
+        return SyncStatus::Clock;
+      }
+      return SyncStatus::Tls;
+    }
+    return SyncStatus::Network;
   }
-  return st;
+  const int min_code = req.status_min > 0 ? req.status_min : 200;
+  const int max_code = req.status_max > 0 ? req.status_max : 299;
+  if (http_code < min_code || http_code > max_code) {
+    LOG_ERROR("http status out of range code=%ld want=%d-%d url=%s", http_code,
+              min_code, max_code, url);
+    return SyncStatus::Network;
+  }
+  return SyncStatus::Ok;
 #endif
 }
 

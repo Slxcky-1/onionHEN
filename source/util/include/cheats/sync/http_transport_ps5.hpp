@@ -4,12 +4,12 @@
 
 namespace onion::cheats::sync {
 
-/** SceHttp + SceSsl via runtime lookup. No link-time SceHttp stub required. */
+/** libcurl from the PS5 payload SDK (HTTP and HTTPS). */
 class Ps5HttpTransport final : public IHttpTransport {
 public:
-  GitStatus perform(
+  SyncStatus perform(
       const HttpRequest &req,
-      const std::function<GitStatus(const void *, size_t)> &on_data) override;
+      const std::function<SyncStatus(const void *, size_t)> &on_data) override;
 };
 
 } // namespace onion::cheats::sync

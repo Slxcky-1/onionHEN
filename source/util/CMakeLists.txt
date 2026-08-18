@@ -1,8 +1,6 @@
 cmake_minimum_required (VERSION 3.20)
 
-# Target cannot be named "util": libgit2 already adds an OBJECT library
-# of that name (third_party/libgit2/src/util). The ELF on disk stays util.elf.
-set(basename "onion_util")
+set(basename "util")
 
 project(${basename} C CXX ASM)
 
@@ -59,14 +57,32 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 # CBC for MC4 / ShnExt AES
 target_compile_definitions(${PROJECT_NAME} PRIVATE CBC=1)
-if(ONION_HAVE_LIBGIT2)
-	target_compile_definitions(${PROJECT_NAME} PRIVATE ONION_HAVE_LIBGIT2=1)
-	target_include_directories(${PROJECT_NAME} PRIVATE
-		"${ONIONHEN_THIRD_PARTY_DIR}/libgit2/include")
+set(ONION_CURL_ROOT "${PS5_PAYLOAD_SDK}/target/user/homebrew")
+set(ONION_CURL_CA_BUNDLE "${ONION_CURL_ROOT}/etc/ca-bundle.crt")
+if(NOT EXISTS "${ONION_CURL_ROOT}/include/curl/curl.h" OR
+   NOT EXISTS "${ONION_CURL_ROOT}/lib/libcurl.a" OR
+   NOT EXISTS "${ONION_CURL_CA_BUNDLE}")
+	message(FATAL_ERROR
+		"PS5 payload SDK libcurl and CA bundle are required for cheat catalog HTTP "
+		"(looked in ${ONION_CURL_ROOT}).")
 endif()
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+	CURL_STATICLIB
+	ONION_CURL_CA_BUNDLE="${ONION_CURL_CA_BUNDLE}"
+)
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
+	"${ONION_CURL_ROOT}/include")
+# The CA bundle is embedded with .incbin, which is invisible to the compiler's
+# normal dependency scanner.
+set_source_files_properties(
+	"${D_SRC}/cheats/sync/http_transport_ps5.cpp"
+	PROPERTIES OBJECT_DEPENDS "${ONION_CURL_CA_BUNDLE}"
+)
 target_link_directories(${PROJECT_NAME} PUBLIC
   "${ONIONHEN_PS5_STUB_DIR}"
   "${ONIONHEN_THIRD_PARTY_DIR}/keystone/lib"
+  "${ONION_CURL_ROOT}/lib"
+  "${PS5_PAYLOAD_SDK}/target/lib"
 )
 add_dependencies(${PROJECT_NAME} hijacker onion_settings onion_ipc onion_proc onion_platform onion_payload onion_ready onion_elfldr)
 # keystone: ShnExt ASM only
@@ -83,23 +99,25 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     SceSystemService
     SceUserService
     SceNetCtl
+    SceNet
     kernel_sys
+    curl
+    psl
+    ssl
+    crypto
+    zstd
+    z
 )
-if(ONION_HAVE_LIBGIT2)
-	if(TARGET libgit2package)
-		target_link_libraries(${PROJECT_NAME} PUBLIC libgit2package)
-	elseif(TARGET git2)
-		target_link_libraries(${PROJECT_NAME} PUBLIC git2)
-	elseif(TARGET libgit2)
-		target_link_libraries(${PROJECT_NAME} PUBLIC libgit2)
-	endif()
-endif()
-
 set_source_files_properties(
   ${ONIONHEN_THIRD_PARTY_DIR}/cheat_support/aes.c
   ${ONIONHEN_THIRD_PARTY_DIR}/cheat_support/base64.c
   ${ONIONHEN_THIRD_PARTY_DIR}/cheat_support/miniz.c
   ${ONIONHEN_THIRD_PARTY_DIR}/cheat_support/sha256.c
+  PROPERTIES COMPILE_FLAGS "-Wno-error -Wno-unused-function -Wno-sign-compare -Wno-unused-parameter"
+)
+# miniz.h ships static-inline helpers that trip PS5's global -Werror in C++.
+set_source_files_properties(
+  ${D_SRC}/cheats/sync/zip_archive.cpp
   PROPERTIES COMPILE_FLAGS "-Wno-error -Wno-unused-function -Wno-sign-compare -Wno-unused-parameter"
 )
 file(GLOB CHEAT_ENGINE_SRCS CONFIGURE_DEPENDS ${D_SRC}/cheats/*.c)

@@ -435,7 +435,7 @@ git submodule update --init --recursive
 |----|------|
 | **libkeystone** (`third_party/keystone/`) | ShnExt 汇编 |
 
-C++ runtime 统一由 `PS5_PAYLOAD_SDK/target/lib` 提供。项目不再携带旧 curl/TLS、minizip/zlib/zstd 或外部 9021 服务镜像。用户 Payload 通过 `common/elfldr_remote.c` 严格走内置 9020；外部 9021 仅用于首次引导和恢复 9020。
+C++ runtime 统一由 `PS5_PAYLOAD_SDK/target/lib` 提供。项目不再携带旧 curl/TLS、minizip/zlib/zstd 或外部 9021 服务镜像；金手指仓库同步直接链接 SDK `target/user/homebrew` 提供的 libcurl/OpenSSL，嵌入 SDK CA bundle 开启证书校验，下载 HTTPS ZIP 后用现有 miniz 定向提取 `cheats/`。用户 Payload 通过 `common/elfldr_remote.c` 严格走内置 9020；外部 9021 仅用于首次引导和恢复 9020。
 
 ### 5.5 PS5 系统库 stub（`source/platform/ps5/stubs/*.so`）
 
@@ -443,7 +443,7 @@ C++ runtime 统一由 `PS5_PAYLOAD_SDK/target/lib` 提供。项目不再携带�
 
 - `libkernel_sys`
 - `SceSystemService` / `SceUserService`
-- `SceNetCtl`
+- `SceNetCtl` / `SceNet`
 - `SceNotification` / `SceRegMgr`
 - `SceSysCore` / `SceAppInstUtil`
 - `SceGnmDriver`

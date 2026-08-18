@@ -273,14 +273,14 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     }
     char body[640];
     std::snprintf(body, sizeof(body),
-                  "{\"state\":\"%s\",\"mirror\":\"%s\",\"sha\":\"%s\","
+                  "{\"state\":\"%s\",\"mirror\":\"%s\","
                   "\"catalog\":\"%s\",\"error\":\"%s\",\"phase\":\"%s\","
                   "\"progress\":%d}",
                   state,
                   st.mirror == onion::cheats::sync::CheatMirrorId::Cnb
                       ? "cnb"
                       : "github",
-                  st.sha.c_str(), st.catalog_id.c_str(), st.error.c_str(),
+                  st.catalog_id.c_str(), st.error.c_str(),
                   st.phase.c_str(), st.progress_percent);
     reply(sender_app, false, body);
     break;

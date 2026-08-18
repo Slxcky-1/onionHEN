@@ -32,10 +32,9 @@ Binary: `source/util/build/host-tests/onion-host-tests`
 | `test_cheat_parsers` | JSON / SHN / MC4 / ShnExt via factory + real fixtures |
 | `test_cheat_flatten` | extension match, TITLE/VERSION/PROCESS/HASH parse, flat install names, version sanitize |
 | `test_cheat_repository` | resolve TITLE_VERSION[_PROCESS][_HASH], process vs generic, hash match |
-| `test_git_mirror_factory` | auto/explicit github vs cnb.cool; zh-Hans → cnb |
-| `test_http_probe` | generate_204-style HTTPS probe request range / empty URL |
+| `test_git_mirror_factory` | archive URL factory; zh-Hans → cnb |
 | `test_cheat_catalog` | registry + catalog layout/slug (no host URLs) |
-| `test_cheat_sync` | mock git clone/fetch/fallback + flatten root from catalog |
+| `test_cheat_sync` | mocked HTTPS ZIP download, miniz extraction, fallback, install and cleanup |
 | `test_payload` | `libonion_payload` ELF magic, package header, pid path/file, read_file |
 | `test_base64` | encode / decode / round-trip (MC4 codec) |
 | `test_aes_cbc` | AES-256-CBC encrypt/decrypt with MC4 key/IV |
@@ -44,7 +43,6 @@ Binary: `source/util/build/host-tests/onion-host-tests`
 | `test_trampoline_arena` | same-code-page allocations are unique, non-overlapping, and owned by one near arena |
 | `test_hook_lifecycle` | Installing/Ready/Failed callback barrier state |
 | `test_x64_relocator` | relocation-aware trampolines: RIP-relative memory/call, rel8/rel32 call/jmp/jcc, internal targets, safe rejection |
-| `test_http_github` | GitHub commits JSON → `sha` (object + array) |
 | `test_reg_entity` | registry entity-id formula (account slots) |
 | `test_toolbox_helpers` | UI path rewrite + payload .elf basename filter |
 | `test_settings` | semantic schema serialize/round-trip, partial INI defaults |

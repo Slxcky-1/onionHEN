@@ -496,13 +496,7 @@ std::string cheat_sync_status_subtitle() {
     return toolbox_i18n::tr("cheats.sync.running");
   }
   if (state && std::strcmp(state, "ok") == 0) {
-    const char* sha = onion_cjson::string_item(root.get(), "sha", "");
-    char short_sha[9] = {};
-    if (sha && sha[0]) {
-      std::snprintf(short_sha, sizeof(short_sha), "%.8s", sha);
-    }
-    return toolbox_i18n::format("cheats.sync.ok_fmt",
-                                short_sha[0] ? short_sha : "-");
+    return toolbox_i18n::tr("cheats.sync.ok");
   }
   return toolbox_i18n::tr("cheats.sync.idle");
 }

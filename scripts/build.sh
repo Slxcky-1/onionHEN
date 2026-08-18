@@ -360,17 +360,19 @@ main() {
     ok "built ${f}"
   done
 
-  # Phase 4 — bootstrapper (embeds daemon/util + kstuff + assets; post-build lzma)
+  # Phase 4 — bootstrapper (embeds daemon/util + kstuff + assets; lzma output)
   log "Phase 4/5: bootstrapper"
-  build_targets bootstrapper
+  build_targets bootstrapper bootstrapper_packed
 
-  # CMake post-build compresses bootstrapper.elf -> bootstrapper.elf.lzma
+  # CMake declares bootstrapper.elf.lzma as an output and compresses it from
+  # bootstrapper.elf. If the output is unavailable, retain the manual fallback
+  # for older build trees.
   # and writes bootstrapper.elf.lzma.size. If lzma replaced the elf, restore
   # naming expected by unpacker.
   if [[ -f "${BIN}/bootstrapper.elf.lzma" ]]; then
     ok "bootstrapper.elf.lzma ready"
   elif [[ -f "${BIN}/bootstrapper.elf" ]]; then
-    warn "lzma not produced by CMake post-build; packing manually"
+    warn "lzma not produced by CMake output rule; packing manually"
     local elf="${BIN}/bootstrapper.elf"
     if stat -f%z "${elf}" >/dev/null 2>&1; then
       stat -f%z "${elf}" > "${elf}.lzma.size"

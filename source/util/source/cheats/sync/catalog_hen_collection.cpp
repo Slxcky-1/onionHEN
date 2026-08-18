@@ -29,13 +29,6 @@ public:
     return kRoots;
   }
 
-  const char *const *discardAfterSync(size_t *count) const override {
-    static const char *const kDiscard[] = {"hencc-website"};
-    if (count) {
-      *count = 1;
-    }
-    return kDiscard;
-  }
 };
 
 } // namespace

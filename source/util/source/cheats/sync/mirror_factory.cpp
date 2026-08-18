@@ -1,4 +1,4 @@
-#include "cheats/sync/git_mirror_factory.hpp"
+#include "cheats/sync/cheat_mirror_factory.hpp"
 
 #include <onion/notify_i18n.h>
 
@@ -25,15 +25,15 @@ bool iequals(const char *a, const char *b) {
 
 } // namespace
 
-std::unique_ptr<IGitMirror> GitMirrorFactory::make(CheatMirrorId id) {
+std::unique_ptr<ICheatMirror> CheatMirrorFactory::make(CheatMirrorId id) {
   if (id == CheatMirrorId::Cnb) {
     return make_cnb_mirror();
   }
   return make_github_mirror();
 }
 
-CheatMirrorPref GitMirrorFactory::parsePref(const char *token,
-                                            CheatMirrorPref def) {
+CheatMirrorPref CheatMirrorFactory::parsePref(const char *token,
+                                              CheatMirrorPref def) {
   if (iequals(token, "auto")) {
     return CheatMirrorPref::Auto;
   }
@@ -46,7 +46,7 @@ CheatMirrorPref GitMirrorFactory::parsePref(const char *token,
   return def;
 }
 
-const char *GitMirrorFactory::prefName(CheatMirrorPref pref) {
+const char *CheatMirrorFactory::prefName(CheatMirrorPref pref) {
   switch (pref) {
   case CheatMirrorPref::Github:
     return "github";
@@ -58,9 +58,9 @@ const char *GitMirrorFactory::prefName(CheatMirrorPref pref) {
   }
 }
 
-GitMirrorPick GitMirrorFactory::create(CheatMirrorPref pref, int ui_lang,
-                                       int system_lang) {
-  GitMirrorPick pick;
+CheatMirrorPick CheatMirrorFactory::create(CheatMirrorPref pref, int ui_lang,
+                                           int system_lang) {
+  CheatMirrorPick pick;
   if (pref == CheatMirrorPref::Github) {
     pick.primary = make(CheatMirrorId::Github);
     return pick;

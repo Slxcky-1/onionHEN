@@ -15,9 +15,8 @@
 | **Adapter** | `ShnExtCheatParser` | 包装 `onion_cheat_parse_shnext_buffer` |
 | **RAII** | `std::mutex` + `lock_guard` | 锁与服务状态生命周期 |
 | **Singleton（进程级服务）** | `CheatService::instance()` | 与原全局 service 同生命周期，线程安全访问 |
-| **Strategy** | `ICheatCatalog` / `IGitMirror` / `IHttpTransport` | 仓库身份、镜像主机、HTTPS 传输可替换 |
-| **Factory Method** | `CheatCatalogRegistry` / `GitMirrorFactory` | 登记 catalog；按 `mirror` + 语言选主机 |
-| **Adapter** | `LibGit2Client` | 包装 libgit2，不含金手指类型 |
+| **Strategy** | `ICheatCatalog` / `ICheatMirror` / `IHttpTransport` | 仓库身份、镜像主机、HTTPS 传输可替换 |
+| **Factory Method** | `CheatCatalogRegistry` / `CheatMirrorFactory` | 登记 catalog；按 `mirror` + 语言选主机 |
 | **Facade** | `CheatSyncService` | IPC 只碰同步入口；安装复用 flatten |
 
 不引入：Observer、Command、Abstract Factory 全家桶（当前无多套产品族需求）。
@@ -42,9 +41,9 @@ onion::cheats
 ├── CheatService                # Facade + 互斥状态
 └── sync/                       # 在线仓库（与引擎分目录）
     ├── ICheatCatalog           # 下什么（HEN 集合细节只在 catalog_hen_collection.cpp）
-    ├── IGitMirror              # 从哪下（github / cnb.cool）
-    ├── IGitClient / LibGit2Client
-    ├── IHttpTransport          # PS5 SceHttp
+    ├── ICheatMirror            # 从哪下（github / cnb.cool）
+    ├── IHttpTransport          # PS5 SDK libcurl (HTTP/HTTPS)
+    ├── zip_archive             # miniz 定向提取 cheats/
     └── CheatSyncEngine / Service
         │
         ▼
@@ -68,6 +67,12 @@ IPC handleIPC
                  → util_find_module
                  → backend read/write (+ optional code cave)
 ```
+
+## 在线仓库同步
+
+同步只接受 `https://` archive URL。镜像生成 GitHub codeload 或 CNB archive 地址；`CheatSyncEngine` 通过 SDK 静态 libcurl 下载 ZIP，限制响应大小，再用 miniz 只提取 catalog 声明的 `cheats/` 子树，复用现有 flatten installer，最后清理 ZIP 和临时目录。libcurl 使用 OpenSSL，并从 SDK `target/user/homebrew/etc/ca-bundle.crt` 嵌入 Mozilla CA bundle；peer 与 hostname 校验均开启，不依赖目标机文件系统中的证书路径。
+
+下载进度来自 libcurl 的 `XFERINFO` 字节计数和 miniz 的文件提取计数；LegacySettings 页面重新打开时可读取当前阶段和百分比，后台下载在 25%、50%、75% 发送系统通知。archive 失败只在网络/协议错误时切换备用镜像，解压或安装失败不会重复写入。
 
 ## 格式解析
 

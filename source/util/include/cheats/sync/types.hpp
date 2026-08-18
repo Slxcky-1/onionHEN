@@ -11,14 +11,14 @@ enum class CheatMirrorPref : int {
   Cnb = 2,
 };
 
-/** Concrete git host. Catalog::slugFor() is keyed by this. */
+/** Concrete archive mirror. Catalog::slugFor() is keyed by this. */
 enum class CheatMirrorId : int {
   Github = 1,
   Cnb = 2,
 };
 
-/** Narrow result codes shared by git + sync. 0 is success. */
-enum class GitStatus : int {
+/** Narrow result codes shared by HTTPS, ZIP extraction, and sync. */
+enum class SyncStatus : int {
   Ok = 0,
   Network = -1,
   Io = -2,
@@ -27,10 +27,42 @@ enum class GitStatus : int {
   NoSpace = -5,
   Busy = -6,
   Rejected = -7,
+  Tls = -8,
+  Clock = -9,
 };
 
-inline bool is_network_failure(GitStatus s) {
-  return s == GitStatus::Network || s == GitStatus::Protocol;
+inline bool is_source_failure(SyncStatus s) {
+  return s == SyncStatus::Network || s == SyncStatus::Protocol ||
+         s == SyncStatus::Tls || s == SyncStatus::Clock;
 }
+
+inline const char *sync_status_name(SyncStatus s) {
+  switch (s) {
+  case SyncStatus::Ok:
+    return "ok";
+  case SyncStatus::Network:
+    return "network";
+  case SyncStatus::Io:
+    return "io";
+  case SyncStatus::Protocol:
+    return "protocol";
+  case SyncStatus::Unavailable:
+    return "unavailable";
+  case SyncStatus::NoSpace:
+    return "no_space";
+  case SyncStatus::Busy:
+    return "busy";
+  case SyncStatus::Rejected:
+    return "rejected";
+  case SyncStatus::Tls:
+    return "tls";
+  case SyncStatus::Clock:
+    return "clock";
+  }
+  return "unknown";
+}
+
+using SyncProgressFn = void (*)(const char *phase, size_t completed,
+                                size_t total, void *user);
 
 } // namespace onion::cheats::sync
