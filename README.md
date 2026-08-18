@@ -324,6 +324,10 @@ OnionHEN exists because of the PS5 homebrew and reverse-engineering community.
 - [etaHEN](https://github.com/LightningMods/etaHEN) — LightningMods and contributors; source base of this tree
 - [GoldHEN](https://github.com/GoldHEN/GoldHEN) — SiSTR0 and contributors; the PS4 all-in-one HEN this project takes after
 
+### Referenced
+
+- [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager) — itsplk; the Rest Mode resume recovery design (restoring services after standby) follows this project
+
 ### Used or embedded
 
 - [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) — Prospero toolchain and headers
