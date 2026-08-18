@@ -157,6 +157,10 @@ bool LoadSettings();
 bool SaveSettings();
 /** Recompute g_overlay_layout from g_settings.overlay_pos. */
 void apply_overlay_layout();
+/** Apply the overlay layout using the live ShellUI logical canvas dimensions. */
+void apply_overlay_layout(float screen_w, float screen_h);
+/** Read both logical canvas dimensions from a ShellUI RootWidget. */
+bool resolve_root_dimensions(MonoObject *root, float *screen_w, float *screen_h);
 /** Persist g_settings and optionally reload daemon/util settings via IPC. */
 void settings_commit(bool reload_main = false, bool reload_util = false);
 

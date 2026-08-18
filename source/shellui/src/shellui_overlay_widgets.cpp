@@ -10,6 +10,7 @@
 #include "hooked_funcs.hpp"
 #include "external_symbols.hpp"
 #include "ipc.hpp"
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <vector>
@@ -27,6 +28,36 @@ MonoObject *CreateLabel(const char *name, float x, float y, const char *text,
 void Widget_Append_Child(MonoObject *widget, MonoObject *child);
 MonoObject *CreateUIFont(int size, int style, int weight);
 MonoObject *CreateUIColor(float r, float g, float b, float a);
+
+bool resolve_root_dimensions(MonoObject *root, float *screen_w,
+                             float *screen_h) {
+  if (!root || !screen_w || !screen_h)
+    return false;
+
+  if (std::isfinite(g_overlay_layout.screen_w) &&
+      std::isfinite(g_overlay_layout.screen_h) &&
+      g_overlay_layout.screen_w > 1.0f && g_overlay_layout.screen_h > 1.0f) {
+    *screen_w = g_overlay_layout.screen_w;
+    *screen_h = g_overlay_layout.screen_h;
+    return true;
+  }
+
+  MonoClass *widgetClass =
+      mono_class_from_name(pui_img, "Sce.PlayStation.PUI.UI2", "Widget");
+  if (!widgetClass)
+    return false;
+
+  const float width = Get_Property<float>(widgetClass, root, "Width");
+  const float height = Get_Property<float>(widgetClass, root, "Height");
+  if (!std::isfinite(width) || !std::isfinite(height) || width <= 1.0f ||
+      height <= 1.0f)
+    return false;
+
+  LOG_DEBUG("overlay: RootWidget logical size %.1f x %.1f", width, height);
+  *screen_w = width;
+  *screen_h = height;
+  return true;
+}
 
 namespace {
 
@@ -178,19 +209,6 @@ MonoObject *create_metric_cell(MonoObject *root, const char *label_name,
   return cell;
 }
 
-/** Prefer live RootWidget.Width; fall back to layout bar_w (1920). */
-float resolve_panel_width(MonoObject *root) {
-  if (!root)
-    return g_overlay_layout.bar_w;
-  MonoClass *widgetClass =
-      mono_class_from_name(pui_img, "Sce.PlayStation.PUI.UI2", "Widget");
-  /* Width is on Widget base; Get_Property may return boxed float. */
-  float w = Get_Property<float>(widgetClass, root, "Width");
-  if (w > 1.0f)
-    return w;
-  return g_overlay_layout.bar_w > 1.0f ? g_overlay_layout.bar_w : 1920.0f;
-}
-
 /**
  * Edge-flush full-width background Panel
  *   X=0, Y=0 (or bottom), Width=RootWidget width,
@@ -230,14 +248,12 @@ void ensure_bg_panel(MonoObject *root) {
   }
   mono_runtime_object_init(panel);
 
-  const float panel_w = resolve_panel_width(root);
-
   Set_Property(panelClass, panel, "Name",
                mono_string_new(Root_Domain, kBgPanelName));
   /* X=0, Y=edge, Width=fullscreen root width. */
   Set_Property(panelClass, panel, "X", 0.0f);
   Set_Property(panelClass, panel, "Y", g_overlay_layout.bar_y);
-  Set_Property(panelClass, panel, "Width", panel_w);
+  Set_Property(panelClass, panel, "Width", g_overlay_layout.bar_w);
   Set_Property(panelClass, panel, "Height", g_overlay_layout.bar_h);
 
   MonoObject *bg = CreateUIColor(kBgR, kBgG, kBgB, kBgA);
@@ -285,14 +301,20 @@ void RemoveGameWidget(RemoveWidget widget) {
   }
 }
 
-void CreateGameWidget(CreateWidget widget) {
+bool CreateGameWidget(CreateWidget widget) {
   if (!g_settings.overlay_enabled)
-    return;
+    return true;
 
-  MonoObject *bar_font = CreateUIFont(kFontSize, kFontStyle, kFontWeight);
   MonoObject *root = find_root_widget();
-  if (!root)
-    return;
+  float screen_w = 0.0f;
+  float screen_h = 0.0f;
+  if (!resolve_root_dimensions(root, &screen_w, &screen_h))
+    return false;
+
+  apply_overlay_layout(screen_w, screen_h);
+  MonoObject *bar_font = CreateUIFont(kFontSize, kFontStyle, kFontWeight);
+  if (!bar_font)
+    return false;
 
   ensure_bg_panel(root);
 
@@ -320,25 +342,33 @@ void CreateGameWidget(CreateWidget widget) {
 
   MonoClass *labelClass =
       mono_class_from_name(pui_img, "Sce.PlayStation.PUI.UI2", "Label");
+  if (!labelClass)
+    return false;
 
+  bool created_all = true;
   for (const auto &config : configs) {
     MonoObject *cell = create_metric_cell(root, config.id, config.x);
     MonoObject *label = CreateLabel(
         config.id, 0.0f, g_overlay_layout.label_margin_top, config.text,
         bar_font, config.bold, kAlignTop, config.r, config.g, config.b,
         config.a);
-    if (label && labelClass) {
-      Set_Property(labelClass, label, "PositionType", 1);
-      Set_Property(labelClass, label, "MarginLeft", 0.0f);
-      Set_Property(labelClass, label, "MarginTop",
-                   g_overlay_layout.label_margin_top);
-      Set_Property(labelClass, label, "Width", kInitialLabelWidth);
-      Set_Property(labelClass, label, "HorizontalAlignment", kAlignLeft);
-      Set_Property(labelClass, label, "VerticalAlignment", kAlignTop);
-      Set_Property(labelClass, label, "FitWidthToText", false);
-      Set_Property(labelClass, label, "FitHeightToText", true);
-      Set_Property(labelClass, label, "NumberOfLines", 1);
+    if (!label) {
+      created_all = false;
+      continue;
     }
+    Set_Property(labelClass, label, "PositionType", 1);
+    Set_Property(labelClass, label, "MarginLeft", 0.0f);
+    Set_Property(labelClass, label, "MarginTop",
+                 g_overlay_layout.label_margin_top);
+    Set_Property(labelClass, label, "Width", kInitialLabelWidth);
+    Set_Property(labelClass, label, "HorizontalAlignment", kAlignLeft);
+    Set_Property(labelClass, label, "VerticalAlignment", kAlignTop);
+    Set_Property(labelClass, label, "FitWidthToText", false);
+    Set_Property(labelClass, label, "FitHeightToText", true);
+    Set_Property(labelClass, label, "NumberOfLines", 1);
     Widget_Append_Child(cell ? cell : root, label);
+    if (!cell)
+      created_all = false;
   }
+  return created_all;
 }

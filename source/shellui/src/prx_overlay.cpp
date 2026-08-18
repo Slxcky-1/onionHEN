@@ -18,7 +18,7 @@ extern OverlayLayout g_overlay_layout;
 extern onion::Settings g_settings;
 #include "shellui_state.hpp"
 void RemoveGameWidget(RemoveWidget widget);
-void CreateGameWidget(CreateWidget widget);
+bool CreateGameWidget(CreateWidget widget);
 MonoObject* CreateLabel(const char* name, float x, float y, const char* text, MonoObject* fontObj, int horzAlign, int vertAlign, float r, float g, float b, float a);
 void Widget_Append_Child(MonoObject* widget, MonoObject* child);
 MonoObject* CreateUIFont(int size, int style, int weight);
@@ -157,6 +157,7 @@ namespace {
 
 constexpr int kMaxProcThreads = 3072;
 constexpr int kCpuCores = 8;
+constexpr int kOverlayInitDelayFrames = 30;
 constexpr int kOverlayUpdateIntervalFrames = 60;
 constexpr int kOverlayFontSize = 18;
 constexpr int kClockIdRealtime = 4;
@@ -223,7 +224,6 @@ void set_label_layout(const char *widget_name, float margin_left,
 void layout_bar_labels(const char *cpu_temp, const char *cpu_usage,
                        const char *gpu_temp, const char *gpu_usage,
                        const char *ram_str, const char *ip_str) {
-  constexpr float kScreenW = 1920.0f;
   constexpr float kPairGap = 8.0f;   /* label → first value */
   constexpr float kValGap = 10.0f;   /* value → value (temp / usage) */
   constexpr float kSepGap = 10.0f;   /* last value → "|" */
@@ -318,7 +318,10 @@ void layout_bar_labels(const char *cpu_temp, const char *cpu_usage,
     total += gap_after(i);
   }
 
-  float x = (kScreenW - total) * 0.5f;
+  const float screen_w = g_overlay_layout.bar_w;
+  if (screen_w <= 1.0f)
+    return;
+  float x = (screen_w - total) * 0.5f;
   const float margin_top = g_overlay_layout.label_margin_top;
 
   static const char *kAll[] = {
@@ -355,25 +358,49 @@ void discover_idle_thread_ids(unsigned int idle_tid[kCpuCores]) {
   }
 }
 
-void init_overlay_once(unsigned int idle_tid[kCpuCores]) {
-  discover_idle_thread_ids(idle_tid);
-
+bool init_overlay_once(unsigned int idle_tid[kCpuCores]) {
   rootWidget = Get_Property<MonoObject*>(pui_img, "Sce.PlayStation.PUI.UI2", "Scene",
                                          Game, "RootWidget");
+  if (!rootWidget)
+    return false;
+
+  float screen_w = 0.0f;
+  float screen_h = 0.0f;
+  if (!resolve_root_dimensions(rootWidget, &screen_w, &screen_h))
+    return false;
+
+  apply_overlay_layout(screen_w, screen_h);
+  discover_idle_thread_ids(idle_tid);
+  if (!g_settings.overlay_enabled)
+    return true;
+
   /* style=Bold(1), weight=900 */
   font = CreateUIFont(kOverlayFontSize, 1, 900);
+  if (!font)
+    return false;
 
-  apply_overlay_layout();
-  if (!g_settings.overlay_enabled)
-    return;
-  if (g_settings.overlay_cpu || g_settings.all_cpu_usage)
-    CreateGameWidget(CREATE_CPU_OVERLAY);
-  if (g_settings.overlay_gpu)
-    CreateGameWidget(CREATE_GPU_OVERLAY);
-  if (g_settings.overlay_ram)
-    CreateGameWidget(CREATE_RAM_OVERLAY);
-  if (g_settings.overlay_ip)
-    CreateGameWidget(CREATE_IP_OVERLAY);
+  RemoveGameWidget(REMOVE_ALL_OVERLAYS);
+  bool widgets_ready = true;
+  if (g_settings.overlay_cpu || g_settings.all_cpu_usage) {
+    if (!CreateGameWidget(CREATE_CPU_OVERLAY))
+      widgets_ready = false;
+  }
+  if (g_settings.overlay_gpu) {
+    if (!CreateGameWidget(CREATE_GPU_OVERLAY))
+      widgets_ready = false;
+  }
+  if (g_settings.overlay_ram) {
+    if (!CreateGameWidget(CREATE_RAM_OVERLAY))
+      widgets_ready = false;
+  }
+  if (g_settings.overlay_ip) {
+    if (!CreateGameWidget(CREATE_IP_OVERLAY))
+      widgets_ready = false;
+  }
+  if (!widgets_ready) {
+    RemoveGameWidget(REMOVE_ALL_OVERLAYS);
+    return false;
+  }
 
   /* First paint: center placeholders on the full-width bar. */
   layout_bar_labels(
@@ -383,6 +410,7 @@ void init_overlay_once(unsigned int idle_tid[kCpuCores]) {
       g_settings.overlay_gpu ? "--%" : nullptr,
       g_settings.overlay_ram ? "---- MB" : nullptr,
       g_settings.overlay_ip ? "---.---.---.---" : nullptr);
+  return true;
 }
 
 /** Sample CPU into Usage[]; formats CPU_USAGE. Returns false if sampling skipped/failed. */
@@ -497,10 +525,18 @@ void OnRender_Hook(MonoObject* instance) {
   static unsigned int idle_thread_id[kCpuCores] = {};
   static int current_bank = 0;
   static int frames_until_update = 0;
+  static int frames_until_init = kOverlayInitDelayFrames;
 
   if (!inited) {
-    init_overlay_once(idle_thread_id);
-    inited = true;
+    if (frames_until_init > 0) {
+      --frames_until_init;
+    } else if (init_overlay_once(idle_thread_id)) {
+      inited = true;
+    }
+    if (!inited) {
+      OnRender_orig(instance);
+      return;
+    }
   }
 
   if (frames_until_update <= 0) {
