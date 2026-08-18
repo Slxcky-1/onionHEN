@@ -475,37 +475,12 @@ void append_toolbox_payloads_group(ps5ui::Group& g) {
           "id_kstuff_autoload");
 }
 
-std::string cheat_sync_status_subtitle() {
-  auto& ipc = IPC_Client::getInstance(true);
-  const int previous_timeout = ipc.recv_timeout_ms();
-  ipc.set_recv_timeout_ms(800);
-  std::string json;
-  const bool ok = ipc.CheatSyncStatus(json);
-  ipc.set_recv_timeout_ms(previous_timeout);
-  if (!ok) {
-    return toolbox_i18n::tr("cheats.sync.idle");
-  }
-
-  onion_cjson::Root root(json);
-  const char* state = onion_cjson::string_item(root.get(), "state", "idle");
-  if (state && std::strcmp(state, "running") == 0) {
-    const int progress = onion_cjson::int_item(root.get(), "progress", -1);
-    if (progress >= 0) {
-      return toolbox_i18n::format("cheats.sync.running_fmt", progress);
-    }
-    return toolbox_i18n::tr("cheats.sync.running");
-  }
-  if (state && std::strcmp(state, "ok") == 0) {
-    return toolbox_i18n::tr("cheats.sync.ok");
-  }
-  return toolbox_i18n::tr("cheats.sync.idle");
-}
-
 void append_toolbox_game_group(ps5ui::Group& g) {
   g.link("id_cheats", toolbox_i18n::tr("cheats.link"), "cheats.xml",
          toolbox_i18n::tr("cheats.link.sub"))
       .link("id_download_cheats", toolbox_i18n::tr("cheats.repo.download"),
-            "cheat_progress.xml", cheat_sync_status_subtitle(), std::nullopt,
+            "cheat_progress.xml",
+            toolbox_i18n::tr("cheats.repo.download.desc"), std::nullopt,
             toolbox_i18n::tr("cheats.repo.download.confirm"),
             toolbox_i18n::tr("cheats.repo.download.confirm_phrase"));
 }
