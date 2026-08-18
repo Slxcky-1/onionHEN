@@ -18,6 +18,13 @@ IPC / main
        │         ├─ MdbgMemoryBackend
        │         └─ KdirectMemoryBackend  # MemoryBackendFactory
        └─ C helpers                       # utils / ShnExt crypto / flatten
+
+IPC DOWNLOAD_CHEATS
+  └─ onion::cheats::sync::CheatSyncService
+       ├─ CheatCatalogRegistry / ICheatCatalog
+       ├─ GitMirrorFactory / IGitMirror
+       ├─ IGitClient (libgit2)
+       └─ CheatRepository::flattenInstallTree   # reuse
 ```
 
 ## Patterns
@@ -26,8 +33,8 @@ IPC / main
 |---------|--------|
 | Facade | `CheatService` |
 | Singleton | `CheatService::instance()` |
-| Strategy | `IMemoryBackend`, `ICheatParser` |
-| Factory | `MemoryBackendFactory`, `CheatParserFactory` |
+| Strategy | `IMemoryBackend`, `ICheatParser`, `ICheatCatalog`, `IGitMirror` |
+| Factory | `MemoryBackendFactory`, `CheatParserFactory`, `GitMirrorFactory` |
 | Adapter | `ShnExtCheatParser` |
 | RAII | `std::lock_guard` on service state |
 

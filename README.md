@@ -125,6 +125,8 @@ Put cheat files in one directory. Names are `TITLEID_VERSION`, with optional pro
 
 Cheats load from disk. If a file changes, OnionHEN reloads it without restarting the whole stack.
 
+`DOWNLOAD_CHEATS` clones a cheat catalog over git (GitHub or cnb.cool) into `/data/OnionHEN/cheats_repo/<catalog>/` and flattens it into this directory. `[cheats] mirror=auto` uses cnb.cool when the UI/system language is Simplified Chinese, otherwise GitHub.
+
 <br>
 
 # Build
@@ -218,6 +220,7 @@ default from [`config.ini.example`](config.ini.example).
 | `rest_mode.stop_utility_daemon_on_entry` | `false` | `true`, `false` |
 | `rest_mode.close_running_game_on_entry` | `false` | `true`, `false` |
 | `cheats.memory_backend` | `default` | `default`, `libhijacker` |
+| `cheats.mirror` | `auto` | `auto`, `github`, `cnb` |
 | `app_jailbreak.debug_notifications` | `false` | `true`, `false` |
 | `cooling.fan_control` | `automatic` | `automatic`, `temperature_threshold` |
 | `cooling.temperature_threshold_celsius` | `77` | `0` through `100` |
@@ -236,6 +239,7 @@ default from [`config.ini.example`](config.ini.example).
 | --- | --- |
 | `/data/OnionHEN/payloads/` | User payload ELFs |
 | `/data/OnionHEN/cheats/` | Cheat files |
+| `/data/OnionHEN/cheats_repo/` | Git working copies of online cheat catalogs |
 | `/data/OnionHEN/kstuff.elf` | Optional replacement for the embedded `kstuff` |
 | `/data/OnionHEN/OnionHEN.log` | Main runtime log |
 | `/data/OnionHEN/OnionHEN_util_daemon.log` | Utility daemon log |

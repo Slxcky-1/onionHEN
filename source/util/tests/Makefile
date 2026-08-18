@@ -71,6 +71,12 @@ PROD_CXX_SRCS := \
 	$(UTIL_ROOT)/source/cheats/shn_ext_cheat_parser.cpp \
 	$(UTIL_ROOT)/source/cheats/cheat_parser_factory.cpp \
 	$(UTIL_ROOT)/source/cheats/cheat_repository.cpp \
+	$(UTIL_ROOT)/source/cheats/sync/catalog_hen_collection.cpp \
+	$(UTIL_ROOT)/source/cheats/sync/catalog_registry.cpp \
+	$(UTIL_ROOT)/source/cheats/sync/mirror_github.cpp \
+	$(UTIL_ROOT)/source/cheats/sync/mirror_cnb.cpp \
+	$(UTIL_ROOT)/source/cheats/sync/mirror_factory.cpp \
+	$(UTIL_ROOT)/source/cheats/sync/cheat_sync_engine.cpp \
 	$(UTIL_ROOT)/source/http_github.cpp \
 	$(THIRD_PARTY_ROOT)/cjson/cJSON.cpp \
 	$(REPO_ROOT)/source/libonion_settings/source/settings.cpp \
@@ -101,6 +107,9 @@ TEST_C_SRCS := \
 TEST_CXX_SRCS := \
 	test_cheat_parsers.cpp \
 	test_cheat_repository.cpp \
+	test_git_mirror_factory.cpp \
+	test_cheat_catalog.cpp \
+	test_cheat_sync.cpp \
 	test_settings.cpp \
 	test_msg_protocol.cpp \
 	test_app_jailbreak_policy.cpp \

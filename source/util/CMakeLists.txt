@@ -24,6 +24,7 @@ file(GLOB SrcFiles CONFIGURE_DEPENDS
   ${D_SRC}/*.cpp
   ${D_SRC}/cheats/*.c
   ${D_SRC}/cheats/*.cpp
+  ${D_SRC}/cheats/sync/*.cpp
   ${ONIONHEN_THIRD_PARTY_DIR}/cheat_support/*.c
   ${D_SRC}/../include/*.h
   ${D_SRC}/../include/*.hpp
@@ -56,6 +57,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 # CBC for MC4 / ShnExt AES
 target_compile_definitions(${PROJECT_NAME} PRIVATE CBC=1)
+if(ONION_HAVE_LIBGIT2)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE ONION_HAVE_LIBGIT2=1)
+	target_include_directories(${PROJECT_NAME} PRIVATE
+		"${ONIONHEN_THIRD_PARTY_DIR}/libgit2/include")
+endif()
 target_link_directories(${PROJECT_NAME} PUBLIC
   "${ONIONHEN_PS5_STUB_DIR}"
   "${ONIONHEN_THIRD_PARTY_DIR}/keystone/lib"
@@ -77,6 +83,15 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     SceNetCtl
     kernel_sys
 )
+if(ONION_HAVE_LIBGIT2)
+	if(TARGET libgit2package)
+		target_link_libraries(${PROJECT_NAME} PUBLIC libgit2package)
+	elseif(TARGET git2)
+		target_link_libraries(${PROJECT_NAME} PUBLIC git2)
+	elseif(TARGET libgit2)
+		target_link_libraries(${PROJECT_NAME} PUBLIC libgit2)
+	endif()
+endif()
 
 set_source_files_properties(
   ${ONIONHEN_THIRD_PARTY_DIR}/cheat_support/aes.c

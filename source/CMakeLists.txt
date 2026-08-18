@@ -8,6 +8,7 @@ include(OnionTarget)
 get_filename_component(ONIONHEN_ROOT "${PROJECT_ROOT}/.." ABSOLUTE)
 set(ONIONHEN_THIRD_PARTY_DIR "${ONIONHEN_ROOT}/third_party" CACHE PATH
 	"Third-party dependency source directory")
+include(LibGit2Onion)
 set(ONIONHEN_COMMON_DIR "${PROJECT_ROOT}/common")
 set(ONIONHEN_PS5_STUB_DIR "${PROJECT_ROOT}/platform/ps5/stubs")
 set(ONIONHEN_KSTUFF_ELF "${ONIONHEN_ROOT}/.cache/dependencies/kstuff.elf"

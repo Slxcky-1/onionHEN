@@ -10,6 +10,7 @@ code here makes `source/` exclusively first-party code.
 | [`cheat_support/`](cheat_support/) | Vendored source | AES, base64, miniz and SHA-256 used by cheat parsers |
 | [`keystone/`](keystone/) | Headers + prebuilt archive | ShnExt assembly support |
 | [`kstuff-lite/`](kstuff-lite/) | Git submodule | Produces the optional embedded `kstuff.elf` |
+| [`libgit2/`](libgit2/) | Git submodule (optional) | Shallow clone / fetch of cheat catalogs in `util.elf`. Omit the directory to build a stub client. |
 
 Third-party file names retain their upstream spelling even when it differs
 from the project's snake_case convention. This keeps upstream updates easy to

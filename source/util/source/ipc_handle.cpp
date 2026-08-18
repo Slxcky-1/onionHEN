@@ -19,6 +19,8 @@ extern "C" {
 #include "onion_cjson.hpp"
 #include "cheats/cheat_service.hpp"
 #include "cheats/runtime.h"
+#include "cheats/sync/cheat_sync_service.hpp"
+#include <cstdio>
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -233,10 +235,54 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     LOG_WARN("BREW_UTIL_LAUNCH_ELFLDR: unsupported (bootstrapper-managed)");
     reply(sender_app, true);
     break;
-  case BREW_UTIL_UNUSED_DOWNLOAD_CHEATS:
-    LOG_WARN("DOWNLOAD_CHEATS: unsupported (online download removed)");
-    reply(sender_app, true);
+  case BREW_UTIL_DOWNLOAD_CHEATS: {
+    const char *catalog = onion_cjson::string_item(my_json.get(), "catalog", "");
+    const char *mirror = onion_cjson::string_item(my_json.get(), "mirror", "");
+    using onion::cheats::sync::CheatSyncService;
+    const auto started = CheatSyncService::instance().start(
+        g_settings.snapshot(),
+        (catalog && catalog[0]) ? catalog : nullptr,
+        (mirror && mirror[0]) ? mirror : nullptr);
+    if (started == CheatSyncService::StartResult::AlreadyRunning) {
+      onion_notify(true, "notify.cheats.sync.busy");
+      reply(sender_app, false, "{\"state\":\"already_running\"}");
+    } else if (started == CheatSyncService::StartResult::Rejected) {
+      reply(sender_app, true, "{\"state\":\"rejected\"}");
+    } else {
+      reply(sender_app, false, "{\"state\":\"started\"}");
+    }
     break;
+  }
+  case BREW_UTIL_CHEAT_SYNC_STATUS: {
+    const auto st = onion::cheats::sync::CheatSyncService::instance().status();
+    const char *state = "idle";
+    switch (st.state) {
+    case onion::cheats::sync::CheatSyncStatus::State::Running:
+      state = "running";
+      break;
+    case onion::cheats::sync::CheatSyncStatus::State::Ok:
+      state = "ok";
+      break;
+    case onion::cheats::sync::CheatSyncStatus::State::Error:
+      state = "error";
+      break;
+    case onion::cheats::sync::CheatSyncStatus::State::Idle:
+    default:
+      state = "idle";
+      break;
+    }
+    char body[512];
+    std::snprintf(body, sizeof(body),
+                  "{\"state\":\"%s\",\"mirror\":\"%s\",\"sha\":\"%s\","
+                  "\"catalog\":\"%s\",\"error\":\"%s\"}",
+                  state,
+                  st.mirror == onion::cheats::sync::CheatMirrorId::Cnb
+                      ? "cnb"
+                      : "github",
+                  st.sha.c_str(), st.catalog_id.c_str(), st.error.c_str());
+    reply(sender_app, false, body);
+    break;
+  }
   case BREW_UTIL_UNUSED_DOWNLOAD_KSTUFF:
     LOG_WARN("DOWNLOAD_KSTUFF: unsupported (online download removed)");
     reply(sender_app, true);

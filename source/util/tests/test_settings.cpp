@@ -53,6 +53,7 @@ static int test_defaults_and_serialize_keys(void) {
       text.find("exact_title_ids=ITEM00001,NPXS39041,PKGI13337,PKGI12345,"
                 "TOOL00001") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("title_id_prefixes=LAPY") != std::string::npos);
+  TEST_ASSERT_TRUE(text.find("mirror=auto") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("[kstuff]\n") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("autoload=true") != std::string::npos);
   return 0;
@@ -107,6 +108,7 @@ static int test_full_schema_roundtrip(void) {
   in.startup_open_after_load = onion::kStartupOpenHomeMenu;
   in.rest_mode_delay_seconds = 42;
   in.libhijacker_cheats = true;
+  in.cheats_mirror = onion::kCheatsMirrorCnb;
   in.app_jailbreak_enabled = false;
   in.debug_app_jb_msg = true;
   in.display_tids = true;
@@ -157,6 +159,7 @@ static int test_full_schema_roundtrip(void) {
   TEST_ASSERT_EQ_INT(in.cheats_shortcut_opt, out.cheats_shortcut_opt);
   TEST_ASSERT_EQ_INT(in.toolbox_shortcut_opt, out.toolbox_shortcut_opt);
   TEST_ASSERT_EQ_INT(in.ui_lang, out.ui_lang);
+  TEST_ASSERT_EQ_INT(in.cheats_mirror, out.cheats_mirror);
   TEST_ASSERT_TRUE(out.kstuff_autoload == in.kstuff_autoload);
   TEST_ASSERT_EQ_U64(
       in.app_jailbreak_allowlist.exact_title_id_count,
@@ -195,6 +198,7 @@ static int test_partial_ini_keeps_defaults(void) {
   TEST_ASSERT_TRUE(out.overlay_background);
   TEST_ASSERT_TRUE(out.app_jailbreak_enabled);
   TEST_ASSERT_TRUE(out.kstuff_autoload);
+  TEST_ASSERT_EQ_INT(onion::kCheatsMirrorAuto, out.cheats_mirror);
   TEST_ASSERT_EQ_U64(5, out.app_jailbreak_allowlist.exact_title_id_count);
   TEST_ASSERT_STREQ("ITEM00001",
                     out.app_jailbreak_allowlist.exact_title_ids[0].c_str());

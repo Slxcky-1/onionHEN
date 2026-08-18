@@ -123,6 +123,8 @@ OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstu
 
 金手指从磁盘加载。文件有改动时会重新载入，不必重启整套进程。
 
+`DOWNLOAD_CHEATS` 会用 git 把金手指仓库克隆到 `/data/OnionHEN/cheats_repo/<catalog>/`，再 flatten 进上述目录。镜像由 `[cheats] mirror` 控制：`auto` 时简体中文走 cnb.cool，其它地区走 GitHub。
+
 <br>
 
 # 构建
@@ -213,6 +215,7 @@ OnionHEN 在下面两处读写同一份配置：
 | `rest_mode.stop_utility_daemon_on_entry` | `false` | `true`, `false` |
 | `rest_mode.close_running_game_on_entry` | `false` | `true`, `false` |
 | `cheats.memory_backend` | `default` | `default`, `libhijacker` |
+| `cheats.mirror` | `auto` | `auto`, `github`, `cnb` |
 | `app_jailbreak.debug_notifications` | `false` | `true`, `false` |
 | `cooling.fan_control` | `automatic` | `automatic`, `temperature_threshold` |
 | `cooling.temperature_threshold_celsius` | `77` | `0` 到 `100` |
@@ -231,6 +234,7 @@ OnionHEN 在下面两处读写同一份配置：
 | --- | --- |
 | `/data/OnionHEN/payloads/` | 用户 payload ELF |
 | `/data/OnionHEN/cheats/` | 金手指文件 |
+| `/data/OnionHEN/cheats_repo/` | 在线金手指仓库的 git 工作副本 |
 | `/data/OnionHEN/kstuff.elf` | 可选，用来替换内嵌的 `kstuff` |
 | `/data/OnionHEN/OnionHEN.log` | 主运行日志 |
 | `/data/OnionHEN/OnionHEN_util_daemon.log` | Utility daemon 日志 |

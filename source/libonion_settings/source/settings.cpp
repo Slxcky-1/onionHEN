@@ -265,6 +265,31 @@ const char *cheat_backend_name(bool libhijacker) {
   return libhijacker ? "libhijacker" : "default";
 }
 
+int parse_cheats_mirror(const char *s, int def) {
+  if (streq_ci(s, "auto")) {
+    return kCheatsMirrorAuto;
+  }
+  if (streq_ci(s, "github")) {
+    return kCheatsMirrorGithub;
+  }
+  if (streq_ci(s, "cnb") || streq_ci(s, "cnb.cool")) {
+    return kCheatsMirrorCnb;
+  }
+  return def;
+}
+
+const char *cheats_mirror_name(int v) {
+  switch (v) {
+  case kCheatsMirrorGithub:
+    return "github";
+  case kCheatsMirrorCnb:
+    return "cnb";
+  case kCheatsMirrorAuto:
+  default:
+    return "auto";
+  }
+}
+
 std::string trim_copy(const std::string &value) {
   std::size_t first = 0;
   while (first < value.size() &&
@@ -521,6 +546,8 @@ bool apply_parser(IniParser *parser, Settings *out) {
       out->rest_mode_delay_seconds);
   out->libhijacker_cheats = parse_libhijacker_backend(
       ini_get(parser, "cheats.memory_backend"), out->libhijacker_cheats);
+  out->cheats_mirror = parse_cheats_mirror(ini_get(parser, "cheats.mirror"),
+                                           out->cheats_mirror);
   out->app_jailbreak_enabled =
       parse_bool(ini_get(parser, "app_jailbreak.enabled"),
                  out->app_jailbreak_enabled);
@@ -666,6 +693,10 @@ std::string settings_serialize(const Settings &in) {
   b += "# Available values: default, libhijacker\n";
   b += "memory_backend=" + std::string(cheat_backend_name(in.libhijacker_cheats)) +
        "\n";
+  b += "# mirror selects the git host for online cheat catalogs.\n";
+  b += "# Available values: auto, github, cnb\n";
+  b += "# auto uses cnb.cool when the UI/system language is zh-Hans, otherwise GitHub.\n";
+  b += "mirror=" + std::string(cheats_mirror_name(in.cheats_mirror)) + "\n";
   b += "\n";
   b += "[app_jailbreak]\n";
   b += "# enabled controls the App lifecycle and sandbox event listeners. "

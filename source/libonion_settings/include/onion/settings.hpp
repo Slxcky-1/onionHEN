@@ -74,6 +74,10 @@ inline constexpr int kStartupOpenHomeMenu = 1;
 // so libonion_settings stays independent of libonion_platform; the processes
 // that bridge the two (see onion_apply_log_settings) static_assert that the
 // values still line up.
+inline constexpr int kCheatsMirrorAuto = 0;
+inline constexpr int kCheatsMirrorGithub = 1;
+inline constexpr int kCheatsMirrorCnb = 2;
+
 inline constexpr int kLogLevelOff = 0;
 inline constexpr int kLogLevelError = 1;
 inline constexpr int kLogLevelWarn = 2;
@@ -116,6 +120,7 @@ struct Settings {
 
   // [cheats], [app_jailbreak]
   bool libhijacker_cheats = false;
+  int cheats_mirror = kCheatsMirrorAuto;
   bool app_jailbreak_enabled = true;
   bool debug_app_jb_msg = false;
   AppJailbreakAllowlist app_jailbreak_allowlist{};

@@ -160,7 +160,8 @@ struct IPCMessage {
 | `GET_GAME_VER` | 游戏版本字符串 | param.json / param.sfo（msg 内实现） |
 | `GET_GAME_CHEAT` | 导出金手指列表 JSON 文件路径 | `CheatService::exportList` |
 | `TOGGLE_CHEAT` | 开关某条金手指 | `CheatService::toggle` |
-| `DOWNLOAD_CHEATS` | 下仓库 zip → staging → flatten | `http` + `CheatService::flattenInstallTree` |
+| `DOWNLOAD_CHEATS` | 后台 git clone/fetch catalog → flatten | `CheatSyncService` + 现有 flatten |
+| `CHEAT_SYNC_STATUS` | 上次/正在进行的同步快照 | `CheatSyncService::status` |
 | `RELOAD_CHEATS` | **已移除**（枚举占位 `UNUSED_RELOAD_CHEATS`） | 列表/开关靠文件签名热重载，无索引重建 |
 | `DOWNLOAD_KSTUFF` | 下载 kstuff.elf | `http` |
 | `LAUNCH_PAYLOAD` | 加载 payload `.elf` | `load_payload` → `onion_payload_load`（仅私有 9020，必须返回精确 PID；失败不回退 9021） |
@@ -288,7 +289,7 @@ cheat_engine_runtime
 
 #### 下载 flatten
 
-在线 `DOWNLOAD_CHEATS` 命令已保留为 unsupported 兼容槽位。`onion_cheat_flatten_install_tree` 仍用于把本地导入树规范成 flat 命名并装入 `ONION_CHEATS_DIR`。
+在线 `DOWNLOAD_CHEATS` 走 `onion::cheats::sync`：Catalog（仓库身份）+ Mirror（github / cnb.cool）+ `IGitClient`（libgit2）克隆到 `/data/OnionHEN/cheats_repo/<catalog-id>/`，再调用现有 `onion_cheat_flatten_install_tree`。`[cheats] mirror=auto|github|cnb`；`auto` 时简体中文走 cnb.cool，其它地区走 GitHub。
 
 ---
 

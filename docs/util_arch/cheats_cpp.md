@@ -15,6 +15,10 @@
 | **Adapter** | `ShnExtCheatParser` | 包装 `onion_cheat_parse_shnext_buffer` |
 | **RAII** | `std::mutex` + `lock_guard` | 锁与服务状态生命周期 |
 | **Singleton（进程级服务）** | `CheatService::instance()` | 与原全局 service 同生命周期，线程安全访问 |
+| **Strategy** | `ICheatCatalog` / `IGitMirror` / `IHttpTransport` | 仓库身份、镜像主机、HTTPS 传输可替换 |
+| **Factory Method** | `CheatCatalogRegistry` / `GitMirrorFactory` | 登记 catalog；按 `mirror` + 语言选主机 |
+| **Adapter** | `LibGit2Client` | 包装 libgit2，不含金手指类型 |
+| **Facade** | `CheatSyncService` | IPC 只碰同步入口；安装复用 flatten |
 
 不引入：Observer、Command、Abstract Factory 全家桶（当前无多套产品族需求）。
 
@@ -35,7 +39,13 @@ onion::cheats
 ├── CheatApplier                # toggle / master-code / verify / code-cave
 ├── CheatRepository             # 路径解析、热重载签名、调用 Factory
 ├── CheatFlatten                # 仓库 flatten 安装（C）
-└── CheatService                # Facade + 互斥状态
+├── CheatService                # Facade + 互斥状态
+└── sync/                       # 在线仓库（与引擎分目录）
+    ├── ICheatCatalog           # 下什么（HEN 集合细节只在 catalog_hen_collection.cpp）
+    ├── IGitMirror              # 从哪下（github / cnb.cool）
+    ├── IGitClient / LibGit2Client
+    ├── IHttpTransport          # PS5 SceHttp
+    └── CheatSyncEngine / Service
         │
         ▼
    C: cheat_engine_utils / ShnExt / third_party crypto
