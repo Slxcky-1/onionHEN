@@ -310,6 +310,7 @@
     "notify.cheats.sync.busy": "Cheat download already in progress",
     "notify.cheats.sync.clock": "System time is incorrect. Set the correct date and time.",
     "notify.cheats.sync.cancelling": "Cancelling cheat download...",
+    "notify.cheats.sync.cancelled": "Cheat download cancelled",
     "notify.kstuff.next_boot_on": "Kstuff will be loaded on next boot",
     "notify.kstuff.next_boot_off": "Kstuff will NOT be loaded on next boot",
     "notify.kstuff.deleted": "The external kstuff has been deleted",

@@ -287,6 +287,7 @@ void CheatSyncService::worker(onion::Settings settings, std::string catalog_id,
   }
 
   if (result.status == SyncStatus::Cancelled) {
+    onion_notify_debug("notify.cheats.sync.cancelled");
     LOG_INFO("cheat sync cancelled catalog=%s", catalog->id());
   } else if (result.status == SyncStatus::Ok) {
     onion_notify(true, "notify.cheats.sync.ok", catalog->id());

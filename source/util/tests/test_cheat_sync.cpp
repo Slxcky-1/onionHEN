@@ -236,6 +236,18 @@ size_t notification_count(const char *message, bool debug) {
       }));
 }
 
+bool wait_until_notification(const char *message, bool debug,
+                             size_t expected_count) {
+  const auto deadline = std::chrono::steady_clock::now() + 2s;
+  while (std::chrono::steady_clock::now() < deadline) {
+    if (notification_count(message, debug) >= expected_count) {
+      return true;
+    }
+    std::this_thread::sleep_for(1ms);
+  }
+  return false;
+}
+
 bool wait_until_not_running(CheatSyncService &service) {
   const auto deadline = std::chrono::steady_clock::now() + 2s;
   while (std::chrono::steady_clock::now() < deadline) {
@@ -573,6 +585,9 @@ static int test_service_cancel_lifecycle(void) {
   const char *const cancelling_key = "notify.cheats.sync.cancelling";
   const std::string cancelling_text = onion_notify_tr(cancelling_key);
   TEST_ASSERT_TRUE(cancelling_text != cancelling_key);
+  const char *const cancelled_key = "notify.cheats.sync.cancelled";
+  const std::string cancelled_text = onion_notify_tr(cancelled_key);
+  TEST_ASSERT_TRUE(cancelled_text != cancelled_key);
 
   uint32_t first_task = 0;
   TEST_ASSERT_TRUE(service.start(settings, "hen-cheats-collection", "github",
@@ -589,6 +604,7 @@ static int test_service_cancel_lifecycle(void) {
   TEST_ASSERT_TRUE(!service.cancel(0));
   TEST_ASSERT_TRUE(!service.cancel(first_task + 1));
   TEST_ASSERT_EQ_U64(0, notification_count(cancelling_text.c_str(), true));
+  TEST_ASSERT_EQ_U64(0, notification_count(cancelled_text.c_str(), true));
 
   TEST_ASSERT_TRUE(service.cancel(first_task));
   const CheatSyncStatus cancelling = service.status();
@@ -609,9 +625,11 @@ static int test_service_cancel_lifecycle(void) {
   TEST_ASSERT_EQ_U64(cancelling.total, after_late_progress.total);
   TEST_ASSERT_TRUE(http.waitUntilCancelSeen());
   TEST_ASSERT_TRUE(std::filesystem::exists(service_temp));
+  TEST_ASSERT_EQ_U64(0, notification_count(cancelled_text.c_str(), true));
 
   http.release();
   TEST_ASSERT_TRUE(wait_until_not_running(service));
+  TEST_ASSERT_TRUE(wait_until_notification(cancelled_text.c_str(), true, 1));
   const CheatSyncStatus cancelled = service.status();
   TEST_ASSERT_TRUE(cancelled.state == CheatSyncStatus::State::Idle);
   TEST_ASSERT_EQ_U64(first_task, cancelled.task_id);
@@ -619,6 +637,7 @@ static int test_service_cancel_lifecycle(void) {
   TEST_ASSERT_TRUE(!service.cancellationRequested());
   TEST_ASSERT_TRUE(!std::filesystem::exists(service_temp));
   TEST_ASSERT_EQ_U64(1, notification_count(cancelling_text.c_str(), true));
+  TEST_ASSERT_EQ_U64(1, notification_count(cancelled_text.c_str(), true));
 
   http.reset();
   uint32_t second_task = 0;
@@ -632,9 +651,11 @@ static int test_service_cancel_lifecycle(void) {
   TEST_ASSERT_TRUE(http.waitUntilCancelSeen());
   http.release();
   TEST_ASSERT_TRUE(wait_until_not_running(service));
+  TEST_ASSERT_TRUE(wait_until_notification(cancelled_text.c_str(), true, 2));
   TEST_ASSERT_TRUE(service.status().state == CheatSyncStatus::State::Idle);
   TEST_ASSERT_TRUE(!std::filesystem::exists(service_temp));
   TEST_ASSERT_EQ_U64(2, notification_count(cancelling_text.c_str(), true));
+  TEST_ASSERT_EQ_U64(2, notification_count(cancelled_text.c_str(), true));
   return 0;
 }
 
