@@ -87,8 +87,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   char temp[0x255];
   std::string out_var = "Nothing"; // default send var
 
-  LOG_INFO("Received IPC command 0x%X", command);
-  // LOG_INFO("Received IPC data: %s", inputStr.c_str());
+  LOG_DEBUG("Received IPC command 0x%X", command);
 
   onion_cjson::Root my_json(inputStr);
   if (!my_json) {
@@ -135,14 +134,14 @@ void handleIPC(clientArgs *client, std::string &inputStr,
       // Attempt to load JSON files for PS5 games
       tmp = "/system_data/priv/appmeta/" + tid + "/param.json";
       if (!if_exists(tmp.c_str())) {
-        LOG_INFO("%s: json %s does not exist", tid.c_str(), tmp.c_str());
+        LOG_DEBUG("%s: json %s does not exist", tid.c_str(), tmp.c_str());
         tmp = "/system_data/priv/appmeta/external/" + tid + "/param.json";
 
         if (!if_exists(tmp.c_str())) {
-          LOG_INFO("%s: json %s does not exist", tid.c_str(), tmp.c_str());
+          LOG_DEBUG("%s: json %s does not exist", tid.c_str(), tmp.c_str());
           tmp = "/system_ex/app/" + tid + "/sce_sys/param.json";
           if (!if_exists(tmp.c_str())) {
-            LOG_INFO("%s: json %s does not exist", tid.c_str(), tmp.c_str());
+            LOG_DEBUG("%s: json %s does not exist", tid.c_str(), tmp.c_str());
             onion_notify(true, "notify.game.version_failed");
             reply(sender_app, true);
             break;
@@ -161,10 +160,10 @@ void handleIPC(clientArgs *client, std::string &inputStr,
       // Attempt to load SFO files for PS4 games
       tmp = "/system_data/priv/appmeta/" + tid + "/param.sfo";
       if (!if_exists(tmp.c_str())) {
-        LOG_INFO("%s: sfo %s does not exist", tid.c_str(), tmp.c_str());
+        LOG_DEBUG("%s: sfo %s does not exist", tid.c_str(), tmp.c_str());
         tmp = "/system_data/priv/appmeta/external/" + tid + "/param.sfo";
         if (!if_exists(tmp.c_str())) {
-          LOG_INFO("%s: sfo %s does not exist", tid.c_str(), tmp.c_str());
+          LOG_DEBUG("%s: sfo %s does not exist", tid.c_str(), tmp.c_str());
           onion_notify(true, "notify.game.version_failed");
           reply(sender_app, true);
           break;
@@ -195,7 +194,7 @@ void handleIPC(clientArgs *client, std::string &inputStr,
       }
     }
 
-    LOG_INFO("Version: %s", game_version.c_str());
+    LOG_DEBUG("Resolved %s version: %s", tid.c_str(), game_version.c_str());
     reply(sender_app, false, game_version);
 
     break;
@@ -250,12 +249,12 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     int cheat_id = onion_cjson::int_item(my_json.get(), "cheat_id");
     std::string status;
 
-    LOG_INFO("Received toggle command for cheat %d on %s PID %d",
-                 cheat_id, title_id.c_str(), pid);
+    LOG_DEBUG("Received toggle command for cheat %d on %s PID %d", cheat_id,
+              title_id.c_str(), pid);
 
     auto &cheats = onion::cheats::CheatService::instance();
     if (cheats.toggle(pid, appid, title_id, version, cheat_id, status) == 0) {
-      LOG_INFO("Cheat toggle ok: %s", status.c_str());
+      LOG_DEBUG("Cheat toggle reply: %s", status.c_str());
       reply(sender_app, false, status);
     } else {
       LOG_ERROR("Cheat toggle failed: %s", status.c_str());

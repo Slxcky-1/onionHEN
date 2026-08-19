@@ -61,8 +61,7 @@ char *onion_cheat_load_file_buffer(const char *path, long *size_out) {
   char *buf = NULL;
   size_t buf_size = 0;
 
-  LOG_INFO("[engine] load_file_buffer path=%s",
-                   path ? path : "(null)");
+  LOG_DEBUG("[engine] load_file_buffer path=%s", path ? path : "(null)");
   if (util_file_read_alloc(path, &buf, &buf_size, (size_t)-1) < 0) {
     LOG_ERROR("[engine] load_file_buffer failed path=%s", path);
     return NULL;
@@ -70,8 +69,7 @@ char *onion_cheat_load_file_buffer(const char *path, long *size_out) {
   if (size_out != NULL) {
     *size_out = (long)buf_size;
   }
-  LOG_INFO("[engine] load_file_buffer ok size=%zu",
-                   buf_size);
+  LOG_DEBUG("[engine] load_file_buffer ok size=%zu", buf_size);
   return buf;
 }
 

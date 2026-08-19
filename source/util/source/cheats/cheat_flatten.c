@@ -494,7 +494,7 @@ static void walk_and_flatten(const char *dir, int *copied, int *skipped,
     }
     if (copy_file(path, dest) == 0) {
       (*copied)++;
-      LOG_INFO("[flatten] %s -> %s", path, dest);
+      LOG_TRACE("[flatten] %s -> %s", path, dest);
     } else {
       (*skipped)++;
     }
@@ -557,7 +557,11 @@ int onion_cheat_flatten_install_tree_with_progress(
     progress(0, total, user);
   }
   walk_and_flatten(root, &copied, &skipped, &completed, total, progress, user);
-  LOG_WARN("[flatten] installed %d cheat file(s), skipped %d", copied,
-                   skipped);
+  if (skipped > 0) {
+    LOG_WARN("[flatten] installed %d cheat file(s), skipped %d", copied,
+             skipped);
+  } else {
+    LOG_DEBUG("[flatten] installed %d cheat file(s), skipped 0", copied);
+  }
   return copied > 0 ? 0 : -1;
 }

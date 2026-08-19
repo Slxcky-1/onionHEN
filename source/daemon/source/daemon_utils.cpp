@@ -34,7 +34,7 @@ bool GetFileContents(const char *path, char **buffer) {
 
   if (size == 0) {
     fclose(fp);
-    LOG_INFO("size is 0");
+    LOG_ERROR("file is empty: %s", path);
     return false;
   }
 
@@ -90,7 +90,7 @@ bool Open_Utility_Elf(const char *path, uint8_t **buffer) {
   }
 
   if (st.st_size == 0) {
-    LOG_INFO("File %s is empty.", path);
+    LOG_ERROR("File %s is empty.", path);
     close(fd);
     return false;
   }

@@ -224,10 +224,12 @@ void CheatSyncService::worker(onion::Settings settings, std::string catalog_id,
       CheatMirrorFactory::create(pref, settings.ui_lang, system_lang);
 
   onion_notify(true, "notify.cheats.sync.start", pick.primary->name());
-  LOG_INFO("cheat sync catalog=%s pref=%s primary=%s fallback=%s url=%s",
-           catalog->id(), CheatMirrorFactory::prefName(pref),
-           pick.primary->name(), pick.fallback ? pick.fallback->name() : "-",
-           pick.primary->archiveUrl(*catalog).c_str());
+  LOG_INFO("cheat sync started catalog=%s mirror=%s", catalog->id(),
+           pick.primary->name());
+  LOG_DEBUG("cheat sync config pref=%s fallback=%s url=%s",
+            CheatMirrorFactory::prefName(pref),
+            pick.fallback ? pick.fallback->name() : "-",
+            pick.primary->archiveUrl(*catalog).c_str());
 
   CheatSyncEngine engine(httpTransport(), flatten_existing);
   engine.setProgressHandler(on_sync_progress, this);

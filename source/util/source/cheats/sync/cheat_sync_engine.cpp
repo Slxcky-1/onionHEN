@@ -193,8 +193,8 @@ SyncStatus CheatSyncEngine::tryOne(const ICheatCatalog &catalog,
     return SyncStatus::Io;
   }
 
-  LOG_INFO("cheat archive download mirror=%s url=%s", mirror.name(),
-           url.c_str());
+  LOG_DEBUG("cheat archive download mirror=%s url=%s", mirror.name(),
+            url.c_str());
   SyncStatus status = download_archive(http_, url.c_str(), mirror.archiveHost(),
                                        zip_path.c_str(), progress_,
                                        progress_user_, should_cancel_,

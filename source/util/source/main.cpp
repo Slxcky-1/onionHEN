@@ -116,13 +116,13 @@ int main(void) {
     LOG_INFO("util daemon entered");
 
     if (setjmp(g_catch_buf) == 0)
-        LOG_INFO("jump has been set");
+        LOG_DEBUG("jump has been set");
     else
         onion_notify(true, "notify.crash.resolved");
 
-    LOG_INFO("Registering signal handler...");
+    LOG_DEBUG("Registering signal handler...");
     fault_handler_init(cleanup);
-    LOG_INFO("   Success!");
+    LOG_DEBUG("   Success!");
 
     payload_args_t* args = payload_get_args();
     kernel_base = args->kdata_base_addr;

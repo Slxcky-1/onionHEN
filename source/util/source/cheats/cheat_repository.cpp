@@ -167,7 +167,7 @@ std::string scanMatchingPath(const char *title_id, const std::string &version,
     LOG_WARN("[repository] multiple hashed cheats for %s %s; using %s",
              title_id, version.c_str(), best.name.c_str());
   } else if (best.parts.hash[0] != '\0' || best.parts.process[0] != '\0') {
-    LOG_INFO("[repository] using cheat %s", path.c_str());
+    LOG_DEBUG("[repository] using cheat %s", path.c_str());
   }
   return path;
 }

@@ -213,7 +213,7 @@ int launchApp(const char *titleId) {
         LOG_ERROR("sceUserServiceGetForegroundUser failed: 0x%x", res);
         return res;
     }
-    LOG_INFO("[LA] user id %u", id);
+    LOG_DEBUG("[LA] user id %u", id);
 
     // the thread will clean this up
     Flag flag = Flag_None;
@@ -221,7 +221,7 @@ int launchApp(const char *titleId) {
 
     LOG_DEBUG("calling sceLncUtilLaunchApp");
     int err = sceLncUtilLaunchApp(titleId, nullptr, &param);
-    LOG_INFO("sceLncUtilLaunchApp returned 0x%x", (uint32_t)err);
+    LOG_DEBUG("sceLncUtilLaunchApp returned 0x%x", (uint32_t)err);
     if (err >= 0) {
         return err;
     }
@@ -311,8 +311,8 @@ int main() {
   start_worker_threads(&fifo_thr, &msg_thr);
   onion_ready_signal(ONION_READY_DAEMON);
 
-  LOG_INFO("is toolbox only: %s | ver: %x", toolbox_only ? "Yes" : "No",
-               sys_ver.version);
+  LOG_DEBUG("is toolbox only: %s | ver: %x", toolbox_only ? "Yes" : "No",
+            sys_ver.version);
 
   /* Toolbox injection is independent from the optional post-load navigation. */
   cmd_enable_toolbox();

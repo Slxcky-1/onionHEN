@@ -124,7 +124,7 @@ std::string GetPS5Version(const std::string &jsonpath) {
   } catch (const std::exception &e) {
     // Handle exceptions here, you can log the error or perform other error
     // handling tasks
-    LOG_INFO("An exception occurred: %s", e.what());
+    LOG_ERROR("Failed to read game version: %s", e.what());
     return "Error getting version";
   }
 

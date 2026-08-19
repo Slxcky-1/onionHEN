@@ -190,7 +190,7 @@ bool ensure_curl() {
   }
 
   const int net = sceNetInit();
-  LOG_INFO("http curl sceNetInit rc=%d", net);
+  LOG_DEBUG("http curl sceNetInit rc=%d", net);
 
   const CURLcode rc = curl_global_init(CURL_GLOBAL_DEFAULT);
   if (rc != CURLE_OK) {
@@ -199,12 +199,12 @@ bool ensure_curl() {
     state = -1;
     return false;
   }
-  LOG_INFO("http curl ready version=%s", curl_version());
+  LOG_DEBUG("http curl ready version=%s", curl_version());
   const size_t ca_bundle_size = static_cast<size_t>(
       reinterpret_cast<uintptr_t>(onion_curl_ca_bundle_end) -
       reinterpret_cast<uintptr_t>(onion_curl_ca_bundle_start));
-  LOG_INFO("http curl ca bundle embedded bytes=%zu verify=peer+host",
-           ca_bundle_size);
+  LOG_DEBUG("http curl ca bundle embedded bytes=%zu verify=peer+host",
+            ca_bundle_size);
   state = 1;
   return true;
 }
@@ -218,9 +218,10 @@ SyncStatus Ps5HttpTransport::perform(
   const char *url = req.url ? req.url : "";
   const char *method = req.method ? req.method : "GET";
   const char *allow = req.host_allow ? req.host_allow : "";
-  LOG_INFO("http perform method=%s url=%s host_allow=%s timeout_ms=%d "
-           "status=%d-%d",
-           method, url, allow, req.timeout_ms, req.status_min, req.status_max);
+  LOG_DEBUG("http perform method=%s url=%s host_allow=%s timeout_ms=%d "
+            "status=%d-%d",
+            method, url, allow, req.timeout_ms, req.status_min,
+            req.status_max);
 
   if (!host_allowed(req.url, req.host_allow)) {
     LOG_ERROR("http url rejected url=%s host_allow=%s", url, allow);
@@ -320,11 +321,11 @@ SyncStatus Ps5HttpTransport::perform(
     curl_easy_getinfo(curl, CURLINFO_SSL_VERIFYRESULT, &ssl_verify);
   }
 
-  LOG_INFO("http result url=%s curl=%s(%d) http=%ld ip=%s dns=%.3fs "
-           "connect=%.3fs total=%.3fs bytes=%zu xfer=%s",
-           url, curl_easy_strerror(rc), static_cast<int>(rc), http_code,
-           primary_ip && primary_ip[0] ? primary_ip : "-", namelookup, connect,
-           total, xfer.bytes, sync_status_name(xfer.st));
+  LOG_DEBUG("http result url=%s curl=%s(%d) http=%ld ip=%s dns=%.3fs "
+            "connect=%.3fs total=%.3fs bytes=%zu xfer=%s",
+            url, curl_easy_strerror(rc), static_cast<int>(rc), http_code,
+            primary_ip && primary_ip[0] ? primary_ip : "-", namelookup,
+            connect, total, xfer.bytes, sync_status_name(xfer.st));
 
   if (headers) {
     curl_slist_free_all(headers);

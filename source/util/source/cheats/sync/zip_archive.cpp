@@ -212,8 +212,8 @@ SyncStatus extract_cheat_zip(const char *zip_path, const char *dest_root,
       }
     }
   }
-  LOG_INFO("cheat zip extracted files=%zu bytes=%llu", selected.size(),
-           static_cast<unsigned long long>(total));
+  LOG_DEBUG("cheat zip extracted files=%zu bytes=%llu", selected.size(),
+            static_cast<unsigned long long>(total));
   result = SyncStatus::Ok;
 
 done:

@@ -44,13 +44,14 @@ void toolbox_reinject(bool rest_resume) {
 
     if (rest_resume &&
         onion_toolbox_should_apply_rest_delay(true, cfg.rest_mode_delay_seconds)) {
-        LOG_INFO("rest resume delay %llu secs",
-                     static_cast<unsigned long long>(cfg.rest_mode_delay_seconds));
+        LOG_DEBUG(
+            "rest resume delay %llu secs",
+            static_cast<unsigned long long>(cfg.rest_mode_delay_seconds));
         sleep(static_cast<unsigned int>(cfg.rest_mode_delay_seconds));
         onion_notify(true,
                      "notify.rest.reactivating");
     } else {
-        LOG_INFO("toolbox reinject (not rest resume)");
+        LOG_DEBUG("toolbox reinject (not rest resume)");
     }
 
     if (!enable_toolbox()) {

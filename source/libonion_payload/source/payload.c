@@ -169,7 +169,7 @@ void onion_payload_stop_by_title(const char *title_id) {
       LOG_ERROR("kill(%d) failed: %s", (int)pid, strerror(errno));
     unlink(pid_path);
   } else {
-    LOG_INFO("stop_by_title: no live pid for %s", title_id);
+    LOG_DEBUG("stop_by_title: no live pid for %s", title_id);
   }
 }
 
@@ -182,7 +182,7 @@ pid_t onion_payload_launch_elfldr(const char *title_id, const uint8_t *elf,
   }
   if (strcmp(title_id, ".") == 0 || strcmp(title_id, "..") == 0 ||
       strchr(title_id, '/') != NULL) {
-    LOG_INFO("launch_elfldr: rejected title_id=%s", title_id);
+    LOG_WARN("launch_elfldr: rejected title_id=%s", title_id);
     return -1;
   }
 
@@ -233,7 +233,7 @@ uint8_t *onion_payload_read_file(const char *path, size_t *out_size) {
     return NULL;
   }
   if (st.st_size <= 0) {
-    LOG_INFO("Empty payload file %s", path);
+    LOG_WARN("Empty payload file %s", path);
     close(fd);
     return NULL;
   }
@@ -272,7 +272,7 @@ bool onion_payload_load(const char *path, const char *filename) {
 
   const size_t base_len = strlen(base);
   if (!(base_len > 4 && strcmp(base + base_len - 4, ".elf") == 0)) {
-    LOG_INFO("Not a .elf payload: %s", base);
+    LOG_WARN("Not a .elf payload: %s", base);
     onion_notify(1, "notify.payload.elf_only", base);
     free(buf);
     return false;
@@ -293,7 +293,7 @@ bool onion_payload_load(const char *path, const char *filename) {
     return false;
   }
 
-  LOG_INFO("payload launch key=%s (from %s)", key, base);
+  LOG_DEBUG("payload launch key=%s (from %s)", key, base);
   char pid_path[256];
   onion_payload_pid_path(pid_path, sizeof(pid_path), key);
 

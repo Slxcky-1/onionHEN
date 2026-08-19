@@ -103,7 +103,7 @@ int change_permissions_recursive(const char* path) {
         size_t name_len = strlen(entry->d_name);
 
         if (path_len + name_len + 2 > PATH_MAX) {
-            LOG_INFO( "Path too long: %s/%s", path, entry->d_name);
+            LOG_ERROR("Path too long: %s/%s", path, entry->d_name);
             result = -1;
             continue;
         }
@@ -111,7 +111,7 @@ int change_permissions_recursive(const char* path) {
         char newpath[PATH_MAX];
         int ret = snprintf(newpath, sizeof(newpath), "%s/%s", path, entry->d_name);
         if (ret >= sizeof(newpath)) {
-            LOG_INFO( "Path truncated: %s/%s", path, entry->d_name);
+            LOG_ERROR("Path truncated: %s/%s", path, entry->d_name);
             result = -1;
             continue;
         }
@@ -140,7 +140,7 @@ int change_permissions_recursive(const char* path) {
 
 bool test_sb_file(const char *filename) {
   if (!filename) {
-    LOG_INFO("test_sb_file: filename is null");
+    LOG_ERROR("test_sb_file: filename is null");
     return false;
   }
 
@@ -187,7 +187,7 @@ bool test_sb_file(const char *filename) {
   }
 
   close(fd);
-  LOG_INFO("test_sb_file: Successfully sampled %s", filename);
+  LOG_DEBUG("test_sb_file: successfully sampled %s", filename);
   return true;
 }
 
@@ -254,7 +254,7 @@ void ForceKillProc(int pid) {
     return;
   }
   if (pid == getpid()) {
-    LOG_INFO("ForceKillProc: refusing self pid=%d", pid);
+    LOG_WARN("ForceKillProc: refusing self pid=%d", pid);
     return;
   }
 

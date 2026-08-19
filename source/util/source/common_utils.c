@@ -113,7 +113,7 @@ int launchApp(const char *titleId)
 		LOG_ERROR("sceUserServiceGetForegroundUser failed: 0x%x", res);
 		return res;
 	}
-	LOG_INFO("[LA] user id %u", id);
+	LOG_DEBUG("[LA] user id %u", id);
 
     LncAppParam param;
 	param.sz = sizeof(LncAppParam);
@@ -125,7 +125,7 @@ int launchApp(const char *titleId)
 
 	LOG_DEBUG("calling sceLncUtilLaunchApp");
 	int err = sceLncUtilLaunchApp(titleId, NULL, &param);
-	LOG_INFO("sceLncUtilLaunchApp returned 0x%x", (uint32_t)err);
+	LOG_DEBUG("sceLncUtilLaunchApp returned 0x%x", (uint32_t)err);
 	if (err >= 0)
 	{
 		return err;

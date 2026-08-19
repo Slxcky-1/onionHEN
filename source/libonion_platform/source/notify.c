@@ -79,12 +79,13 @@ static void onion_notify_send_request(OrbisNotificationRequest *req,
     req->uri[0] = '\0';
   }
 
-  LOG_INFO("Notify%s: %s", with_system_icon ? "" : "(debug)", req->message);
+  LOG_DEBUG("Notify%s: %s", with_system_icon ? "" : "(debug)",
+            req->message);
 
   if (!g_send) {
     /* Never fall back to a direct CALL of sceKernelSendNotificationRequest —
      * that symbol is a data pointer in shellui/fps injectees. */
-    LOG_INFO("Notify: send fn not registered (onion_notify_set_send)");
+    LOG_ERROR("Notify: send fn not registered (onion_notify_set_send)");
     return;
   }
   (void)g_send(0, req, sizeof(*req), 0);
@@ -176,7 +177,7 @@ void onion_notify_rich(const char *message, const char *sub_message,
                                "2025-12-14T03:14:51.473Z") ||
       !cJSON_AddStringToObject(root, "localNotificationId",
                                notification_id_value)) {
-    LOG_INFO("Rich notify: failed to build payload");
+    LOG_ERROR("Rich notify: failed to build payload");
     cJSON_Delete(root);
     return;
   }
@@ -184,15 +185,15 @@ void onion_notify_rich(const char *message, const char *sub_message,
   char *payload = cJSON_Print(root);
   cJSON_Delete(root);
   if (!payload || strlen(payload) >= 4096) {
-    LOG_INFO("Rich notify: payload too large");
+    LOG_ERROR("Rich notify: payload too large");
     cJSON_free(payload);
     return;
   }
 
-  LOG_INFO("Rich notify: %s%s%s", msg, sub[0] ? " - " : "", sub);
+  LOG_DEBUG("Rich notify: %s%s%s", msg, sub[0] ? " - " : "", sub);
 
   if (!g_rich_send) {
-    LOG_INFO("Rich notify: send fn not registered");
+    LOG_ERROR("Rich notify: send fn not registered");
     cJSON_free(payload);
     return;
   }
