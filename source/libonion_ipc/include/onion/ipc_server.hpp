@@ -77,10 +77,7 @@ inline void ipc_message_force_nul(IPCMessage &msg) {
   msg.msg[sizeof(msg.msg) - 1] = '\0';
 }
 
-/**
- * Escape a string for inclusion inside a JSON double-quoted value.
- * Handles \, ", control chars (as \u00XX). Pure — no I/O.
- */
+/** Escape one JSON string value using cJSON, without surrounding quotes. */
 std::string ipc_json_escape(const std::string &in);
 
 /**

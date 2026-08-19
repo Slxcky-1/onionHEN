@@ -18,6 +18,8 @@ along with this program; see the file COPYING. If not, see
 #include <onion/log.h>
 #include <onion/system_tmp.h>
 
+#include "onion_cjson.hpp"
+
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
@@ -182,61 +184,38 @@ int ipc_network_send_full(int socket_fd, const void *buffer, int32_t size) {
 int ipc_network_close(int socket_fd) { return close(socket_fd); }
 
 std::string ipc_json_escape(const std::string &in) {
-  std::string out;
-  out.reserve(in.size() + 8);
-  for (unsigned char c : in) {
-    switch (c) {
-    case '\\':
-      out += "\\\\";
-      break;
-    case '"':
-      out += "\\\"";
-      break;
-    case '\b':
-      out += "\\b";
-      break;
-    case '\f':
-      out += "\\f";
-      break;
-    case '\n':
-      out += "\\n";
-      break;
-    case '\r':
-      out += "\\r";
-      break;
-    case '\t':
-      out += "\\t";
-      break;
-    default:
-      if (c < 0x20) {
-        char hex[8];
-        snprintf(hex, sizeof(hex), "\\u%04x", c);
-        out += hex;
-      } else {
-        out += static_cast<char>(c);
-      }
-      break;
-    }
+  const std::string quoted =
+      onion_cjson::print_owned(cJSON_CreateString(in.c_str()));
+  if (quoted.size() < 2 || quoted.front() != '"' || quoted.back() != '"') {
+    return {};
   }
-  return out;
+  return quoted.substr(1, quoted.size() - 2);
 }
 
 std::string ipc_format_reply_body(bool error, const std::string &out_var) {
-  /* Compact JSON; var is always a quoted escaped string. */
-  return std::string("{\"res\":") + std::to_string(error ? -1 : 0) +
-         ",\"var\":\"" + ipc_json_escape(out_var) + "\"}";
+  cJSON *root = cJSON_CreateObject();
+  if (!root || !cJSON_AddNumberToObject(root, "res", error ? -1 : 0) ||
+      !cJSON_AddStringToObject(root, "var", out_var.c_str())) {
+    cJSON_Delete(root);
+    return {};
+  }
+  return onion_cjson::print_owned(root);
 }
 
 void ipc_reply(int sender_socket, DaemonCommands reply_cmd, bool error,
                const std::string &out_var) {
-  const std::string body = ipc_format_reply_body(error, out_var);
+  std::string body = ipc_format_reply_body(error, out_var);
+  if (body.empty() || body.size() >= DAEMON_BUFF_MAX) {
+    error = true;
+    body = ipc_format_reply_body(true, "IPC response too large");
+  }
 
   IPCMessage outputMessage{};
   outputMessage.magic = 0xDEADBABE;
   outputMessage.cmd = reply_cmd;
   outputMessage.error = error ? -1 : 0;
   bzero(outputMessage.msg, sizeof(outputMessage.msg));
-  strncpy(outputMessage.msg, body.c_str(), sizeof(outputMessage.msg) - 1);
+  memcpy(outputMessage.msg, body.data(), body.size());
   ipc_message_force_nul(outputMessage);
 
   LOG_ERROR("error: %d", outputMessage.error);

@@ -38,10 +38,7 @@ OnionIpcNotifyFn g_notify = nullptr;
 
 
 std::string json_object_str(cJSON *j) {
-  onion_cjson::Printed printed(j);
-  std::string out = printed.str();
-  cJSON_Delete(j);
-  return out;
+  return onion_cjson::print_owned(j);
 }
 
 std::string json_kv_string(const char *k1, const char *v1) {
@@ -57,6 +54,14 @@ std::string json_kv_string2(const char *k1, const char *v1, const char *k2,
   cJSON_AddStringToObject(j, k2, v2 ? v2 : "");
   return json_object_str(j);
 }
+
+std::string json_kv_number(const char *key, double value) {
+  cJSON *j = cJSON_CreateObject();
+  cJSON_AddNumberToObject(j, key, value);
+  return json_object_str(j);
+}
+
+std::string json_empty_object() { return json_object_str(cJSON_CreateObject()); }
 
 void maybe_notify(const char *text) {
   if (g_notify && text) {
@@ -245,9 +250,9 @@ bool IPC_Client::IPCSendCommand(DaemonCommands cmd, std::string &ipc_msg1,
   } else if (ipc_msg2.empty()) {
     if (cmd == BREW_DAEMON_PID || cmd == BREW_UTIL_DAEMON_PID ||
         cmd == BREW_TEST_CONNECTION || cmd == BREW_UTIL_TEST_CONNECTION) {
-      json = "{\"pid\": 0 }";
+      json = json_kv_number("pid", 0);
     } else {
-      json = "{\"msg_1\": 0}";
+      json = json_kv_number("msg_1", 0);
     }
   } else {
     json = std::move(ipc_msg2);
@@ -296,7 +301,7 @@ int IPC_Client::GetDaemonPid() {
 
 IPC_Ret IPC_Client::ToggleSetting(DaemonCommands cmd, bool turn_on) {
   std::string ipc_msg;
-  std::string json = turn_on ? "{\"toggle\": 1}" : "{\"toggle\": 0}";
+  std::string json = json_kv_number("toggle", turn_on ? 1 : 0);
   if (!IPCSendCommand(cmd, ipc_msg, json)) {
     LOG_ERROR("Failed to toggle setting 0x%X (%d)", cmd, cmd);
     return IPC_Ret::OPERATION_FAILED;
@@ -443,7 +448,8 @@ bool IPC_Client::CheatSyncStatus(std::string &out) {
   if (!require_util("CheatSyncStatus")) {
     return false;
   }
-  if (!IPCSendCommand(BREW_UTIL_CHEAT_SYNC_STATUS, out, "{}")) {
+  if (!IPCSendCommand(BREW_UTIL_CHEAT_SYNC_STATUS, out,
+                      json_empty_object())) {
     LOG_ERROR("Failed to query cheat sync status");
     return false;
   }
@@ -499,7 +505,7 @@ bool IPC_Client::EnableToolbox() {
   }
   std::string ipc_msg;
   // Historical payload titleId; daemon ignores body for enable path.
-  std::string json = R"({ "titleId": "ETAH00002" })";
+  std::string json = json_kv_string("titleId", "ETAH00002");
   if (!IPCSendCommand(BREW_ENABLE_TOOLBOX, ipc_msg, json)) {
     LOG_ERROR("EnableToolbox failed");
     return false;

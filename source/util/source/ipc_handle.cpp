@@ -42,6 +42,39 @@ int launchApp(const char *titleId);
 std::string GetPS5Version(const std::string &jsonpath);
 std::vector<uint8_t> readFile(std::string filename);
 
+namespace {
+
+std::string make_state_json(const char *state) {
+  cJSON *root = cJSON_CreateObject();
+  if (!root || !cJSON_AddStringToObject(root, "state", state)) {
+    cJSON_Delete(root);
+    return {};
+  }
+  return onion_cjson::print_owned(root);
+}
+
+std::string make_sync_status_json(
+    const onion::cheats::sync::CheatSyncStatus &status, const char *state) {
+  cJSON *root = cJSON_CreateObject();
+  const char *mirror = status.mirror == onion::cheats::sync::CheatMirrorId::Cnb
+                           ? "cnb"
+                           : "github";
+  if (!root || !cJSON_AddStringToObject(root, "state", state) ||
+      !cJSON_AddStringToObject(root, "mirror", mirror) ||
+      !cJSON_AddStringToObject(root, "catalog", status.catalog_id.c_str()) ||
+      !cJSON_AddStringToObject(root, "error", status.error.c_str()) ||
+      !cJSON_AddStringToObject(root, "phase", status.phase.c_str()) ||
+      !cJSON_AddNumberToObject(root, "progress", status.progress_percent) ||
+      !cJSON_AddNumberToObject(root, "completed", status.completed) ||
+      !cJSON_AddNumberToObject(root, "total", status.total)) {
+    cJSON_Delete(root);
+    return {};
+  }
+  return onion_cjson::print_owned(root);
+}
+
+} // namespace
+
 void handleIPC(clientArgs *client, std::string &inputStr,
                DaemonCommands command) {
 
@@ -243,11 +276,14 @@ void handleIPC(clientArgs *client, std::string &inputStr,
         (mirror && mirror[0]) ? mirror : nullptr);
     if (started == CheatSyncService::StartResult::AlreadyRunning) {
       onion_notify(true, "notify.cheats.sync.busy");
-      reply(sender_app, false, "{\"state\":\"already_running\"}");
+      const std::string body = make_state_json("already_running");
+      reply(sender_app, body.empty(), body);
     } else if (started == CheatSyncService::StartResult::Rejected) {
-      reply(sender_app, true, "{\"state\":\"rejected\"}");
+      const std::string body = make_state_json("rejected");
+      reply(sender_app, true, body);
     } else {
-      reply(sender_app, false, "{\"state\":\"started\"}");
+      const std::string body = make_state_json("started");
+      reply(sender_app, body.empty(), body);
     }
     break;
   }
@@ -269,19 +305,8 @@ void handleIPC(clientArgs *client, std::string &inputStr,
       state = "idle";
       break;
     }
-    char body[640];
-    std::snprintf(body, sizeof(body),
-                  "{\"state\":\"%s\",\"mirror\":\"%s\","
-                  "\"catalog\":\"%s\",\"error\":\"%s\",\"phase\":\"%s\","
-                  "\"progress\":%d,\"completed\":%zu,\"total\":%zu}",
-                  state,
-                  st.mirror == onion::cheats::sync::CheatMirrorId::Cnb
-                      ? "cnb"
-                      : "github",
-                  st.catalog_id.c_str(), st.error.c_str(),
-                  st.phase.c_str(), st.progress_percent, st.completed,
-                  st.total);
-    reply(sender_app, false, body);
+    const std::string body = make_sync_status_json(st, state);
+    reply(sender_app, body.empty(), body);
     break;
   }
   case BREW_UTIL_UNUSED_DOWNLOAD_KSTUFF:

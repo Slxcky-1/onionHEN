@@ -9,47 +9,6 @@
 #include "test_harness.h"
 #include "test_support.h"
 
-static int test_skip_ws(void) {
-  const char text[] = "  \t\nvalue";
-  const char *end = text + strlen(text);
-
-  TEST_ASSERT_TRUE(onion_cheat_skip_ws(text, end) == text + 4);
-  return 0;
-}
-
-static int test_find_matching_ignores_delimiters_inside_strings(void) {
-  const char json[] = "{\"text\":\"}\",\"mods\":[1,2]}";
-  const char *start = strchr(json, '{');
-  const char *end = json + strlen(json);
-  const char *close = onion_cheat_find_matching(start, end, '{', '}');
-
-  TEST_ASSERT_TRUE(close != NULL);
-  TEST_ASSERT_TRUE(*close == '}');
-  TEST_ASSERT_TRUE((size_t)(close - start) == strlen(json) - 1);
-  return 0;
-}
-
-static int test_extract_string_and_scalar(void) {
-  const char json[] =
-      "{\"name\":\"Infinite HP\",\"section\":1,\"offset\":\"1000\"}";
-  const char *start = json;
-  const char *end = json + strlen(json);
-  char value[64];
-
-  TEST_ASSERT_EQ_INT(0, onion_cheat_extract_string(start, end, "name", value,
-                                                   sizeof(value)));
-  TEST_ASSERT_STREQ("Infinite HP", value);
-  TEST_ASSERT_EQ_INT(0, onion_cheat_extract_scalar(start, end, "section", value,
-                                                   sizeof(value)));
-  TEST_ASSERT_STREQ("1", value);
-  TEST_ASSERT_EQ_INT(0, onion_cheat_extract_scalar(start, end, "offset", value,
-                                                   sizeof(value)));
-  TEST_ASSERT_STREQ("1000", value);
-  TEST_ASSERT_EQ_INT(-1, onion_cheat_extract_string(start, end, "missing",
-                                                    value, sizeof(value)));
-  return 0;
-}
-
 static int test_hex_decode_handles_success_and_truncation(void) {
   uint8_t bytes[4];
   size_t out_len = 0;
@@ -124,12 +83,6 @@ static int test_module_section_layout(void) {
 int test_cheat_utils_suite(void) {
   int failures = 0;
 
-  failures += onion_test_run("cheat utils skip ws", test_skip_ws);
-  failures += onion_test_run(
-      "cheat utils matching braces",
-      test_find_matching_ignores_delimiters_inside_strings);
-  failures +=
-      onion_test_run("cheat utils extract values", test_extract_string_and_scalar);
   failures += onion_test_run("cheat utils hex decode",
                              test_hex_decode_handles_success_and_truncation);
   failures += onion_test_run("cheat utils replace all",

@@ -1,5 +1,6 @@
 /* Host tests for onion_notify_format (pure string path). */
 #include "test_harness.h"
+#include "cJSON.hpp"
 
 #include <onion/notify.h>
 
@@ -192,12 +193,32 @@ static int32_t capture_rich_notify(int32_t user_id, bool is_logged,
 static int test_notify_rich_formats_payload(void) {
   g_rich_payload[0] = '\0';
   onion_notify_set_rich_send(capture_rich_notify);
-  onion_notify_rich("Title", "Sub \"quoted\"", "/icon.png", "download", "42");
-  TEST_ASSERT_TRUE(strstr(g_rich_payload, "InteractiveToastTemplateB") != NULL);
-  TEST_ASSERT_TRUE(strstr(g_rich_payload, "\"body\": \"Title\"") != NULL);
-  TEST_ASSERT_TRUE(strstr(g_rich_payload, "Sub \\\"quoted\\\"") != NULL);
-  TEST_ASSERT_TRUE(strstr(g_rich_payload, "\"localNotificationId\": \"42\"") !=
-                   NULL);
+  onion_notify_rich("Title", "Sub \"quoted\"", "/icon\"quoted.png",
+                    "download", "42");
+  cJSON *root = cJSON_Parse(g_rich_payload);
+  cJSON *raw = cJSON_GetObjectItemCaseSensitive(root, "rawData");
+  cJSON *view = cJSON_GetObjectItemCaseSensitive(raw, "viewData");
+  cJSON *message = cJSON_GetObjectItemCaseSensitive(view, "message");
+  cJSON *sub_message = cJSON_GetObjectItemCaseSensitive(view, "subMessage");
+  cJSON *icon = cJSON_GetObjectItemCaseSensitive(view, "icon");
+  cJSON *icon_params = cJSON_GetObjectItemCaseSensitive(icon, "parameters");
+  TEST_ASSERT_TRUE(cJSON_IsObject(root));
+  TEST_ASSERT_STREQ("InteractiveToastTemplateB",
+                    cJSON_GetObjectItemCaseSensitive(raw, "viewTemplateType")
+                        ->valuestring);
+  TEST_ASSERT_STREQ(
+      "Title", cJSON_GetObjectItemCaseSensitive(message, "body")->valuestring);
+  TEST_ASSERT_STREQ("Sub \"quoted\"",
+                    cJSON_GetObjectItemCaseSensitive(sub_message, "body")
+                        ->valuestring);
+  TEST_ASSERT_STREQ("/icon\"quoted.png",
+                    cJSON_GetObjectItemCaseSensitive(icon_params, "url")
+                        ->valuestring);
+  TEST_ASSERT_STREQ("42",
+                    cJSON_GetObjectItemCaseSensitive(root,
+                                                     "localNotificationId")
+                        ->valuestring);
+  cJSON_Delete(root);
   return 0;
 }
 
