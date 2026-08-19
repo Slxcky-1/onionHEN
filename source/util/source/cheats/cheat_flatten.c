@@ -420,11 +420,24 @@ static int copy_file(const char *src, const char *dst) {
   return 0;
 }
 
-static size_t count_flatten_files(const char *dir) {
+static int flatten_cancel_requested(onion_cheat_cancel_fn should_cancel,
+                                    void *cancel_user) {
+  return should_cancel != NULL && should_cancel(cancel_user) != 0;
+}
+
+static size_t count_flatten_files(const char *dir,
+                                  onion_cheat_cancel_fn should_cancel,
+                                  void *cancel_user, int *cancelled) {
   DIR *d = opendir(dir);
   struct dirent *ent;
   size_t count = 0;
 
+  if (flatten_cancel_requested(should_cancel, cancel_user)) {
+    if (cancelled != NULL) {
+      *cancelled = 1;
+    }
+    return 0;
+  }
   if (d == NULL) {
     return 0;
   }
@@ -433,6 +446,12 @@ static size_t count_flatten_files(const char *dir) {
     char flat[256];
     struct stat st;
 
+    if (flatten_cancel_requested(should_cancel, cancel_user)) {
+      if (cancelled != NULL) {
+        *cancelled = 1;
+      }
+      break;
+    }
     if (ent->d_name[0] == '.') {
       continue;
     }
@@ -441,7 +460,10 @@ static size_t count_flatten_files(const char *dir) {
       continue;
     }
     if (S_ISDIR(st.st_mode)) {
-      count += count_flatten_files(path);
+      count += count_flatten_files(path, should_cancel, cancel_user, cancelled);
+      if (cancelled != NULL && *cancelled) {
+        break;
+      }
     } else if (S_ISREG(st.st_mode) &&
                onion_cheat_build_flat_name(ent->d_name, flat, sizeof(flat)) ==
                    0) {
@@ -452,14 +474,20 @@ static size_t count_flatten_files(const char *dir) {
   return count;
 }
 
-static void walk_and_flatten(const char *dir, int *copied, int *skipped,
-                             size_t *completed, size_t total,
-                             onion_cheat_progress_fn progress, void *user) {
+static int walk_and_flatten(const char *dir, int *copied, int *skipped,
+                            size_t *completed, size_t total,
+                            onion_cheat_progress_fn progress,
+                            void *progress_user,
+                            onion_cheat_cancel_fn should_cancel,
+                            void *cancel_user) {
   DIR *d = opendir(dir);
   struct dirent *ent;
 
+  if (flatten_cancel_requested(should_cancel, cancel_user)) {
+    return ONION_CHEAT_FLATTEN_CANCELLED;
+  }
   if (d == NULL) {
-    return;
+    return ONION_CHEAT_FLATTEN_OK;
   }
   while ((ent = readdir(d)) != NULL) {
     char path[512];
@@ -467,6 +495,10 @@ static void walk_and_flatten(const char *dir, int *copied, int *skipped,
     char dest[512];
     struct stat st;
 
+    if (flatten_cancel_requested(should_cancel, cancel_user)) {
+      closedir(d);
+      return ONION_CHEAT_FLATTEN_CANCELLED;
+    }
     if (ent->d_name[0] == '.') {
       continue;
     }
@@ -475,7 +507,13 @@ static void walk_and_flatten(const char *dir, int *copied, int *skipped,
       continue;
     }
     if (S_ISDIR(st.st_mode)) {
-      walk_and_flatten(path, copied, skipped, completed, total, progress, user);
+      const int result = walk_and_flatten(
+          path, copied, skipped, completed, total, progress, progress_user,
+          should_cancel, cancel_user);
+      if (result == ONION_CHEAT_FLATTEN_CANCELLED) {
+        closedir(d);
+        return result;
+      }
       continue;
     }
     if (!S_ISREG(st.st_mode)) {
@@ -488,7 +526,7 @@ static void walk_and_flatten(const char *dir, int *copied, int *skipped,
     if (strcmp(path, dest) == 0) {
       ++(*completed);
       if (progress != NULL) {
-        progress(*completed, total, user);
+        progress(*completed, total, progress_user);
       }
       continue;
     }
@@ -500,10 +538,11 @@ static void walk_and_flatten(const char *dir, int *copied, int *skipped,
     }
     ++(*completed);
     if (progress != NULL) {
-      progress(*completed, total, user);
+      progress(*completed, total, progress_user);
     }
   }
   closedir(d);
+  return ONION_CHEAT_FLATTEN_OK;
 }
 
 /**
@@ -535,14 +574,12 @@ void onion_cheat_normalize_version(const char *version, char *out,
   onion_cheat_normalize_filename_token(version, out, out_size);
 }
 
-int onion_cheat_flatten_install_tree(const char *root) {
-  return onion_cheat_flatten_install_tree_with_progress(root, NULL, NULL);
-}
-
-int onion_cheat_flatten_install_tree_with_progress(
-    const char *root, onion_cheat_progress_fn progress, void *user) {
+int onion_cheat_flatten_install_tree_cancellable(
+    const char *root, onion_cheat_progress_fn progress, void *progress_user,
+    onion_cheat_cancel_fn should_cancel, void *cancel_user) {
   int copied = 0;
   int skipped = 0;
+  int cancelled = 0;
   size_t completed = 0;
   size_t total;
 
@@ -552,16 +589,25 @@ int onion_cheat_flatten_install_tree_with_progress(
   if (root == NULL || root[0] == '\0') {
     root = ONION_CHEATS_DIR;
   }
-  total = count_flatten_files(root);
-  if (progress != NULL) {
-    progress(0, total, user);
+  total = count_flatten_files(root, should_cancel, cancel_user, &cancelled);
+  if (cancelled) {
+    return ONION_CHEAT_FLATTEN_CANCELLED;
   }
-  walk_and_flatten(root, &copied, &skipped, &completed, total, progress, user);
+  if (progress != NULL) {
+    progress(0, total, progress_user);
+  }
+  if (walk_and_flatten(root, &copied, &skipped, &completed, total, progress,
+                       progress_user, should_cancel, cancel_user) ==
+      ONION_CHEAT_FLATTEN_CANCELLED) {
+    LOG_DEBUG("[flatten] cancelled after %zu/%zu cheat file(s)", completed,
+              total);
+    return ONION_CHEAT_FLATTEN_CANCELLED;
+  }
   if (skipped > 0) {
     LOG_WARN("[flatten] installed %d cheat file(s), skipped %d", copied,
              skipped);
   } else {
     LOG_DEBUG("[flatten] installed %d cheat file(s), skipped 0", copied);
   }
-  return copied > 0 ? 0 : -1;
+  return copied > 0 ? ONION_CHEAT_FLATTEN_OK : ONION_CHEAT_FLATTEN_ERROR;
 }

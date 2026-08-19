@@ -123,15 +123,20 @@ void onion_cheat_normalize_filename_token(const char *value, char *out,
 void onion_cheat_normalize_version(const char *version, char *out,
                                    size_t out_size);
 
-/** Walk @p root and copy cheats into ONION_CHEATS_DIR as flat names. */
-int onion_cheat_flatten_install_tree(const char *root);
-
 typedef void (*onion_cheat_progress_fn)(size_t completed, size_t total,
                                         void *user);
+typedef int (*onion_cheat_cancel_fn)(void *user);
 
-/** Flatten a tree while reporting recognized files attempted. */
-int onion_cheat_flatten_install_tree_with_progress(
-    const char *root, onion_cheat_progress_fn progress, void *user);
+enum onion_cheat_flatten_result {
+  ONION_CHEAT_FLATTEN_OK = 0,
+  ONION_CHEAT_FLATTEN_ERROR = -1,
+  ONION_CHEAT_FLATTEN_CANCELLED = 1,
+};
+
+/** Flatten a tree with cooperative cancellation between complete files. */
+int onion_cheat_flatten_install_tree_cancellable(
+    const char *root, onion_cheat_progress_fn progress, void *progress_user,
+    onion_cheat_cancel_fn should_cancel, void *cancel_user);
 
 #ifdef __cplusplus
 }

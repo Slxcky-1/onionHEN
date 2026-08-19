@@ -70,11 +70,11 @@ bool host_allowed(const char *url, const char *allow) {
   return false;
 }
 
+#if !defined(ONION_HOST_TEST)
 // OpenSSL X509 verify codes surfaced via CURLINFO_SSL_VERIFYRESULT.
 constexpr long kX509CertNotYetValid = 9;  // X509_V_ERR_CERT_NOT_YET_VALID
 constexpr long kX509CertHasExpired = 10;  // X509_V_ERR_CERT_HAS_EXPIRED
 
-#if !defined(ONION_HOST_TEST)
 extern "C" int sceNetInit(void);
 
 struct CurlXfer {

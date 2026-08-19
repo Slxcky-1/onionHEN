@@ -123,6 +123,14 @@ int32_t sceNotificationSend(int32_t user_id, bool is_logged,
   return 0;
 }
 
+int sceSystemServiceParamGetInt(int param_id, int *value) {
+  (void)param_id;
+  if (value != NULL) {
+    *value = 1;
+  }
+  return 0;
+}
+
 /* Bind platform notify to the host stub (constructor runs before tests). */
 #include <onion/notify.h>
 __attribute__((constructor)) static void host_bind_notify_send(void) {

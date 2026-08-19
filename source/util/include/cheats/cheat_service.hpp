@@ -31,8 +31,6 @@ public:
   int toggle(int pid, int appid, const std::string &title_id,
              const std::string &version, int index, std::string &status);
 
-  int flattenInstallTree(const std::string &root);
-
   CheatService(const CheatService &) = delete;
   CheatService &operator=(const CheatService &) = delete;
 

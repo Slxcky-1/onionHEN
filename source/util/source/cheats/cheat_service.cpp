@@ -250,9 +250,4 @@ int CheatService::toggle(int pid, int appid, const std::string &title_id,
   return applier_.toggle(game_, file_, index, status);
 }
 
-int CheatService::flattenInstallTree(const std::string &root) {
-  ensureDir();
-  return CheatRepository::flattenInstallTree(root);
-}
-
 } // namespace onion::cheats

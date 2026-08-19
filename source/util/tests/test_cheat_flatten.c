@@ -11,6 +11,8 @@
 static size_t flatten_progress_calls;
 static size_t flatten_progress_completed;
 static size_t flatten_progress_total;
+static int flatten_cancel_after_first;
+static int flatten_cancel_requested;
 
 static void capture_flatten_progress(size_t completed, size_t total,
                                      void *user) {
@@ -18,6 +20,14 @@ static void capture_flatten_progress(size_t completed, size_t total,
   ++flatten_progress_calls;
   flatten_progress_completed = completed;
   flatten_progress_total = total;
+  if (flatten_cancel_after_first && completed >= 1) {
+    flatten_cancel_requested = 1;
+  }
+}
+
+static int should_cancel_flatten(void *user) {
+  (void)user;
+  return flatten_cancel_requested;
 }
 
 static int write_text(const char *path, const char *text) {
@@ -52,8 +62,9 @@ static int test_flatten_progress(void) {
   flatten_progress_calls = 0;
   flatten_progress_completed = 0;
   flatten_progress_total = 0;
-  TEST_ASSERT_EQ_INT(0, onion_cheat_flatten_install_tree_with_progress(
-                            source, capture_flatten_progress, NULL));
+  TEST_ASSERT_EQ_INT(ONION_CHEAT_FLATTEN_OK,
+                     onion_cheat_flatten_install_tree_cancellable(
+                         source, capture_flatten_progress, NULL, NULL, NULL));
   TEST_ASSERT_EQ_U64(2, flatten_progress_total);
   TEST_ASSERT_EQ_U64(flatten_progress_total, flatten_progress_completed);
   TEST_ASSERT_EQ_U64(3, flatten_progress_calls);
@@ -61,6 +72,49 @@ static int test_flatten_progress(void) {
   unlink(first_source);
   unlink(second_source);
   unlink(ignored_source);
+  unlink(first_dest);
+  unlink(second_dest);
+  rmdir(source);
+  return 0;
+}
+
+static int test_flatten_cancel_between_files(void) {
+  const char *source = ONION_DATA_ROOT "/flatten-cancel";
+  const char *first_source =
+      ONION_DATA_ROOT "/flatten-cancel/CUSA99993_01.00.json";
+  const char *second_source =
+      ONION_DATA_ROOT "/flatten-cancel/CUSA99994_01.00.shn";
+  const char *first_dest = ONION_CHEATS_DIR "/CUSA99993_01.00.json";
+  const char *second_dest = ONION_CHEATS_DIR "/CUSA99994_01.00.shn";
+  int installed_count;
+
+  (void)mkdir(ONION_DATA_ROOT, 0777);
+  (void)mkdir(ONION_CHEATS_DIR, 0777);
+  (void)mkdir(source, 0777);
+  (void)unlink(first_dest);
+  (void)unlink(second_dest);
+  TEST_ASSERT_EQ_INT(0, write_text(first_source, "{}"));
+  TEST_ASSERT_EQ_INT(0, write_text(second_source, "fixture"));
+
+  flatten_progress_calls = 0;
+  flatten_progress_completed = 0;
+  flatten_progress_total = 0;
+  flatten_cancel_after_first = 1;
+  flatten_cancel_requested = 0;
+  TEST_ASSERT_EQ_INT(
+      ONION_CHEAT_FLATTEN_CANCELLED,
+      onion_cheat_flatten_install_tree_cancellable(
+          source, capture_flatten_progress, NULL, should_cancel_flatten, NULL));
+  TEST_ASSERT_EQ_U64(2, flatten_progress_total);
+  TEST_ASSERT_EQ_U64(1, flatten_progress_completed);
+  installed_count = (access(first_dest, F_OK) == 0 ? 1 : 0) +
+                    (access(second_dest, F_OK) == 0 ? 1 : 0);
+  TEST_ASSERT_EQ_INT(1, installed_count);
+
+  flatten_cancel_after_first = 0;
+  flatten_cancel_requested = 0;
+  unlink(first_source);
+  unlink(second_source);
   unlink(first_dest);
   unlink(second_dest);
   rmdir(source);
@@ -386,6 +440,8 @@ int test_cheat_flatten_suite(void) {
   failures += onion_test_run("flatten.match_ext_reject", test_match_ext_reject);
   failures += onion_test_run("flatten.flat_simple", test_flat_simple);
   failures += onion_test_run("flatten.progress", test_flatten_progress);
+  failures += onion_test_run("flatten.cancel_between_files",
+                             test_flatten_cancel_between_files);
   failures += onion_test_run("flatten.flat_strips_process",
                              test_flat_strips_process_suffix);
   failures +=

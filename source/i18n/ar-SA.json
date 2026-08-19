@@ -309,7 +309,7 @@
     "notify.cheats.sync.error": "فشل تنزيل الغش: %s",
     "notify.cheats.sync.busy": "تنزيل الغش قيد التنفيذ بالفعل",
     "notify.cheats.sync.clock": "وقت النظام غير صحيح. اضبط التاريخ والوقت.",
-    "notify.cheats.sync.cancelled": "تم إلغاء تنزيل الغش",
+    "notify.cheats.sync.cancelling": "جارٍ إلغاء تنزيل الغش...",
     "notify.kstuff.next_boot_on": "سيُحمَّل Kstuff في التشغيل التالي",
     "notify.kstuff.next_boot_off": "لن يُحمَّل Kstuff في التشغيل التالي",
     "notify.kstuff.deleted": "حُذف Kstuff الخارجي",

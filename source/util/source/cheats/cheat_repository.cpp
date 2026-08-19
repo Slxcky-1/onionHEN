@@ -275,15 +275,13 @@ void CheatRepository::ensureCheatsDir() {
   ::mkdir(ONION_CHEATS_DIR, 0777);
 }
 
-int CheatRepository::flattenInstallTree(const std::string &root) {
-  return onion_cheat_flatten_install_tree(root.c_str());
-}
-
 int CheatRepository::flattenInstallTree(const std::string &root,
                                         onion_cheat_progress_fn progress,
-                                        void *user) {
-  return onion_cheat_flatten_install_tree_with_progress(root.c_str(), progress,
-                                                        user);
+                                        void *progress_user,
+                                        onion_cheat_cancel_fn should_cancel,
+                                        void *cancel_user) {
+  return onion_cheat_flatten_install_tree_cancellable(
+      root.c_str(), progress, progress_user, should_cancel, cancel_user);
 }
 
 } // namespace onion::cheats

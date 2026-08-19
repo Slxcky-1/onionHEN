@@ -309,7 +309,7 @@
     "notify.cheats.sync.error": "Nie udało się pobrać cheatów: %s",
     "notify.cheats.sync.busy": "Pobieranie cheatów już trwa",
     "notify.cheats.sync.clock": "Zły czas systemowy. Ustaw datę i godzinę.",
-    "notify.cheats.sync.cancelled": "Pobieranie cheatów anulowane",
+    "notify.cheats.sync.cancelling": "Anulowanie pobierania cheatów...",
     "notify.kstuff.next_boot_on": "Kstuff zostanie załadowany przy następnym starcie",
     "notify.kstuff.next_boot_off": "Kstuff NIE zostanie załadowany przy następnym starcie",
     "notify.kstuff.deleted": "Zewnętrzny Kstuff został usunięty",

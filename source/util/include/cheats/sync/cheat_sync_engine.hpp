@@ -14,8 +14,11 @@ class CheatSyncEngine {
 public:
   using InstallProgressFn = void (*)(size_t completed, size_t total,
                                      void *user);
-  using FlattenFn = int (*)(const char *root, InstallProgressFn progress,
-                            void *progress_user);
+  using FlattenFn = SyncStatus (*)(const char *root,
+                                   InstallProgressFn progress,
+                                   void *progress_user,
+                                   SyncCancelFn should_cancel,
+                                   void *cancel_user);
 
   struct Result {
     SyncStatus status = SyncStatus::Rejected;

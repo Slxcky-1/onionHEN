@@ -309,7 +309,7 @@
     "notify.cheats.sync.error": "치트 다운로드 실패: %s",
     "notify.cheats.sync.busy": "치트 다운로드가 이미 진행 중입니다",
     "notify.cheats.sync.clock": "시스템 시간이 올바르지 않습니다. 날짜와 시간을 설정하세요.",
-    "notify.cheats.sync.cancelled": "치트 다운로드가 취소되었습니다",
+    "notify.cheats.sync.cancelling": "치트 다운로드를 취소하는 중...",
     "notify.kstuff.next_boot_on": "다음에 시작할 때 Kstuff를 불러옵니다",
     "notify.kstuff.next_boot_off": "다음에 시작할 때 Kstuff를 불러오지 않습니다",
     "notify.kstuff.deleted": "외부 Kstuff를 삭제했습니다",

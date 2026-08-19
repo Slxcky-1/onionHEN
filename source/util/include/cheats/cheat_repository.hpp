@@ -53,9 +53,11 @@ public:
 
   static void ensureCheatsDir();
   /** Flatten nested repo tree into ONION_CHEATS_DIR. */
-  static int flattenInstallTree(const std::string &root);
   static int flattenInstallTree(const std::string &root,
-                                onion_cheat_progress_fn progress, void *user);
+                                onion_cheat_progress_fn progress,
+                                void *progress_user,
+                                onion_cheat_cancel_fn should_cancel,
+                                void *cancel_user);
 };
 
 } // namespace onion::cheats

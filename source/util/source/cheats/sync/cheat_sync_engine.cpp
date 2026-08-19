@@ -230,8 +230,13 @@ SyncStatus CheatSyncEngine::tryOne(const ICheatCatalog &catalog,
     if (progress_) {
       progress_("install", 0, 0, progress_user_);
     }
-    if (flatten_(root.c_str(), progress_ ? on_phase_progress : nullptr,
-                 &bridge) != 0) {
+    status = flatten_(root.c_str(), progress_ ? on_phase_progress : nullptr,
+                      &bridge, should_cancel_, cancel_user_);
+    if (status != SyncStatus::Ok) {
+      if (status == SyncStatus::Cancelled) {
+        cleanup_temp(temp_root, temp_parent, progress_, progress_user_);
+        return status;
+      }
       out.error = "install failed";
       cleanup_temp(temp_root, temp_parent, progress_, progress_user_);
       return SyncStatus::Io;

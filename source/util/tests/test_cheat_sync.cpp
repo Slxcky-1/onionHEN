@@ -1,28 +1,45 @@
 #include "test_harness.h"
 
 #include "cheats/sync/cheat_sync_engine.hpp"
+#include "cheats/sync/cheat_sync_service.hpp"
 #include "cheats/sync/i_cheat_catalog.hpp"
 #include "cheats/sync/i_cheat_mirror.hpp"
 #include "cheats/sync/i_http_transport.hpp"
 
+#include <onion/notify.h>
+
 #include <miniz.h>
 
 #include <algorithm>
+#include <chrono>
+#include <condition_variable>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 using onion::cheats::sync::CheatMirrorId;
 using onion::cheats::sync::CheatSyncEngine;
+using onion::cheats::sync::CheatSyncService;
+using onion::cheats::sync::CheatSyncStatus;
 using onion::cheats::sync::HttpRequest;
 using onion::cheats::sync::ICheatCatalog;
 using onion::cheats::sync::ICheatMirror;
 using onion::cheats::sync::IHttpTransport;
+using onion::cheats::sync::SyncCancelFn;
 using onion::cheats::sync::SyncStatus;
 
 namespace {
+
+using namespace std::chrono_literals;
+
+extern "C" int32_t sceKernelSendNotificationRequest(int32_t device, void *req,
+                                                     size_t size,
+                                                     int32_t blocking);
 
 std::vector<std::string> g_flatten_roots;
 int g_flatten_result = 0;
@@ -40,9 +57,20 @@ struct CancelState {
   int cancel_after = 0;
 };
 
+struct PhaseCancelState {
+  const char *phase = nullptr;
+  size_t after_completed = 0;
+  bool requested = false;
+};
+
 bool cancel_after_checks(void *user) {
   auto *state = static_cast<CancelState *>(user);
   return state && ++state->checks >= state->cancel_after;
+}
+
+bool phase_cancel_requested(void *user) {
+  const auto *state = static_cast<const PhaseCancelState *>(user);
+  return state && state->requested;
 }
 
 const std::filesystem::path &test_root() {
@@ -111,6 +139,144 @@ public:
   }
 };
 
+class BlockingCancelHttp final : public IHttpTransport {
+public:
+  SyncStatus perform(
+      const HttpRequest &req,
+      const std::function<SyncStatus(const void *, size_t)> &) override {
+    {
+      std::lock_guard<std::mutex> lock(mu_);
+      entered_ = true;
+    }
+    cv_.notify_all();
+
+    if (req.on_progress) {
+      req.on_progress(1, 10, req.progress_user);
+    }
+
+    std::unique_lock<std::mutex> lock(mu_);
+    while (!released_) {
+      lock.unlock();
+      const bool cancelled =
+          req.should_cancel && req.should_cancel(req.cancel_user);
+      lock.lock();
+      if (cancelled) {
+        cancel_seen_ = true;
+        cv_.notify_all();
+      }
+      cv_.wait_for(lock, 1ms, [this] { return released_; });
+    }
+    lock.unlock();
+    return req.should_cancel && req.should_cancel(req.cancel_user)
+               ? SyncStatus::Cancelled
+               : SyncStatus::Network;
+  }
+
+  bool waitUntilEntered() {
+    std::unique_lock<std::mutex> lock(mu_);
+    return cv_.wait_for(lock, 2s, [this] { return entered_; });
+  }
+
+  bool waitUntilCancelSeen() {
+    std::unique_lock<std::mutex> lock(mu_);
+    return cv_.wait_for(lock, 2s, [this] { return cancel_seen_; });
+  }
+
+  void release() {
+    {
+      std::lock_guard<std::mutex> lock(mu_);
+      released_ = true;
+    }
+    cv_.notify_all();
+  }
+
+  void reset() {
+    std::lock_guard<std::mutex> lock(mu_);
+    entered_ = false;
+    cancel_seen_ = false;
+    released_ = false;
+  }
+
+private:
+  std::mutex mu_;
+  std::condition_variable cv_;
+  bool entered_ = false;
+  bool cancel_seen_ = false;
+  bool released_ = false;
+};
+
+struct CapturedNotification {
+  std::string message;
+  bool debug = false;
+};
+
+std::mutex g_notification_mu;
+std::vector<CapturedNotification> g_notifications;
+
+int32_t capture_notification(int32_t, void *request, size_t size, int32_t) {
+  constexpr size_t kIconFlagOffset = 0x2c;
+  constexpr size_t kMessageOffset = 0x2d;
+  if (!request || size <= kMessageOffset) {
+    return 0;
+  }
+  const auto *bytes = static_cast<const unsigned char *>(request);
+  const char *message = reinterpret_cast<const char *>(bytes + kMessageOffset);
+  std::lock_guard<std::mutex> lock(g_notification_mu);
+  g_notifications.push_back(
+      CapturedNotification{message, bytes[kIconFlagOffset] == 0});
+  return 0;
+}
+
+size_t notification_count(const char *message, bool debug) {
+  std::lock_guard<std::mutex> lock(g_notification_mu);
+  return static_cast<size_t>(std::count_if(
+      g_notifications.begin(), g_notifications.end(),
+      [message, debug](const CapturedNotification &notification) {
+        return notification.debug == debug && notification.message == message;
+      }));
+}
+
+bool wait_until_not_running(CheatSyncService &service) {
+  const auto deadline = std::chrono::steady_clock::now() + 2s;
+  while (std::chrono::steady_clock::now() < deadline) {
+    if (service.status().state != CheatSyncStatus::State::Running) {
+      return true;
+    }
+    std::this_thread::sleep_for(1ms);
+  }
+  return false;
+}
+
+class ServiceTestScope {
+public:
+  ServiceTestScope(CheatSyncService &service, BlockingCancelHttp &http)
+      : service_(service), http_(http) {
+    {
+      std::lock_guard<std::mutex> lock(g_notification_mu);
+      g_notifications.clear();
+    }
+    onion_notify_set_language(ONION_NOTIFY_LANG_ZH_HANS);
+    onion_notify_set_send(capture_notification);
+    service_.setHttpTransportForTest(&http_);
+  }
+
+  ~ServiceTestScope() {
+    const CheatSyncStatus current = service_.status();
+    if (current.state == CheatSyncStatus::State::Running) {
+      (void)service_.cancel(current.task_id);
+    }
+    http_.release();
+    (void)wait_until_not_running(service_);
+    service_.setHttpTransportForTest(nullptr);
+    onion_notify_set_send(sceKernelSendNotificationRequest);
+    onion_notify_set_language(ONION_NOTIFY_LANG_EN);
+  }
+
+private:
+  CheatSyncService &service_;
+  BlockingCancelHttp &http_;
+};
+
 std::vector<unsigned char> make_archive() {
   mz_zip_archive zip{};
   void *data = nullptr;
@@ -119,6 +285,8 @@ std::vector<unsigned char> make_archive() {
   const char ignored[] = "ignored";
   if (!mz_zip_writer_init_heap(&zip, 0, 0) ||
       !mz_zip_writer_add_mem(&zip, "repo-main/cheats/game.json", cheat,
+                             sizeof(cheat) - 1, MZ_BEST_SPEED) ||
+      !mz_zip_writer_add_mem(&zip, "repo-main/cheats/game2.shn", cheat,
                              sizeof(cheat) - 1, MZ_BEST_SPEED) ||
       !mz_zip_writer_add_mem(&zip, "repo-main/website/index.html", ignored,
                              sizeof(ignored) - 1, MZ_BEST_SPEED) ||
@@ -133,32 +301,46 @@ std::vector<unsigned char> make_archive() {
   return out;
 }
 
-int capture_flatten(const char *root,
-                    CheatSyncEngine::InstallProgressFn progress,
-                    void *progress_user) {
+SyncStatus capture_flatten(const char *root,
+                           CheatSyncEngine::InstallProgressFn progress,
+                           void *progress_user, SyncCancelFn should_cancel,
+                           void *cancel_user) {
   g_flatten_roots.emplace_back(root ? root : "");
   if (g_flatten_result != 0 || !root) {
-    return g_flatten_result;
+    return SyncStatus::Io;
   }
   std::ifstream input(std::filesystem::path(root) / "game.json");
   std::string contents;
   std::getline(input, contents);
   if (contents != "{\"name\":\"fixture\"}") {
-    return -1;
+    return SyncStatus::Io;
   }
   if (progress) {
     progress(0, 3, progress_user);
-    progress(1, 3, progress_user);
-    progress(2, 3, progress_user);
-    progress(3, 3, progress_user);
+    for (size_t completed = 1; completed <= 3; ++completed) {
+      progress(completed, 3, progress_user);
+      if (should_cancel && should_cancel(cancel_user)) {
+        return SyncStatus::Cancelled;
+      }
+    }
   }
-  return 0;
+  return SyncStatus::Ok;
 }
 
 void capture_progress(const char *phase, size_t completed, size_t total,
                       void *) {
   g_progress_events.push_back(
       ProgressEvent{phase ? phase : "", completed, total});
+}
+
+void capture_progress_and_cancel(const char *phase, size_t completed,
+                                 size_t total, void *user) {
+  capture_progress(phase, completed, total, nullptr);
+  auto *state = static_cast<PhaseCancelState *>(user);
+  if (state && phase && state->phase && phase == std::string(state->phase) &&
+      completed >= state->after_completed) {
+    state->requested = true;
+  }
 }
 
 void reset_test_root() {
@@ -340,6 +522,122 @@ static int test_cancel_during_download_cleans_temp(void) {
   return 0;
 }
 
+static int test_cancel_during_extract_cleans_temp(void) {
+  reset_test_root();
+  FakeCatalog catalog;
+  FakeMirror mirror(CheatMirrorId::Github, "github", "codeload.github.com",
+                    "https://codeload.github.com/org/fake/zip/refs/heads/main");
+  MockHttp http;
+  http.archive = make_archive();
+  PhaseCancelState cancel{"extract", 1, false};
+  CheatSyncEngine engine(http, capture_flatten);
+  engine.setProgressHandler(capture_progress_and_cancel, &cancel);
+  engine.setCancelHandler(phase_cancel_requested, &cancel);
+  const auto result = engine.run(catalog, mirror, nullptr, test_root().c_str());
+  TEST_ASSERT_TRUE(result.status == SyncStatus::Cancelled);
+  TEST_ASSERT_TRUE(g_flatten_roots.empty());
+  TEST_ASSERT_TRUE(temp_was_removed());
+  return 0;
+}
+
+static int test_cancel_during_install_cleans_temp(void) {
+  reset_test_root();
+  FakeCatalog catalog;
+  FakeMirror mirror(CheatMirrorId::Github, "github", "codeload.github.com",
+                    "https://codeload.github.com/org/fake/zip/refs/heads/main");
+  MockHttp http;
+  http.archive = make_archive();
+  PhaseCancelState cancel{"install", 1, false};
+  CheatSyncEngine engine(http, capture_flatten);
+  engine.setProgressHandler(capture_progress_and_cancel, &cancel);
+  engine.setCancelHandler(phase_cancel_requested, &cancel);
+  const auto result = engine.run(catalog, mirror, nullptr, test_root().c_str());
+  TEST_ASSERT_TRUE(result.status == SyncStatus::Cancelled);
+  TEST_ASSERT_EQ_INT(1, static_cast<int>(g_flatten_roots.size()));
+  TEST_ASSERT_TRUE(temp_was_removed());
+  return 0;
+}
+
+static int test_service_cancel_lifecycle(void) {
+  const std::filesystem::path service_temp =
+      std::filesystem::path(ONION_DATA_ROOT) / "cheats_tmp";
+  std::error_code error;
+  std::filesystem::remove_all(service_temp, error);
+
+  CheatSyncService &service = CheatSyncService::instance();
+  BlockingCancelHttp http;
+  ServiceTestScope scope(service, http);
+  onion::Settings settings;
+  settings.ui_lang = onion::kUiLanguageZhHans;
+
+  const char *const cancelling_key = "notify.cheats.sync.cancelling";
+  const std::string cancelling_text = onion_notify_tr(cancelling_key);
+  TEST_ASSERT_TRUE(cancelling_text != cancelling_key);
+
+  uint32_t first_task = 0;
+  TEST_ASSERT_TRUE(service.start(settings, "hen-cheats-collection", "github",
+                                 &first_task) ==
+                   CheatSyncService::StartResult::Started);
+  TEST_ASSERT_TRUE(first_task != 0);
+  TEST_ASSERT_TRUE(http.waitUntilEntered());
+
+  uint32_t busy_task = 0;
+  TEST_ASSERT_TRUE(service.start(settings, "hen-cheats-collection", "github",
+                                 &busy_task) ==
+                   CheatSyncService::StartResult::AlreadyRunning);
+  TEST_ASSERT_EQ_U64(first_task, busy_task);
+  TEST_ASSERT_TRUE(!service.cancel(0));
+  TEST_ASSERT_TRUE(!service.cancel(first_task + 1));
+  TEST_ASSERT_EQ_U64(0, notification_count(cancelling_text.c_str(), true));
+
+  TEST_ASSERT_TRUE(service.cancel(first_task));
+  const CheatSyncStatus cancelling = service.status();
+  TEST_ASSERT_TRUE(cancelling.state == CheatSyncStatus::State::Running);
+  TEST_ASSERT_STREQ("cancel", cancelling.phase.c_str());
+  TEST_ASSERT_EQ_INT(-1, cancelling.progress_percent);
+  TEST_ASSERT_TRUE(service.cancellationRequested());
+  TEST_ASSERT_EQ_U64(1, notification_count(cancelling_text.c_str(), true));
+
+  TEST_ASSERT_TRUE(!service.cancel(first_task));
+  TEST_ASSERT_EQ_U64(1, notification_count(cancelling_text.c_str(), true));
+
+  service.noteProgress("cleanup", 100, 99, 99);
+  const CheatSyncStatus after_late_progress = service.status();
+  TEST_ASSERT_STREQ("cancel", after_late_progress.phase.c_str());
+  TEST_ASSERT_EQ_INT(-1, after_late_progress.progress_percent);
+  TEST_ASSERT_EQ_U64(cancelling.completed, after_late_progress.completed);
+  TEST_ASSERT_EQ_U64(cancelling.total, after_late_progress.total);
+  TEST_ASSERT_TRUE(http.waitUntilCancelSeen());
+  TEST_ASSERT_TRUE(std::filesystem::exists(service_temp));
+
+  http.release();
+  TEST_ASSERT_TRUE(wait_until_not_running(service));
+  const CheatSyncStatus cancelled = service.status();
+  TEST_ASSERT_TRUE(cancelled.state == CheatSyncStatus::State::Idle);
+  TEST_ASSERT_EQ_U64(first_task, cancelled.task_id);
+  TEST_ASSERT_TRUE(cancelled.error.empty());
+  TEST_ASSERT_TRUE(!service.cancellationRequested());
+  TEST_ASSERT_TRUE(!std::filesystem::exists(service_temp));
+  TEST_ASSERT_EQ_U64(1, notification_count(cancelling_text.c_str(), true));
+
+  http.reset();
+  uint32_t second_task = 0;
+  TEST_ASSERT_TRUE(service.start(settings, "hen-cheats-collection", "github",
+                                 &second_task) ==
+                   CheatSyncService::StartResult::Started);
+  TEST_ASSERT_TRUE(second_task != 0 && second_task != first_task);
+  TEST_ASSERT_TRUE(http.waitUntilEntered());
+  TEST_ASSERT_TRUE(!service.cancel(first_task));
+  TEST_ASSERT_TRUE(service.cancel(second_task));
+  TEST_ASSERT_TRUE(http.waitUntilCancelSeen());
+  http.release();
+  TEST_ASSERT_TRUE(wait_until_not_running(service));
+  TEST_ASSERT_TRUE(service.status().state == CheatSyncStatus::State::Idle);
+  TEST_ASSERT_TRUE(!std::filesystem::exists(service_temp));
+  TEST_ASSERT_EQ_U64(2, notification_count(cancelling_text.c_str(), true));
+  return 0;
+}
+
 extern "C" int test_cheat_sync_suite(void) {
   int fails = 0;
   fails += onion_test_run("sync.archive_install",
@@ -354,5 +652,11 @@ extern "C" int test_cheat_sync_suite(void) {
   fails += onion_test_run("sync.clock_error", test_clock_failure_sets_specific_error);
   fails += onion_test_run("sync.cancel_download",
                           test_cancel_during_download_cleans_temp);
+  fails += onion_test_run("sync.cancel_extract",
+                          test_cancel_during_extract_cleans_temp);
+  fails += onion_test_run("sync.cancel_install",
+                          test_cancel_during_install_cleans_temp);
+  fails += onion_test_run("sync.service_cancel_lifecycle",
+                          test_service_cancel_lifecycle);
   return fails;
 }

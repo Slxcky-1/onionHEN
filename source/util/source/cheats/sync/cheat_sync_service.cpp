@@ -22,12 +22,31 @@ extern "C" int sceSystemServiceParamGetInt(int param_id, int *value);
 namespace onion::cheats::sync {
 namespace {
 
-int flatten_existing(const char *root,
-                     CheatSyncEngine::InstallProgressFn progress,
-                     void *progress_user) {
+struct FlattenCancelBridge {
+  SyncCancelFn should_cancel;
+  void *user;
+};
+
+int flatten_cancel_bridge(void *user) {
+  const auto *bridge = static_cast<const FlattenCancelBridge *>(user);
+  return bridge && bridge->should_cancel && bridge->should_cancel(bridge->user)
+             ? 1
+             : 0;
+}
+
+SyncStatus flatten_existing(const char *root,
+                            CheatSyncEngine::InstallProgressFn progress,
+                            void *progress_user, SyncCancelFn should_cancel,
+                            void *cancel_user) {
   CheatRepository::ensureCheatsDir();
-  return CheatRepository::flattenInstallTree(root ? root : "", progress,
-                                             progress_user);
+  FlattenCancelBridge cancel_bridge{should_cancel, cancel_user};
+  const int result = CheatRepository::flattenInstallTree(
+      root ? root : "", progress, progress_user,
+      should_cancel ? flatten_cancel_bridge : nullptr,
+      should_cancel ? &cancel_bridge : nullptr);
+  if (result == ONION_CHEAT_FLATTEN_CANCELLED)
+    return SyncStatus::Cancelled;
+  return result == ONION_CHEAT_FLATTEN_OK ? SyncStatus::Ok : SyncStatus::Io;
 }
 
 int read_system_language(const onion::Settings &settings) {
@@ -115,12 +134,18 @@ CheatSyncStatus CheatSyncService::status() const {
 }
 
 bool CheatSyncService::cancel(uint32_t task_id) {
-  std::lock_guard<std::mutex> lock(mu_);
-  if (!running_ || task_id == 0 || task_id != status_.task_id)
-    return false;
-  cancel_requested_ = true;
-  status_.phase = "cancel";
-  status_.progress_percent = -1;
+  {
+    std::lock_guard<std::mutex> lock(mu_);
+    if (!running_ || cancel_requested_ || task_id == 0 ||
+        task_id != status_.task_id) {
+      return false;
+    }
+    cancel_requested_ = true;
+    status_.phase = "cancel";
+    status_.progress_percent = -1;
+  }
+  onion_notify_debug("notify.cheats.sync.cancelling");
+  LOG_INFO("cheat sync cancellation requested task_id=%u", task_id);
   return true;
 }
 
@@ -132,7 +157,7 @@ bool CheatSyncService::cancellationRequested() const {
 void CheatSyncService::noteProgress(const char *phase, int percent,
                                     size_t completed, size_t total) {
   std::lock_guard<std::mutex> lock(mu_);
-  if (!running_) {
+  if (!running_ || cancel_requested_) {
     return;
   }
   if (phase && phase[0]) {
@@ -262,7 +287,6 @@ void CheatSyncService::worker(onion::Settings settings, std::string catalog_id,
   }
 
   if (result.status == SyncStatus::Cancelled) {
-    onion_notify_debug("notify.cheats.sync.cancelled");
     LOG_INFO("cheat sync cancelled catalog=%s", catalog->id());
   } else if (result.status == SyncStatus::Ok) {
     onion_notify(true, "notify.cheats.sync.ok", catalog->id());
