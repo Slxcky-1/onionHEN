@@ -78,7 +78,6 @@ IPC handleIPC
 
 | 扩展名 | Parser | 说明 |
 |--------|--------|------|
-| `.json` | `JsonCheatParser` | GoldHEN/OnionHEN JSON（手写 key 扫描） |
 | `.json` | `JsonCheatParser` | GoldHEN/OnionHEN JSON（cJSON） |
 | `.shn` | `XmlCheatParser` | Trainer XML |
 | `.mc4` | `Mc4CheatParser` | Base64 + AES-256-CBC → XML |

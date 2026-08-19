@@ -2,6 +2,9 @@
 #include "onpress.hpp"
 #include "account_activator.h"
 #include "progress_dialog.hpp"
+#include "onion_cjson.hpp"
+
+#include <cstring>
 #include <unistd.h>
 
 static OnPressResult id_kstuff_autoload(OnPressContext &ctx) {
@@ -29,7 +32,15 @@ static OnPressResult id_download_cheats(OnPressContext &ctx) {
     notify("notify.cheats.sync.error", "ipc");
     return OnPressResult::Consumed;
   }
-  if (reply.find("already_running") != std::string::npos) {
+  onion_cjson::Root response(reply);
+  const char *state = response && cJSON_IsObject(response.get())
+                          ? onion_cjson::string_item(response.get(), "state")
+                          : nullptr;
+  if (!state) {
+    notify("notify.cheats.sync.error", "ipc_response");
+    return OnPressResult::Consumed;
+  }
+  if (std::strcmp(state, "already_running") == 0) {
     notify("notify.cheats.sync.busy");
   }
   /* Button confirmation has completed before this handler runs. */
