@@ -27,7 +27,7 @@ namespace {
 
 constexpr int kPollIntervalMs = 500;
 constexpr int kRecvTimeoutMs = 800;
-constexpr int kMaxPolls = 600;
+constexpr int kMaxConsecutiveStatusFailures = 10;
 
 constexpr std::string_view kCustomElementId = "id_cheat_progress_custom";
 
@@ -152,6 +152,38 @@ std::string downloaded_size_text(int bytes) {
   return std::to_string(whole) + '.' + std::to_string(tenths) + " MB";
 }
 
+std::string sync_error_text(const std::string &error) {
+  const char *key = nullptr;
+  if (error.empty() || error == "sync_failed") {
+    key = "cheats.sync.error.unknown";
+  } else if (error == "status_unavailable") {
+    key = "cheats.sync.error.status";
+  } else if (error == "no_space") {
+    key = "cheats.sync.error.no_space";
+  } else if (error == "archive download failed") {
+    key = "cheats.sync.error.network";
+  } else if (error == "tls_verify") {
+    key = "cheats.sync.error.tls";
+  } else if (error == "system_clock") {
+    key = "cheats.sync.error.clock";
+  } else if (error == "temp directory failed") {
+    key = "cheats.sync.error.storage";
+  } else if (error == "archive extract failed") {
+    key = "cheats.sync.error.extract";
+  } else if (error == "install failed") {
+    key = "cheats.sync.error.install";
+  } else if (error == "unknown_catalog" ||
+             error == "refusing non-https archive" ||
+             error == "sync input rejected") {
+    key = "cheats.sync.error.invalid";
+  } else if (error == "thread" || error == "poll_thread") {
+    key = "cheats.sync.error.service";
+  }
+  return key ? toolbox_i18n::tr(key)
+             : toolbox_i18n::format("cheats.sync.error.detail_fmt",
+                                    error.c_str());
+}
+
 ProgressPresentation presentation_locked() {
   ProgressPresentation view;
   switch (g_progress.state) {
@@ -195,9 +227,7 @@ ProgressPresentation presentation_locked() {
     view.bar_progress = 100;
     return view;
   case SyncState::Error:
-    view.phase = g_progress.error.empty()
-                     ? std::string("Error")
-                     : std::string("Error: ") + g_progress.error;
+    view.phase = sync_error_text(g_progress.error);
     view.bar_progress = std::clamp(g_progress.progress, 0, 100);
     view.bar_status = 2;
     return view;
@@ -559,16 +589,39 @@ bool build_and_append_panel_locked(MonoObject *widget) {
 void *cheat_progress_poll(void * /*arg*/) {
   IPC_Client &ipc = IPC_Client::getInstance(true);
   bool terminal = false;
+  int consecutive_failures = 0;
+  const auto status_failed = [&consecutive_failures]() {
+    if (++consecutive_failures < kMaxConsecutiveStatusFailures)
+      return false;
 
-  for (int round = 0; round < kMaxPolls; ++round) {
+    std::lock_guard<std::mutex> lock(g_progress.mu);
+    g_progress.state = SyncState::Error;
+    g_progress.error = "status_unavailable";
+    g_thread_started.store(false);
+    LOG_ERROR("cheat_progress_xml: status unavailable after %d attempts",
+              consecutive_failures);
+    return true;
+  };
+
+  while (!terminal) {
     usleep(kPollIntervalMs * 1000);
     ipc.set_recv_timeout_ms(kRecvTimeoutMs);
 
     std::string json;
-    if (!ipc.CheatSyncStatus(json))
+    if (!ipc.CheatSyncStatus(json)) {
+      if (status_failed())
+        return nullptr;
       continue;
+    }
 
     onion_cjson::Root root(json);
+    if (!root.get()) {
+      if (status_failed())
+        return nullptr;
+      continue;
+    }
+    consecutive_failures = 0;
+
     const char *state = onion_cjson::string_item(root.get(), "state", "idle");
     const char *phase = onion_cjson::string_item(root.get(), "phase", "");
     const char *error = onion_cjson::string_item(root.get(), "error", "");
@@ -618,17 +671,6 @@ void *cheat_progress_poll(void * /*arg*/) {
                 state ? state : "", phase ? phase : "", progress, completed,
                 total, error ? error : "");
     }
-
-    if (terminal)
-      break;
-  }
-
-  if (!terminal) {
-    std::lock_guard<std::mutex> lock(g_progress.mu);
-    g_progress.state = SyncState::Error;
-    g_progress.error = "status_timeout";
-    g_thread_started.store(false);
-    LOG_ERROR("cheat_progress_xml: status polling timed out");
   }
   return nullptr;
 }

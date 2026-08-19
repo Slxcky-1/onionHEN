@@ -61,7 +61,6 @@ private:
   mutable std::mutex mu_;
   CheatSyncStatus status_{};
   bool running_ = false;
-  int last_progress_notify_percent_ = -1;
   IHttpTransport *test_http_ = nullptr;
 };
 

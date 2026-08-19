@@ -13,7 +13,6 @@
 #include <pthread.h>
 #include <sys/statvfs.h>
 
-#include <cstring>
 #include <memory>
 #include <string>
 #include <utility>
@@ -111,34 +110,16 @@ CheatSyncStatus CheatSyncService::status() const {
 
 void CheatSyncService::noteProgress(const char *phase, int percent,
                                     size_t completed, size_t total) {
-  int notify_percent = -1;
-  {
-    std::lock_guard<std::mutex> lock(mu_);
-    if (!running_) {
-      return;
-    }
-    if (phase && phase[0]) {
-      status_.phase = phase;
-    }
-    status_.progress_percent = percent;
-    status_.completed = completed;
-    status_.total = total;
-
-    const bool transfer_phase = phase && std::strcmp(phase, "download") == 0;
-    if (transfer_phase && percent >= 25) {
-      int checkpoint = (percent / 25) * 25;
-      if (checkpoint > 75) {
-        checkpoint = 75;
-      }
-      if (checkpoint > last_progress_notify_percent_) {
-        last_progress_notify_percent_ = checkpoint;
-        notify_percent = checkpoint;
-      }
-    }
+  std::lock_guard<std::mutex> lock(mu_);
+  if (!running_) {
+    return;
   }
-  if (notify_percent > 0) {
-    onion_notify(true, "notify.cheats.sync.progress", notify_percent);
+  if (phase && phase[0]) {
+    status_.phase = phase;
   }
+  status_.progress_percent = percent;
+  status_.completed = completed;
+  status_.total = total;
 }
 
 CheatSyncService::StartResult
@@ -162,7 +143,6 @@ CheatSyncService::start(const onion::Settings &settings, const char *catalog_id,
   status_.completed = 0;
   status_.total = 0;
   status_.catalog_id = catalog_id ? catalog_id : "";
-  last_progress_notify_percent_ = -1;
 
   auto *arg = new WorkerArg{this, settings, catalog_id ? catalog_id : "",
                             mirror_override ? mirror_override : ""};
