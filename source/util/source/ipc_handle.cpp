@@ -44,9 +44,10 @@ std::vector<uint8_t> readFile(std::string filename);
 
 namespace {
 
-std::string make_state_json(const char *state) {
+std::string make_state_json(const char *state, uint32_t task_id = 0) {
   cJSON *root = cJSON_CreateObject();
-  if (!root || !cJSON_AddStringToObject(root, "state", state)) {
+  if (!root || !cJSON_AddStringToObject(root, "state", state) ||
+      !cJSON_AddNumberToObject(root, "task_id", task_id)) {
     cJSON_Delete(root);
     return {};
   }
@@ -60,6 +61,7 @@ std::string make_sync_status_json(
                            ? "cnb"
                            : "github";
   if (!root || !cJSON_AddStringToObject(root, "state", state) ||
+      !cJSON_AddNumberToObject(root, "task_id", status.task_id) ||
       !cJSON_AddStringToObject(root, "mirror", mirror) ||
       !cJSON_AddStringToObject(root, "catalog", status.catalog_id.c_str()) ||
       !cJSON_AddStringToObject(root, "error", status.error.c_str()) ||
@@ -270,19 +272,20 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     const char *catalog = onion_cjson::string_item(my_json.get(), "catalog", "");
     const char *mirror = onion_cjson::string_item(my_json.get(), "mirror", "");
     using onion::cheats::sync::CheatSyncService;
+    uint32_t task_id = 0;
     const auto started = CheatSyncService::instance().start(
         g_settings.snapshot(),
         (catalog && catalog[0]) ? catalog : nullptr,
-        (mirror && mirror[0]) ? mirror : nullptr);
+        (mirror && mirror[0]) ? mirror : nullptr, &task_id);
     if (started == CheatSyncService::StartResult::AlreadyRunning) {
       onion_notify(true, "notify.cheats.sync.busy");
-      const std::string body = make_state_json("already_running");
+      const std::string body = make_state_json("already_running", task_id);
       reply(sender_app, body.empty(), body);
     } else if (started == CheatSyncService::StartResult::Rejected) {
-      const std::string body = make_state_json("rejected");
+      const std::string body = make_state_json("rejected", task_id);
       reply(sender_app, true, body);
     } else {
-      const std::string body = make_state_json("started");
+      const std::string body = make_state_json("started", task_id);
       reply(sender_app, body.empty(), body);
     }
     break;
@@ -306,6 +309,19 @@ void handleIPC(clientArgs *client, std::string &inputStr,
       break;
     }
     const std::string body = make_sync_status_json(st, state);
+    reply(sender_app, body.empty(), body);
+    break;
+  }
+  case BREW_UTIL_CANCEL_CHEAT_SYNC: {
+    const int requested_task_id =
+        onion_cjson::int_item(my_json.get(), "task_id", 0);
+    const bool requested =
+        requested_task_id > 0 &&
+        onion::cheats::sync::CheatSyncService::instance().cancel(
+            static_cast<uint32_t>(requested_task_id));
+    const std::string body = make_state_json(
+        requested ? "cancel_requested" : "cancel_ignored",
+        requested_task_id > 0 ? static_cast<uint32_t>(requested_task_id) : 0);
     reply(sender_app, body.empty(), body);
     break;
   }

@@ -113,7 +113,8 @@ void on_download_progress(size_t completed, size_t total, void *user) {
 
 SyncStatus download_archive(IHttpTransport &http, const char *url,
                             const char *host, const char *path,
-                            SyncProgressFn progress, void *progress_user) {
+                            SyncProgressFn progress, void *progress_user,
+                            SyncCancelFn should_cancel, void *cancel_user) {
   FILE *file = std::fopen(path, "wb");
   if (!file) {
     LOG_ERROR("cheat archive create failed path=%s errno=%d", path, errno);
@@ -131,9 +132,13 @@ SyncStatus download_archive(IHttpTransport &http, const char *url,
   req.max_body_bytes = kMaxArchiveBytes;
   req.on_progress = on_download_progress;
   req.progress_user = &bridge;
+  req.should_cancel = should_cancel;
+  req.cancel_user = cancel_user;
 
   const SyncStatus status = http.perform(
-      req, [file](const void *data, size_t len) {
+      req, [file, should_cancel, cancel_user](const void *data, size_t len) {
+        if (should_cancel && should_cancel(cancel_user))
+          return SyncStatus::Cancelled;
         if (!data || len == 0) {
           return SyncStatus::Ok;
         }
@@ -158,6 +163,11 @@ void CheatSyncEngine::setProgressHandler(SyncProgressFn fn, void *user) {
   progress_user_ = user;
 }
 
+void CheatSyncEngine::setCancelHandler(SyncCancelFn fn, void *user) {
+  should_cancel_ = fn;
+  cancel_user_ = user;
+}
+
 SyncStatus CheatSyncEngine::tryOne(const ICheatCatalog &catalog,
                                    const ICheatMirror &mirror,
                                    const char *data_root, Result &out) {
@@ -175,6 +185,9 @@ SyncStatus CheatSyncEngine::tryOne(const ICheatCatalog &catalog,
   const std::string zip_path = join_path(temp_root, "archive.zip");
   const std::string extract_root = join_path(temp_root, "extract");
   cleanup_temp(temp_root, temp_parent);
+  if (should_cancel_ && should_cancel_(cancel_user_)) {
+    return SyncStatus::Cancelled;
+  }
   if (!mkdir_tree(temp_root)) {
     out.error = "temp directory failed";
     return SyncStatus::Io;
@@ -184,9 +197,11 @@ SyncStatus CheatSyncEngine::tryOne(const ICheatCatalog &catalog,
            url.c_str());
   SyncStatus status = download_archive(http_, url.c_str(), mirror.archiveHost(),
                                        zip_path.c_str(), progress_,
-                                       progress_user_);
+                                       progress_user_, should_cancel_,
+                                       cancel_user_);
   if (status != SyncStatus::Ok) {
-    out.error = status == SyncStatus::Tls      ? "tls_verify"
+    out.error = status == SyncStatus::Cancelled ? ""
+                : status == SyncStatus::Tls      ? "tls_verify"
                 : status == SyncStatus::Clock  ? "system_clock"
                                                : "archive download failed";
     cleanup_temp(temp_root, temp_parent, progress_, progress_user_);
@@ -196,14 +211,20 @@ SyncStatus CheatSyncEngine::tryOne(const ICheatCatalog &catalog,
   size_t root_count = 0;
   const char *const *roots = catalog.flattenRoots(&root_count);
   status = extract_cheat_zip(zip_path.c_str(), extract_root.c_str(), roots,
-                             root_count, progress_, progress_user_);
+                             root_count, progress_, progress_user_,
+                             should_cancel_, cancel_user_);
   if (status != SyncStatus::Ok) {
-    out.error = "archive extract failed";
+    out.error = status == SyncStatus::Cancelled ? ""
+                                                : "archive extract failed";
     cleanup_temp(temp_root, temp_parent, progress_, progress_user_);
     return status;
   }
 
   for (size_t i = 0; i < root_count; ++i) {
+    if (should_cancel_ && should_cancel_(cancel_user_)) {
+      cleanup_temp(temp_root, temp_parent, progress_, progress_user_);
+      return SyncStatus::Cancelled;
+    }
     const std::string root = join_path(extract_root, roots[i]);
     PhaseProgress bridge{"install", progress_, progress_user_};
     if (progress_) {
@@ -214,6 +235,10 @@ SyncStatus CheatSyncEngine::tryOne(const ICheatCatalog &catalog,
       out.error = "install failed";
       cleanup_temp(temp_root, temp_parent, progress_, progress_user_);
       return SyncStatus::Io;
+    }
+    if (should_cancel_ && should_cancel_(cancel_user_)) {
+      cleanup_temp(temp_root, temp_parent, progress_, progress_user_);
+      return SyncStatus::Cancelled;
     }
   }
 

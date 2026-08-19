@@ -309,6 +309,7 @@
     "notify.cheats.sync.error": "金手指下载失败：%s",
     "notify.cheats.sync.busy": "金手指正在下载中",
     "notify.cheats.sync.clock": "系统时间错误，请校准日期和时间。",
+    "notify.cheats.sync.cancelled": "金手指下载已取消",
     "notify.kstuff.next_boot_on": "下次启动时将加载 Kstuff",
     "notify.kstuff.next_boot_off": "下次启动时不会加载 Kstuff",
     "notify.kstuff.deleted": "外部 Kstuff 已删除",

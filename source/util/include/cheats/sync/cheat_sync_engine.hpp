@@ -27,6 +27,7 @@ public:
   CheatSyncEngine(IHttpTransport &http, FlattenFn flatten);
 
   void setProgressHandler(SyncProgressFn fn, void *user);
+  void setCancelHandler(SyncCancelFn fn, void *user);
 
   Result run(const ICheatCatalog &catalog, const ICheatMirror &primary,
              const ICheatMirror *fallback, const char *data_root);
@@ -39,6 +40,8 @@ private:
   FlattenFn flatten_ = nullptr;
   SyncProgressFn progress_ = nullptr;
   void *progress_user_ = nullptr;
+  SyncCancelFn should_cancel_ = nullptr;
+  void *cancel_user_ = nullptr;
 };
 
 } // namespace onion::cheats::sync

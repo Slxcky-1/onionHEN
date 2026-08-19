@@ -24,6 +24,8 @@ struct HttpRequest {
   size_t max_body_bytes = 0;
   HttpProgressFn on_progress = nullptr;
   void *progress_user = nullptr;
+  SyncCancelFn should_cancel = nullptr;
+  void *cancel_user = nullptr;
 };
 
 /**

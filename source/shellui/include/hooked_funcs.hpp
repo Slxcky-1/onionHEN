@@ -328,6 +328,9 @@ result Invoke(MonoImage* Assembly_Image, MonoClass* klass, MonoObject* Instance,
 extern int (*oOnPress)(MonoObject* Instance, MonoObject* element, MonoObject* e);
 extern int (*oOnPreCreate)(MonoObject* Instance, MonoObject* element);
 extern void (*oUserCustomElementReset)(MonoObject* Instance, MonoObject* item);
+extern void (*oSettingPageStackOnPopping)(MonoObject* Instance,
+                                          MonoObject* outgoing,
+                                          MonoObject* incoming);
 extern MonoString* (*CxmlUri)(MonoObject* obj,MonoString* uri);
 extern void (*oTerminate)(void);
 
@@ -369,6 +372,9 @@ MonoString *GetString_Hook(MonoObject *Instance, MonoString *str);
 int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e);
 int OnPreCreate_Hook(MonoObject* Instance, MonoObject* element);
 void UserCustomElementReset_Hook(MonoObject* Instance, MonoObject* item);
+void SettingPageStackOnPopping_Hook(MonoObject* Instance,
+                                    MonoObject* outgoing,
+                                    MonoObject* incoming);
 MonoImage * getDLLimage(const char* dll_file);
 MonoString* CxmlUri_Hook(MonoObject* obj, MonoString* uri);
 MonoObject* InvokeByDesc(MonoClass* p_Class, const char* p_MethodDesc, void* p_Instance, void* p_Args);

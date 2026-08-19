@@ -40,11 +40,12 @@ static OnPressResult id_download_cheats(OnPressContext &ctx) {
     notify("notify.cheats.sync.error", "ipc_response");
     return OnPressResult::Consumed;
   }
+  const int task_id = onion_cjson::int_item(response.get(), "task_id", 0);
   if (std::strcmp(state, "already_running") == 0) {
     notify("notify.cheats.sync.busy");
   }
   /* Button confirmation has completed before this handler runs. */
-  cheat_progress_show();
+  cheat_progress_show(task_id > 0 ? static_cast<uint32_t>(task_id) : 0);
   if (!cheat_progress_open_page()) {
     notify("notify.cheats.sync.error", "navigation");
   }

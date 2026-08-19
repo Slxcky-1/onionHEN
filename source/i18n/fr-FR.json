@@ -309,6 +309,7 @@
     "notify.cheats.sync.error": "Échec du téléchargement des cheats : %s",
     "notify.cheats.sync.busy": "Téléchargement des cheats déjà en cours",
     "notify.cheats.sync.clock": "L'heure système est incorrecte. Réglez la date et l'heure.",
+    "notify.cheats.sync.cancelled": "Téléchargement des cheats annulé",
     "notify.kstuff.next_boot_on": "Kstuff sera chargé au prochain démarrage",
     "notify.kstuff.next_boot_off": "Kstuff ne sera PAS chargé au prochain démarrage",
     "notify.kstuff.deleted": "Le Kstuff externe a été supprimé",

@@ -81,6 +81,8 @@ struct CurlXfer {
   const std::function<SyncStatus(const void *, size_t)> *on_data = nullptr;
   HttpProgressFn on_progress = nullptr;
   void *progress_user = nullptr;
+  SyncCancelFn should_cancel = nullptr;
+  void *cancel_user = nullptr;
   SyncStatus st = SyncStatus::Ok;
   size_t bytes = 0;
   size_t max_body_bytes = 0;
@@ -99,9 +101,15 @@ extern "C" int onion_curl_xferinfo(void *userdata, curl_off_t download_total,
                                     curl_off_t download_now, curl_off_t,
                                     curl_off_t) {
   auto *xfer = static_cast<CurlXfer *>(userdata);
-  if (!xfer || !xfer->on_progress) {
+  if (!xfer) {
     return 0;
   }
+  if (xfer->should_cancel && xfer->should_cancel(xfer->cancel_user)) {
+    xfer->st = SyncStatus::Cancelled;
+    return 1;
+  }
+  if (!xfer->on_progress)
+    return 0;
 
   const size_t received = curl_size(download_now);
   const size_t total = curl_size(download_total);
@@ -236,6 +244,8 @@ SyncStatus Ps5HttpTransport::perform(
   xfer.on_data = on_data ? &on_data : nullptr;
   xfer.on_progress = req.on_progress;
   xfer.progress_user = req.progress_user;
+  xfer.should_cancel = req.should_cancel;
+  xfer.cancel_user = req.cancel_user;
   xfer.max_body_bytes = req.max_body_bytes;
 
   curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -257,7 +267,7 @@ SyncStatus Ps5HttpTransport::perform(
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, onion_curl_write);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &xfer);
-  if (req.on_progress) {
+  if (req.on_progress || req.should_cancel) {
     curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
     curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, onion_curl_xferinfo);
     curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &xfer);

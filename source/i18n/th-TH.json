@@ -309,6 +309,7 @@
     "notify.cheats.sync.error": "ดาวน์โหลดสูตรโกงไม่สำเร็จ: %s",
     "notify.cheats.sync.busy": "กำลังดาวน์โหลดสูตรโกงอยู่แล้ว",
     "notify.cheats.sync.clock": "เวลาระบบไม่ถูกต้อง ตั้งวันที่และเวลาให้ถูกต้อง",
+    "notify.cheats.sync.cancelled": "ยกเลิกการดาวน์โหลดสูตรโกงแล้ว",
     "notify.kstuff.next_boot_on": "Kstuff จะถูกโหลดเมื่อบูตครั้งถัดไป",
     "notify.kstuff.next_boot_off": "Kstuff จะไม่ถูกโหลดเมื่อบูตครั้งถัดไป",
     "notify.kstuff.deleted": "ลบ kstuff ภายนอกแล้ว",

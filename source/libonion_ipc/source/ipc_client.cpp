@@ -159,8 +159,9 @@ int IPC_Client::recv_frame_unlocked(IPCMessage &msg) {
   }
 
   struct timeval tv;
-  tv.tv_sec = recv_timeout_ms_ / 1000;
-  tv.tv_usec = (recv_timeout_ms_ % 1000) * 1000;
+  const int recv_timeout_ms = recv_timeout_ms_.load(std::memory_order_relaxed);
+  tv.tv_sec = recv_timeout_ms / 1000;
+  tv.tv_usec = (recv_timeout_ms % 1000) * 1000;
   if (setsockopt(socket_fd_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
     return -1;
   }
@@ -451,6 +452,18 @@ bool IPC_Client::CheatSyncStatus(std::string &out) {
   if (!IPCSendCommand(BREW_UTIL_CHEAT_SYNC_STATUS, out,
                       json_empty_object())) {
     LOG_ERROR("Failed to query cheat sync status");
+    return false;
+  }
+  return true;
+}
+
+bool IPC_Client::CancelCheatSync(uint32_t task_id, std::string &out) {
+  if (!require_util("CancelCheatSync")) {
+    return false;
+  }
+  if (!IPCSendCommand(BREW_UTIL_CANCEL_CHEAT_SYNC, out,
+                      json_kv_number("task_id", task_id))) {
+    LOG_ERROR("Failed to cancel cheat sync");
     return false;
   }
   return true;

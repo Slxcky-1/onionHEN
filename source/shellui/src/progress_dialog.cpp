@@ -17,7 +17,9 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
+#include <memory>
 #include <mutex>
 #include <pthread.h>
 #include <string>
@@ -57,6 +59,9 @@ struct CheatProgress {
   int indeterminate_progress = 0;
   std::string phase;
   std::string error;
+  uint32_t task_id = 0;
+  bool task_may_be_running = false;
+  BoundWidget page;
   BoundWidget host;
   BoundWidget panel;
   BoundWidget title_label;
@@ -74,7 +79,16 @@ struct CheatProgress {
 };
 
 CheatProgress g_progress;
-std::atomic<bool> g_thread_started{false};
+std::atomic<uint64_t> g_session_generation{0};
+
+struct PollArgs {
+  uint64_t generation = 0;
+  uint32_t task_id = 0;
+};
+
+struct CancelArgs {
+  uint32_t task_id = 0;
+};
 
 MonoDomain *current_domain() {
   MonoDomain *domain = mono_domain_get ? mono_domain_get() : nullptr;
@@ -102,6 +116,51 @@ void release_bound_widgets_locked() {
   g_progress.cancel_cleared = false;
   g_progress.applied_progress = -1;
   g_progress.applied_bar_status = -1;
+}
+
+void reset_progress_locked() {
+  release_bound_widgets_locked();
+  g_progress.state = SyncState::Idle;
+  g_progress.progress = 0;
+  g_progress.displayed_progress = 0;
+  g_progress.completed = 0;
+  g_progress.total = 0;
+  g_progress.indeterminate_progress = 0;
+  g_progress.phase.clear();
+  g_progress.error.clear();
+  g_progress.task_id = 0;
+  release_widget(g_progress.page);
+  g_progress.task_may_be_running = false;
+}
+
+bool session_is_current(uint64_t generation) {
+  return g_session_generation.load(std::memory_order_acquire) == generation;
+}
+
+void *cancel_cheat_sync(void *raw) {
+  std::unique_ptr<CancelArgs> args(static_cast<CancelArgs *>(raw));
+  const uint32_t task_id = args ? args->task_id : 0;
+  IPC_Client &ipc = IPC_Client::getInstance(true);
+  std::string reply;
+  if (!ipc.CancelCheatSync(task_id, reply)) {
+    LOG_ERROR("cheat_progress_xml: cancel request failed task_id=%u", task_id);
+  } else {
+    LOG_DEBUG("cheat_progress_xml: cancel task_id=%u reply=%s", task_id,
+              reply.c_str());
+  }
+  return nullptr;
+}
+
+void request_cancel_async(uint32_t task_id) {
+  auto *args = new CancelArgs{task_id};
+  pthread_t thread;
+  if (pthread_create(&thread, nullptr, cancel_cheat_sync, args) != 0) {
+    delete args;
+    LOG_ERROR("cheat_progress_xml: cancel thread create failed task_id=%u",
+              task_id);
+    return;
+  }
+  pthread_detach(thread);
 }
 
 SyncPhase parse_phase(const std::string &phase) {
@@ -586,18 +645,24 @@ bool build_and_append_panel_locked(MonoObject *widget) {
   return true;
 }
 
-void *cheat_progress_poll(void * /*arg*/) {
+void *cheat_progress_poll(void *raw) {
+  std::unique_ptr<PollArgs> args(static_cast<PollArgs *>(raw));
+  const uint64_t generation = args ? args->generation : 0;
+  const uint32_t task_id = args ? args->task_id : 0;
   IPC_Client &ipc = IPC_Client::getInstance(true);
   bool terminal = false;
   int consecutive_failures = 0;
-  const auto status_failed = [&consecutive_failures]() {
+  const auto status_failed = [&consecutive_failures, generation]() {
+    if (!session_is_current(generation))
+      return true;
     if (++consecutive_failures < kMaxConsecutiveStatusFailures)
       return false;
 
     std::lock_guard<std::mutex> lock(g_progress.mu);
+    if (!session_is_current(generation))
+      return true;
     g_progress.state = SyncState::Error;
     g_progress.error = "status_unavailable";
-    g_thread_started.store(false);
     LOG_ERROR("cheat_progress_xml: status unavailable after %d attempts",
               consecutive_failures);
     return true;
@@ -605,6 +670,8 @@ void *cheat_progress_poll(void * /*arg*/) {
 
   while (!terminal) {
     usleep(kPollIntervalMs * 1000);
+    if (!session_is_current(generation))
+      return nullptr;
     ipc.set_recv_timeout_ms(kRecvTimeoutMs);
 
     std::string json;
@@ -613,6 +680,8 @@ void *cheat_progress_poll(void * /*arg*/) {
         return nullptr;
       continue;
     }
+    if (!session_is_current(generation))
+      return nullptr;
 
     onion_cjson::Root root(json);
     if (!root.get()) {
@@ -620,17 +689,28 @@ void *cheat_progress_poll(void * /*arg*/) {
         return nullptr;
       continue;
     }
-    consecutive_failures = 0;
-
     const char *state = onion_cjson::string_item(root.get(), "state", "idle");
+    const int reported_task_id =
+        onion_cjson::int_item(root.get(), "task_id", 0);
     const char *phase = onion_cjson::string_item(root.get(), "phase", "");
     const char *error = onion_cjson::string_item(root.get(), "error", "");
     const int progress = onion_cjson::int_item(root.get(), "progress", -1);
     const int completed = onion_cjson::int_item(root.get(), "completed", 0);
     const int total = onion_cjson::int_item(root.get(), "total", 0);
+    if (reported_task_id < 0 ||
+        static_cast<uint32_t>(reported_task_id) != task_id) {
+      LOG_ERROR("cheat_progress_xml: status task mismatch expected=%u got=%d",
+                task_id, reported_task_id);
+      if (status_failed())
+        return nullptr;
+      continue;
+    }
+    consecutive_failures = 0;
 
     {
       std::lock_guard<std::mutex> lock(g_progress.mu);
+      if (!session_is_current(generation))
+        return nullptr;
       const std::string next_phase = phase ? phase : "";
       if (g_progress.phase != next_phase) {
         g_progress.displayed_progress = 0;
@@ -645,6 +725,7 @@ void *cheat_progress_poll(void * /*arg*/) {
 
       if (state && std::strcmp(state, "running") == 0) {
         g_progress.state = SyncState::Running;
+        g_progress.task_may_be_running = true;
         if (parse_phase(g_progress.phase) == SyncPhase::Download &&
             g_progress.progress < 0) {
           // Keep an unknown-length transfer visibly active without labeling
@@ -655,21 +736,22 @@ void *cheat_progress_poll(void * /*arg*/) {
       } else if (state && std::strcmp(state, "ok") == 0) {
         g_progress.state = SyncState::Ok;
         g_progress.progress = 100;
+        g_progress.task_may_be_running = false;
         terminal = true;
       } else if (state && std::strcmp(state, "error") == 0) {
         g_progress.state = SyncState::Error;
+        g_progress.task_may_be_running = false;
         terminal = true;
       } else {
         g_progress.state = SyncState::Idle;
+        g_progress.task_may_be_running = false;
         terminal = true;
       }
-      if (terminal)
-        g_thread_started.store(false);
 
-      LOG_DEBUG("cheat_progress_xml: state=%s phase=%s progress=%d "
+      LOG_DEBUG("cheat_progress_xml: task_id=%u state=%s phase=%s progress=%d "
                 "completed=%d total=%d error=%s",
-                state ? state : "", phase ? phase : "", progress, completed,
-                total, error ? error : "");
+                task_id, state ? state : "", phase ? phase : "", progress,
+                completed, total, error ? error : "");
     }
   }
   return nullptr;
@@ -725,16 +807,20 @@ bool cheat_progress_open_page(void) {
   return true;
 }
 
-void cheat_progress_show(void) {
+void cheat_progress_show(uint32_t task_id) {
   if (!shellui_hooks_are_ready()) {
     LOG_ERROR("cheat_progress_xml: hooks not ready");
     return;
   }
 
+  const uint64_t generation =
+      g_session_generation.fetch_add(1, std::memory_order_acq_rel) + 1;
   {
     std::lock_guard<std::mutex> lock(g_progress.mu);
-    release_bound_widgets_locked();
+    reset_progress_locked();
     g_progress.state = SyncState::Running;
+    g_progress.task_id = task_id;
+    g_progress.task_may_be_running = task_id != 0;
     g_progress.progress = 0;
     g_progress.displayed_progress = 0;
     g_progress.completed = 0;
@@ -744,15 +830,15 @@ void cheat_progress_show(void) {
     g_progress.error.clear();
   }
 
-  if (g_thread_started.exchange(true))
-    return;
-
+  auto *args = new PollArgs{generation, task_id};
   pthread_t thread;
-  if (pthread_create(&thread, nullptr, cheat_progress_poll, nullptr) != 0) {
+  if (pthread_create(&thread, nullptr, cheat_progress_poll, args) != 0) {
+    delete args;
     std::lock_guard<std::mutex> lock(g_progress.mu);
-    g_thread_started.store(false);
-    g_progress.state = SyncState::Error;
-    g_progress.error = "poll_thread";
+    if (session_is_current(generation)) {
+      g_progress.state = SyncState::Error;
+      g_progress.error = "poll_thread";
+    }
     LOG_ERROR("cheat_progress_xml: pthread_create failed");
     return;
   }
@@ -774,6 +860,34 @@ void cheat_progress_attach_panel(std::string_view id, MonoObject *widget) {
     return;
   std::lock_guard<std::mutex> lock(g_progress.mu);
   (void)build_and_append_panel_locked(widget);
+}
+
+void cheat_progress_bind_page(MonoObject *page) {
+  if (!page)
+    return;
+  std::lock_guard<std::mutex> lock(g_progress.mu);
+  if (g_progress.page.object == page)
+    return;
+  release_widget(g_progress.page);
+  (void)pin_widget(g_progress.page, page, "page");
+}
+
+bool cheat_progress_handle_popping(MonoObject *outgoing) {
+  uint32_t cancel_task_id = 0;
+  {
+    std::lock_guard<std::mutex> lock(g_progress.mu);
+    if (!outgoing || outgoing != g_progress.page.object)
+      return false;
+
+    if (g_progress.task_may_be_running)
+      cancel_task_id = g_progress.task_id;
+    g_session_generation.fetch_add(1, std::memory_order_acq_rel);
+    reset_progress_locked();
+  }
+
+  if (cancel_task_id != 0)
+    request_cancel_async(cancel_task_id);
+  return true;
 }
 
 void shellui_poll_cheat_progress(void) {

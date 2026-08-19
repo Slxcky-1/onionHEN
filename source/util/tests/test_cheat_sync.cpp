@@ -35,6 +35,16 @@ struct ProgressEvent {
 
 std::vector<ProgressEvent> g_progress_events;
 
+struct CancelState {
+  int checks = 0;
+  int cancel_after = 0;
+};
+
+bool cancel_after_checks(void *user) {
+  auto *state = static_cast<CancelState *>(user);
+  return state && ++state->checks >= state->cancel_after;
+}
+
 const std::filesystem::path &test_root() {
   static const std::filesystem::path root =
       std::filesystem::path(ONION_DATA_ROOT) / "sync-engine";
@@ -313,6 +323,23 @@ static int test_clock_failure_sets_specific_error(void) {
   return 0;
 }
 
+static int test_cancel_during_download_cleans_temp(void) {
+  reset_test_root();
+  FakeCatalog catalog;
+  FakeMirror mirror(CheatMirrorId::Github, "github", "codeload.github.com",
+                    "https://codeload.github.com/org/fake/archive.zip");
+  MockHttp http;
+  http.archive = make_archive();
+  CancelState cancel{0, 2};
+  CheatSyncEngine engine(http, capture_flatten);
+  engine.setCancelHandler(cancel_after_checks, &cancel);
+  const auto result = engine.run(catalog, mirror, nullptr, test_root().c_str());
+  TEST_ASSERT_TRUE(result.status == SyncStatus::Cancelled);
+  TEST_ASSERT_TRUE(g_flatten_roots.empty());
+  TEST_ASSERT_TRUE(temp_was_removed());
+  return 0;
+}
+
 extern "C" int test_cheat_sync_suite(void) {
   int fails = 0;
   fails += onion_test_run("sync.archive_install",
@@ -325,5 +352,7 @@ extern "C" int test_cheat_sync_suite(void) {
   fails += onion_test_run("sync.reject_http", test_non_https_archive_is_rejected);
   fails += onion_test_run("sync.tls_fallback", test_tls_failure_uses_fallback);
   fails += onion_test_run("sync.clock_error", test_clock_failure_sets_specific_error);
+  fails += onion_test_run("sync.cancel_download",
+                          test_cancel_during_download_cleans_temp);
   return fails;
 }

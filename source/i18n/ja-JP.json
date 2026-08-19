@@ -309,6 +309,7 @@
     "notify.cheats.sync.error": "チートのダウンロードに失敗しました: %s",
     "notify.cheats.sync.busy": "チートのダウンロードはすでに実行中です",
     "notify.cheats.sync.clock": "システム時刻が正しくありません。日付と時刻を設定してください。",
+    "notify.cheats.sync.cancelled": "チートのダウンロードをキャンセルしました",
     "notify.kstuff.next_boot_on": "次回起動時に Kstuff を読み込みます",
     "notify.kstuff.next_boot_off": "次回起動時に Kstuff は読み込みません",
     "notify.kstuff.deleted": "外部 Kstuff を削除しました",

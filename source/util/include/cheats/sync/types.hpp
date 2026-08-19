@@ -29,6 +29,7 @@ enum class SyncStatus : int {
   Rejected = -7,
   Tls = -8,
   Clock = -9,
+  Cancelled = -10,
 };
 
 inline bool is_source_failure(SyncStatus s) {
@@ -58,11 +59,14 @@ inline const char *sync_status_name(SyncStatus s) {
     return "tls";
   case SyncStatus::Clock:
     return "clock";
+  case SyncStatus::Cancelled:
+    return "cancelled";
   }
   return "unknown";
 }
 
 using SyncProgressFn = void (*)(const char *phase, size_t completed,
                                 size_t total, void *user);
+using SyncCancelFn = bool (*)(void *user);
 
 } // namespace onion::cheats::sync

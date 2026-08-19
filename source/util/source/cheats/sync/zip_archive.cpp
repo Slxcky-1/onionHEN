@@ -129,7 +129,8 @@ std::string parent_path(const std::string &path) {
 
 SyncStatus extract_cheat_zip(const char *zip_path, const char *dest_root,
                              const char *const *roots, size_t root_count,
-                             SyncProgressFn progress, void *progress_user) {
+                             SyncProgressFn progress, void *progress_user,
+                             SyncCancelFn should_cancel, void *cancel_user) {
   if (!zip_path || !zip_path[0] || !dest_root || !dest_root[0] || !roots ||
       root_count == 0) {
     return SyncStatus::Rejected;
@@ -154,6 +155,10 @@ SyncStatus extract_cheat_zip(const char *zip_path, const char *dest_root,
   std::set<std::string> paths;
   mz_uint64 total = 0;
   for (mz_uint i = 0; i < count; ++i) {
+    if (should_cancel && should_cancel(cancel_user)) {
+      result = SyncStatus::Cancelled;
+      goto done;
+    }
     mz_zip_archive_file_stat stat {};
     if (!mz_zip_reader_file_stat(&zip, i, &stat)) {
       goto done;
@@ -187,6 +192,10 @@ SyncStatus extract_cheat_zip(const char *zip_path, const char *dest_root,
   {
     mz_uint64 completed = 0;
     for (const SelectedEntry &entry : selected) {
+      if (should_cancel && should_cancel(cancel_user)) {
+        result = SyncStatus::Cancelled;
+        goto done;
+      }
       const std::string dest = std::string(dest_root) + '/' + entry.relative;
       if (!mkdir_tree(parent_path(dest)) ||
           !mz_zip_reader_extract_to_file(&zip, entry.index, dest.c_str(), 0)) {

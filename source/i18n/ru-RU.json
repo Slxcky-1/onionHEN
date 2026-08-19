@@ -309,6 +309,7 @@
     "notify.cheats.sync.error": "Не удалось загрузить читы: %s",
     "notify.cheats.sync.busy": "Загрузка читов уже выполняется",
     "notify.cheats.sync.clock": "Системное время неверно. Установите дату и время.",
+    "notify.cheats.sync.cancelled": "Загрузка читов отменена",
     "notify.kstuff.next_boot_on": "Kstuff будет загружен при следующем запуске",
     "notify.kstuff.next_boot_off": "Kstuff НЕ будет загружен при следующем запуске",
     "notify.kstuff.deleted": "Внешний Kstuff удалён",

@@ -309,6 +309,7 @@
     "notify.cheats.sync.error": "Download dei trucchi non riuscito: %s",
     "notify.cheats.sync.busy": "Download dei trucchi già in corso",
     "notify.cheats.sync.clock": "Ora di sistema errata. Imposta data e ora.",
+    "notify.cheats.sync.cancelled": "Download dei trucchi annullato",
     "notify.kstuff.next_boot_on": "Kstuff verrà caricato al prossimo avvio",
     "notify.kstuff.next_boot_off": "Kstuff NON verrà caricato al prossimo avvio",
     "notify.kstuff.deleted": "Il Kstuff esterno è stato eliminato",

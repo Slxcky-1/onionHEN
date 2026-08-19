@@ -79,6 +79,8 @@ void __syscall() {
 
 void (*OnRender_orig)(MonoObject* instance);
 void (*oUserCustomElementReset)(MonoObject* instance, MonoObject* item) = nullptr;
+void (*oSettingPageStackOnPopping)(MonoObject* instance, MonoObject* outgoing,
+                                   MonoObject* incoming) = nullptr;
 MonoObject* rootWidget = nullptr;
 MonoObject* font = nullptr;
 void (*Orig_ReloadApp)(MonoString* str) = nullptr;
@@ -559,6 +561,10 @@ bool install_hooks(const ShellImages& img) {
        "UserCustomElementUI", "Reset", 1,
        reinterpret_cast<void*>(&UserCustomElementReset_Hook),
        reinterpret_cast<void**>(&oUserCustomElementReset), false},
+      {"SettingPageStack.OnPopping", img.legacy, UI3_dec.c_str(),
+       "SettingPageStack", "OnPopping", 2,
+       reinterpret_cast<void *>(&SettingPageStackOnPopping_Hook),
+       reinterpret_cast<void **>(&oSettingPageStackOnPopping), false},
       {"SettingsPlugin.GetString", img.legacy, UI3_dec.c_str(), "SettingsPlugin",
        "GetString", 1, reinterpret_cast<void*>(&GetString_Hook),
        reinterpret_cast<void**>(&oGetString), true},
