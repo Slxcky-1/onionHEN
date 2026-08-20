@@ -412,6 +412,8 @@ constexpr const char* kIconAbout =
     "/user/data/OnionHEN/assets/icon_xml_about.png";
 constexpr const char* kIconKstuff =
     "/user/data/OnionHEN/assets/icon_xml_kstuff.png";
+constexpr const char* kIconDrakmor =
+    "/user/data/OnionHEN/assets/icon_xml_drakmor.png";
 constexpr const char* kIconOverlay =
     "/user/data/OnionHEN/assets/icon_xml_overlay.png";
 constexpr const char* kIconTitleId =
@@ -491,7 +493,7 @@ void append_toolbox_payloads_group(ps5ui::Group& g) {
                   std::nullopt,
                   toolbox_i18n::tr("shadowmount.remove_external.desc"));
             },
-            toolbox_i18n::tr("shadowmount.group.sub"), kIconKstuff,
+            toolbox_i18n::tr("shadowmount.group.sub"), kIconDrakmor,
             "id_shadowmount_autoload");
 }
 
