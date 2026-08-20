@@ -53,6 +53,7 @@ LDFLAGS := $(KEYSTONE_LDFLAGS) -pthread
 
 # Production sources under test
 PROD_C_SRCS := \
+	$(UTIL_ROOT)/source/util_language.c \
 	$(UTIL_ROOT)/source/cheats/cheat_engine_utils.c \
 	$(UTIL_ROOT)/source/cheats/cheat_engine_parser_shnext.c \
 	$(UTIL_ROOT)/source/cheats/cheat_flatten.c \
@@ -102,6 +103,7 @@ TEST_C_SRCS := \
 	test_platform_log.c \
 	test_platform_net.c \
 	test_platform_notify.c \
+	test_util_language.c \
 	test_toolbox_timing.c \
 	test_hijack_retry.c \
 	stubs/host_stubs.c

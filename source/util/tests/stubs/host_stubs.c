@@ -123,12 +123,20 @@ int32_t sceNotificationSend(int32_t user_id, bool is_logged,
   return 0;
 }
 
+static int g_test_system_language_result = 0;
+static int g_test_system_language_value = 1;
+
+void onion_test_system_language_configure(int result, int value) {
+  g_test_system_language_result = result;
+  g_test_system_language_value = value;
+}
+
 int sceSystemServiceParamGetInt(int param_id, int *value) {
   (void)param_id;
   if (value != NULL) {
-    *value = 1;
+    *value = g_test_system_language_value;
   }
-  return 0;
+  return g_test_system_language_result;
 }
 
 /* Bind platform notify to the host stub (constructor runs before tests). */

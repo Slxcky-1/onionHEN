@@ -17,6 +17,7 @@ along with this program; see the file COPYING. If not, see
 #include "ipc.hpp"
 #include "cheats/cheat_service.hpp"
 #include "rest_mode.hpp"
+#include "util_language.h"
 #include "util_toolbox.h"
 #include <onion/settings.hpp>
 #include <onion/log_settings.hpp>
@@ -50,8 +51,6 @@ extern "C" {
   int sceKernelGetAppInfo(pid_t pid, app_info_t * info);
   int sceKernelGetProcessName(int pid, char * out);
   int _sceApplicationGetAppId(int pid, uint32_t * appId);
-  int sceSystemServiceParamGetInt(int param_id, int *value);
-
   // set_proc_authid / get_proc_by_pid: libonion_proc
 }
 
@@ -92,10 +91,7 @@ bool LoadSettings() {
     }
 
     g_settings.store(s);
-    int system_language = 1;
-    if (s.ui_lang == onion::kUiLanguageSystem)
-        (void)sceSystemServiceParamGetInt(1, &system_language);
-    onion_notify_apply_ui_language(s.ui_lang, system_language);
+    util_apply_ui_language(s.ui_lang);
     /* Missing file is not an error — defaults were applied. */
     return true;
 }
@@ -126,6 +122,9 @@ int main(void) {
 
     payload_args_t* args = payload_get_args();
     kernel_base = args->kdata_base_addr;
+    /* Preserve the launch credential context for the SystemService query;
+       util keeps PTRACE_AUTHID for its remaining lifetime. */
+    (void)util_refresh_system_language();
     /* pt_* / code-cave require PTRACE_AUTHID (not DEBUG_AUTHID). */
     set_ucred_to_ptrace();
 

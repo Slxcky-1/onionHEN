@@ -5,6 +5,7 @@
 #include "cheats/sync/cheat_catalog_registry.hpp"
 #include "cheats/sync/cheat_mirror_factory.hpp"
 #include "cheats/sync/http_transport_ps5.hpp"
+#include "util_language.h"
 
 #include <onion/log.h>
 #include <onion/notify.h>
@@ -16,8 +17,6 @@
 #include <memory>
 #include <string>
 #include <utility>
-
-extern "C" int sceSystemServiceParamGetInt(int param_id, int *value);
 
 namespace onion::cheats::sync {
 namespace {
@@ -47,14 +46,6 @@ SyncStatus flatten_existing(const char *root,
   if (result == ONION_CHEAT_FLATTEN_CANCELLED)
     return SyncStatus::Cancelled;
   return result == ONION_CHEAT_FLATTEN_OK ? SyncStatus::Ok : SyncStatus::Io;
-}
-
-int read_system_language(const onion::Settings &settings) {
-  int system_language = 1;
-  if (settings.ui_lang == onion::kUiLanguageSystem) {
-    (void)sceSystemServiceParamGetInt(1, &system_language);
-  }
-  return system_language;
 }
 
 bool enough_free_space(const char *path, unsigned long long min_bytes) {
@@ -244,7 +235,7 @@ void CheatSyncService::worker(onion::Settings settings, std::string catalog_id,
     pref = CheatMirrorFactory::parsePref(mirror_override.c_str(), pref);
   }
 
-  const int system_lang = read_system_language(settings);
+  const int system_lang = util_cached_system_language();
   CheatMirrorPick pick =
       CheatMirrorFactory::create(pref, settings.ui_lang, system_lang);
 
