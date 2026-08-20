@@ -10,6 +10,8 @@ code here makes `source/` exclusively first-party code.
 | [`cheat_support/`](cheat_support/) | Vendored source | AES, base64, miniz and SHA-256 used by cheat parsers |
 | [`keystone/`](keystone/) | Headers + prebuilt archive | ShnExt assembly support |
 | [`kstuff-lite/`](kstuff-lite/) | Git submodule | Produces the optional embedded `kstuff.elf` |
+| [`ftpsrv/`](ftpsrv/) | Git submodule (`nexgen`) | Embedded PS5 FTP server payload |
+| [`ShadowMountPlus/`](ShadowMountPlus/) | Git submodule (`main`) | Embedded ShadowMountPlus game scanner/mounter payload |
 
 Third-party file names retain their upstream spelling even when it differs
 from the project's snake_case convention. This keeps upstream updates easy to
