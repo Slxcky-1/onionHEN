@@ -155,12 +155,12 @@ struct Settings {
   bool kstuff_autoload = true;
 
   // [ftp]
-  // Load the embedded ftpsrv payload when OnionHEN starts.
-  bool ftp_autoload = true;
+  // Opt in to loading the embedded ftpsrv payload when OnionHEN starts.
+  bool ftp_autoload = false;
 
   // [shadowmount]
-  // Load ShadowMountPlus when OnionHEN starts.
-  bool shadowmount_autoload = true;
+  // Opt in to loading ShadowMountPlus when OnionHEN starts.
+  bool shadowmount_autoload = false;
 
   // [toolbox]
   // 0 = system (default), 1 = zh-Hans, 2 = en, 3 = ar, 4 = zh-Hant,

@@ -275,8 +275,8 @@ default from [`config.ini.example`](config.ini.example).
 | `overlay.show_ip_address` | `false` | `true`, `false` |
 | `shortcuts.cheats_menu` | `off` | `off`, `r3_l3`, `l2_triangle`, `long_options`, `long_share`, `share` |
 | `shortcuts.toolbox` | `off` | `off`, `l2_r3`, `long_share`, `share` |
-| `ftp.autoload` | `true` | `true`, `false` |
-| `shadowmount.autoload` | `true` | `true`, `false` |
+| `ftp.autoload` | `false` | `true`, `false` |
+| `shadowmount.autoload` | `false` | `true`, `false` |
 
 ### Runtime data
 
