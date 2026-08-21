@@ -48,7 +48,7 @@ enum DaemonCommands : unsigned int {
   BREW_UTIL_TEST_CONNECTION = 0x8000000u,
   BREW_UTIL_RETURN_VALUE = 0x8000002u,
   BREW_UTIL_DAEMON_PID,
-  BREW_UTIL_UNUSED_FTP,  // was BREW_UTIL_TOGGLE_FTP (service removed)
+  BREW_UTIL_TOGGLE_FTP,  // Stable ordinal retained from the former FTP toggle.
   BREW_UTIL_UNUSED_KLOG, // was BREW_UTIL_TOGGLE_KLOG (service removed)
   BREW_UTIL_UNUSED_DPI, // was TOGGLE_DPI (DirectPKGInstaller removed)
   BREW_UTIL_LAUNCH_PAYLOAD,
@@ -56,12 +56,13 @@ enum DaemonCommands : unsigned int {
   BREW_UTIL_GET_GAME_VER,
   BREW_UTIL_GET_GAME_CHEAT,
   BREW_UTIL_TOGGLE_CHEAT,
-  BREW_UTIL_UNUSED_DOWNLOAD_CHEATS, // was DOWNLOAD_CHEATS (online repo download removed)
+  BREW_UTIL_DOWNLOAD_CHEATS, // git catalog sync (was UNUSED after zip download removal)
   BREW_UTIL_UNUSED_RELOAD_CHEATS, // was RELOAD_CHEATS (index cache removed; file-sig hot-reload)
   BREW_UTIL_UNUSED_DOWNLOAD_KSTUFF, // was DOWNLOAD_KSTUFF (online kstuff download removed)
   BREW_UTIL_UNUSED_LEGACY_CMD_SERVER, // was TOGGLE_LEGACY_CMD_SERVER (TCP 9028 removed)
-  BREW_UTIL_UNUSED_2,
-  BREW_UTIL_UNUSED_3,
+  BREW_UTIL_CHEAT_SYNC_STATUS, // last git cheat-sync snapshot
+  BREW_UTIL_CANCEL_CHEAT_SYNC, // cooperatively stop the active catalog sync
+  BREW_UTIL_LAUNCH_SHADOWMOUNT,
 
   // Legacy: manual elfldr launch removed (embedded 9020 is bootstrapper-managed)
   BREW_UTIL_LAUNCH_ELFLDR = 0xE1F1D8u,

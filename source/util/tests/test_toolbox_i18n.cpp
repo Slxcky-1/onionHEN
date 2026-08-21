@@ -13,8 +13,14 @@ static int test_default_zh(void) {
   set_lang(Lang::ZhHans);
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★OnionHEN 工具箱") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.pkg"), "内容安装与管理") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("group.payloads.sub"),
+                               "用户 Payload ELF 与 Kstuff") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("group.game"), "游戏与内容") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.game.sub"),
-                               "当前游戏的金手指菜单") == 0);
+                               "金手指和 ShadowMount+ 游戏来源管理") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("ftp.group"), "FTP 服务器") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("ftp.autoload"),
+                               "运行 FTP 服务器") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.display"), "监控与显示") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.display.sub"),
                                "游戏覆盖层、主菜单显示与游戏选项入口") == 0);
@@ -30,12 +36,17 @@ static int test_default_zh(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("fan.enable.sub"),
                                "关闭时使用系统默认风扇策略") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("account.warning"),
-                               "激活账号后，现有游戏存档可能会失效。"
+                               "激活账号后，你可能会丢失现有存档（账号 ID 会改变）。"
                                "请确认你接受这个风险后再继续。") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "为 %s 启用/禁用 %s") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.game_menu"),
                                "★ OnionHEN 金手指") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.repo.download"),
+                               "下载金手指合集") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.repo.download.desc"),
+                               "鸣谢 TeeKay87") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.repo.mirror.auto"), "自动") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("pkg.msg.options"),
                                "PKG 安装器选项") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("about.donors"), "★ 捐赠者 ★") == 0);
@@ -48,8 +59,13 @@ static int test_en(void) {
   set_lang(Lang::En);
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★OnionHEN Toolbox") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.pkg"), "Content Install & Management") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("group.payloads.sub"),
+                               "User payload ELFs and Kstuff") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("group.game"), "Games & Content") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.game.sub"),
-                               "Cheats for the current game") == 0);
+                               "Cheats and ShadowMount+ game sources") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("ftp.group"), "FTP Server") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("ftp.autoload"), "Run FTP server") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.display.sub"),
                                "In-game overlay, home menu display, and game "
                                "options entry") == 0);
@@ -64,9 +80,9 @@ static int test_en(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("sc.off"), "Off (no shortcut)") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("account.link"), "Account activation") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("account.warning"),
-                               "Activating this account may make existing game "
-                               "saves unusable. Continue only if you accept "
-                               "that risk.") == 0);
+                               "You may lose your existing game saves because "
+                               "the account ID will change. Continue only if "
+                               "you accept that risk.") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "Enable/disable %s for %s") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("payload.start_stop_fmt"),
@@ -76,6 +92,10 @@ static int test_en(void) {
                                "string; the console reboots after saving") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.game_menu"),
                                "★ OnionHEN Cheats") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.repo.download"),
+                               "Download cheat collection") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("cheats.repo.download.desc"),
+                               "Credits to TeeKay87") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("pkg.msg.installing"),
                                "OnionHEN is installing the selected PKG") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("pkg.msg.select_all"), "Select all") == 0);

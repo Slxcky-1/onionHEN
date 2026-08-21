@@ -157,6 +157,10 @@ bool LoadSettings();
 bool SaveSettings();
 /** Recompute g_overlay_layout from g_settings.overlay_pos. */
 void apply_overlay_layout();
+/** Apply the overlay layout using the live ShellUI logical canvas dimensions. */
+void apply_overlay_layout(float screen_w, float screen_h);
+/** Read both logical canvas dimensions from a ShellUI RootWidget. */
+bool resolve_root_dimensions(MonoObject *root, float *screen_w, float *screen_h);
 /** Persist g_settings and optionally reload daemon/util settings via IPC. */
 void settings_commit(bool reload_main = false, bool reload_util = false);
 
@@ -170,6 +174,9 @@ void settings_commit(bool reload_main = false, bool reload_util = false);
 void shellui_request_display_tids_home_reload(void);
 /** Drain one-shot home reload; call only from UI thread after hooks ready. */
 void shellui_poll_display_tids_home_reload(void);
+
+/** UI-thread ticker for the cheat-download XML progress page. */
+void shellui_poll_cheat_progress(void);
 
 bool SetVersionString(const char* str);
 int SendShelluiNotify();
@@ -320,6 +327,10 @@ result Invoke(MonoImage* Assembly_Image, MonoClass* klass, MonoObject* Instance,
 /* ================================= ORIG HOOKED MONO FUNCS ============================================= */
 extern int (*oOnPress)(MonoObject* Instance, MonoObject* element, MonoObject* e);
 extern int (*oOnPreCreate)(MonoObject* Instance, MonoObject* element);
+extern void (*oUserCustomElementReset)(MonoObject* Instance, MonoObject* item);
+extern void (*oSettingPageStackOnPopping)(MonoObject* Instance,
+                                          MonoObject* outgoing,
+                                          MonoObject* incoming);
 extern MonoString* (*CxmlUri)(MonoObject* obj,MonoString* uri);
 extern void (*oTerminate)(void);
 
@@ -360,6 +371,10 @@ MonoObject* New_Object(MonoClass* Klass);
 MonoString *GetString_Hook(MonoObject *Instance, MonoString *str);
 int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e);
 int OnPreCreate_Hook(MonoObject* Instance, MonoObject* element);
+void UserCustomElementReset_Hook(MonoObject* Instance, MonoObject* item);
+void SettingPageStackOnPopping_Hook(MonoObject* Instance,
+                                    MonoObject* outgoing,
+                                    MonoObject* incoming);
 MonoImage * getDLLimage(const char* dll_file);
 MonoString* CxmlUri_Hook(MonoObject* obj, MonoString* uri);
 MonoObject* InvokeByDesc(MonoClass* p_Class, const char* p_MethodDesc, void* p_Instance, void* p_Args);

@@ -135,6 +135,26 @@ static OnPressResult id_fan_speed(OnPressContext &ctx) {
   return OnPressResult::Handled;
 }
 
+static OnPressResult id_cheats_mirror(OnPressContext &ctx) {
+  char *end = nullptr;
+  const long selected = std::strtol(ctx.value.c_str(), &end, 10);
+  if (end == ctx.value.c_str() || *end != '\0' ||
+      (selected != onion::kCheatsMirrorAuto &&
+       selected != onion::kCheatsMirrorGithub &&
+       selected != onion::kCheatsMirrorCnb)) {
+    LOG_WARN("Rejected unsupported cheats mirror: %s", ctx.value.c_str());
+    return OnPressResult::EarlyReturn;
+  }
+  const int mirror = static_cast<int>(selected);
+  if (mirror == g_settings.cheats_mirror) {
+    return OnPressResult::EarlyReturn;
+  }
+  g_settings.cheats_mirror = mirror;
+  ctx.reload_util = true;
+  LOG_INFO("Cheats mirror: %d", mirror);
+  return OnPressResult::Handled;
+}
+
 static OnPressResult id_cheats_shortcut(OnPressContext &ctx) {
   if (atoi(ctx.value.c_str()) == g_settings.cheats_shortcut_opt) {
     LOG_WARN("Cheats_shortcut already %i", g_settings.cheats_shortcut_opt);
@@ -188,6 +208,7 @@ static const OnPressExactEntry kExact[] = {
     {"id_rest_1", id_rest_1},
     {"id_enable_fan_speed", id_enable_fan_speed},
     {"id_fan_speed", id_fan_speed},
+    {"id_cheats_mirror", id_cheats_mirror},
     {"id_cheats_shortcut", id_cheats_shortcut},
     {"id_toolbox_shortcut", id_toolbox_shortcut},
 };

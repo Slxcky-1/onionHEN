@@ -48,7 +48,7 @@ bool cmd_enable_toolbox(){
      * mprotect readiness.
      */
     if (find_pid("kstuff.elf") > 0 || find_pid("kstuff") > 0) {
-      LOG_INFO("kstuff present — waiting for mprotect before toolbox inject");
+      LOG_DEBUG("kstuff present — waiting for mprotect before toolbox inject");
       for (int i = 0; i < 20; i++) {
         if (sceKernelMprotect(&buz[0], 100, 0x7) == 0)
           break;
@@ -63,15 +63,15 @@ bool cmd_enable_toolbox(){
      * cold start.
      * util_booted is true almost immediately after util starts (before this
      * inject), so gating on it alone hung first toolbox load for delay seconds.
-     * Rest re-activation delay lives in util patch_checker / check_addr_change.
+     * Rest re-activation delay lives in util toolbox_reinject (rest_mode::Recovery).
      */
     LoadSettings();
     {
       const uint64_t delay = g_settings.snapshot().rest_mode_delay_seconds;
       constexpr bool kRestResume = false; /* daemon cold/direct inject path */
       if (onion_toolbox_should_apply_rest_delay(kRestResume, delay)) {
-        LOG_INFO("rest delay %llu (rest resume path)",
-                     static_cast<unsigned long long>(delay));
+        LOG_DEBUG("rest delay %llu (rest resume path)",
+                  static_cast<unsigned long long>(delay));
         sleep(static_cast<unsigned int>(delay));
       }
     }
@@ -84,8 +84,8 @@ bool cmd_enable_toolbox(){
     const onion::ToolboxInjectionOutcome outcome = g_toolbox_injection.ensure(
         []() -> pid_t { return static_cast<pid_t>(get_shellui_pid()); },
         [](pid_t pid) -> bool {
-          LOG_INFO("Injecting toolbox into SceShellUI pid=%d",
-                       static_cast<int>(pid));
+          LOG_DEBUG("Injecting toolbox into SceShellUI pid=%d",
+                    static_cast<int>(pid));
           return Inject_Toolbox(static_cast<int>(pid), shellui_elf_start);
         },
         /*timeout_ms=*/45 * 1000, /*poll_ms=*/250);

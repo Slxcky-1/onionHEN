@@ -38,10 +38,7 @@ OnionIpcNotifyFn g_notify = nullptr;
 
 
 std::string json_object_str(cJSON *j) {
-  onion_cjson::Printed printed(j);
-  std::string out = printed.str();
-  cJSON_Delete(j);
-  return out;
+  return onion_cjson::print_owned(j);
 }
 
 std::string json_kv_string(const char *k1, const char *v1) {
@@ -57,6 +54,14 @@ std::string json_kv_string2(const char *k1, const char *v1, const char *k2,
   cJSON_AddStringToObject(j, k2, v2 ? v2 : "");
   return json_object_str(j);
 }
+
+std::string json_kv_number(const char *key, double value) {
+  cJSON *j = cJSON_CreateObject();
+  cJSON_AddNumberToObject(j, key, value);
+  return json_object_str(j);
+}
+
+std::string json_empty_object() { return json_object_str(cJSON_CreateObject()); }
 
 void maybe_notify(const char *text) {
   if (g_notify && text) {
@@ -154,8 +159,9 @@ int IPC_Client::recv_frame_unlocked(IPCMessage &msg) {
   }
 
   struct timeval tv;
-  tv.tv_sec = recv_timeout_ms_ / 1000;
-  tv.tv_usec = (recv_timeout_ms_ % 1000) * 1000;
+  const int recv_timeout_ms = recv_timeout_ms_.load(std::memory_order_relaxed);
+  tv.tv_sec = recv_timeout_ms / 1000;
+  tv.tv_usec = (recv_timeout_ms % 1000) * 1000;
   if (setsockopt(socket_fd_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
     return -1;
   }
@@ -245,9 +251,9 @@ bool IPC_Client::IPCSendCommand(DaemonCommands cmd, std::string &ipc_msg1,
   } else if (ipc_msg2.empty()) {
     if (cmd == BREW_DAEMON_PID || cmd == BREW_UTIL_DAEMON_PID ||
         cmd == BREW_TEST_CONNECTION || cmd == BREW_UTIL_TEST_CONNECTION) {
-      json = "{\"pid\": 0 }";
+      json = json_kv_number("pid", 0);
     } else {
-      json = "{\"msg_1\": 0}";
+      json = json_kv_number("msg_1", 0);
     }
   } else {
     json = std::move(ipc_msg2);
@@ -296,7 +302,7 @@ int IPC_Client::GetDaemonPid() {
 
 IPC_Ret IPC_Client::ToggleSetting(DaemonCommands cmd, bool turn_on) {
   std::string ipc_msg;
-  std::string json = turn_on ? "{\"toggle\": 1}" : "{\"toggle\": 0}";
+  std::string json = json_kv_number("toggle", turn_on ? 1 : 0);
   if (!IPCSendCommand(cmd, ipc_msg, json)) {
     LOG_ERROR("Failed to toggle setting 0x%X (%d)", cmd, cmd);
     return IPC_Ret::OPERATION_FAILED;
@@ -362,6 +368,17 @@ IPC_Ret IPC_Client::LaunchPayload(std::string payload_path, std::string tid) {
   return IPC_Ret::NO_ERROR;
 }
 
+bool IPC_Client::LaunchShadowMount() {
+  if (!require_util("LaunchShadowMount"))
+    return false;
+  std::string reply_text;
+  if (!IPCSendCommand(BREW_UTIL_LAUNCH_SHADOWMOUNT, reply_text, "{}")) {
+    LOG_ERROR("Failed to launch ShadowMount+");
+    return false;
+  }
+  return true;
+}
+
 bool IPC_Client::GameVerFromTid(std::string tid, std::string &out_ver) {
   if (!require_util("GameVerFromTid")) {
     return false;
@@ -419,6 +436,50 @@ bool IPC_Client::ToggleGameCheat(int pid, const std::string &tid,
   return true;
 }
 
+bool IPC_Client::DownloadCheats(const char *catalog, const char *mirror,
+                                std::string &out) {
+  if (!require_util("DownloadCheats")) {
+    return false;
+  }
+  cJSON *j = cJSON_CreateObject();
+  if (catalog && catalog[0]) {
+    cJSON_AddStringToObject(j, "catalog", catalog);
+  }
+  if (mirror && mirror[0]) {
+    cJSON_AddStringToObject(j, "mirror", mirror);
+  }
+  std::string json = json_object_str(j);
+  if (!IPCSendCommand(BREW_UTIL_DOWNLOAD_CHEATS, out, json)) {
+    LOG_ERROR("Failed to start cheat catalog download");
+    return false;
+  }
+  return true;
+}
+
+bool IPC_Client::CheatSyncStatus(std::string &out) {
+  if (!require_util("CheatSyncStatus")) {
+    return false;
+  }
+  if (!IPCSendCommand(BREW_UTIL_CHEAT_SYNC_STATUS, out,
+                      json_empty_object())) {
+    LOG_ERROR("Failed to query cheat sync status");
+    return false;
+  }
+  return true;
+}
+
+bool IPC_Client::CancelCheatSync(uint32_t task_id, std::string &out) {
+  if (!require_util("CancelCheatSync")) {
+    return false;
+  }
+  if (!IPCSendCommand(BREW_UTIL_CANCEL_CHEAT_SYNC, out,
+                      json_kv_number("task_id", task_id))) {
+    LOG_ERROR("Failed to cancel cheat sync");
+    return false;
+  }
+  return true;
+}
+
 void IPC_Client::SendRestModeAction() {
   if (!require_util("SendRestModeAction")) {
     return;
@@ -468,7 +529,7 @@ bool IPC_Client::EnableToolbox() {
   }
   std::string ipc_msg;
   // Historical payload titleId; daemon ignores body for enable path.
-  std::string json = R"({ "titleId": "ETAH00002" })";
+  std::string json = json_kv_string("titleId", "ETAH00002");
   if (!IPCSendCommand(BREW_ENABLE_TOOLBOX, ipc_msg, json)) {
     LOG_ERROR("EnableToolbox failed");
     return false;

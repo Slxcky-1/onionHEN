@@ -60,7 +60,7 @@ struct WidgetConfig {
 };
 
 void RemoveGameWidget(RemoveWidget widget);
-void CreateGameWidget(CreateWidget widget);
+bool CreateGameWidget(CreateWidget widget);
 
 struct LaunchAppParam
 {
@@ -140,9 +140,12 @@ extern onion::Settings g_settings;
  * PositionType=1; labels do not use X/Y.
  */
 struct OverlayLayout {
+    /* Zero means RootWidget logical dimensions have not been resolved yet. */
+    float screen_w = 0.0f;
+    float screen_h = 0.0f;
     float bar_x = 0.0f;
     float bar_y = 0.0f;
-    float bar_w = 1920.0f;
+    float bar_w = 0.0f;
     float bar_h = 24.0f;
     float label_margin_top = 5.0f;
     float overlay_cpu_x = 160.0f;

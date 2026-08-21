@@ -12,8 +12,13 @@
 #include <onion/settings.hpp>
 
 #include <atomic>
+#include <cmath>
 
 namespace {
+
+bool valid_dimension(float value) {
+  return std::isfinite(value) && value > 1.0f;
+}
 
 /*
  * Inject worker must not call ReactApplicationSceneManager.ReloadApp.
@@ -36,8 +41,8 @@ void apply_overlay_layout() {
    *   Height = font_size + 6.
    * Metrics pack L→R and are centered *inside* the full-width strip.
    */
-  constexpr float kScreenW = 1920.0f;
-  constexpr float kScreenH = 1080.0f;
+  const float kScreenW = g_overlay_layout.screen_w;
+  const float kScreenH = g_overlay_layout.screen_h;
   /* font_size=18, panel height = font + 6. */
   constexpr float kFontH = 18.0f;
   constexpr float kBarExtra = 6.0f;
@@ -50,6 +55,23 @@ void apply_overlay_layout() {
   constexpr float w_ip = 200.0f;
   constexpr float kGap = 28.0f; /* roomy group gap (not packed) */
   constexpr float kOffscreen = -4096.0f;
+
+  if (!valid_dimension(kScreenW) || !valid_dimension(kScreenH)) {
+    g_overlay_layout.bar_x = 0.0f;
+    g_overlay_layout.bar_y = 0.0f;
+    g_overlay_layout.bar_w = 0.0f;
+    g_overlay_layout.bar_h = kFontH + kBarExtra;
+    g_overlay_layout.label_margin_top = kTextTopInset;
+    g_overlay_layout.overlay_cpu_x = kOffscreen;
+    g_overlay_layout.overlay_cpu_y = 0.0f;
+    g_overlay_layout.overlay_gpu_x = kOffscreen;
+    g_overlay_layout.overlay_gpu_y = 0.0f;
+    g_overlay_layout.overlay_ram_x = kOffscreen;
+    g_overlay_layout.overlay_ram_y = 0.0f;
+    g_overlay_layout.overlay_ip_x = kOffscreen;
+    g_overlay_layout.overlay_ip_y = 0.0f;
+    return;
+  }
 
   const bool show_cpu = g_settings.overlay_enabled &&
                         (g_settings.overlay_cpu || g_settings.all_cpu_usage);
@@ -108,6 +130,14 @@ void apply_overlay_layout() {
         show_ram, w_ram);
   place(g_overlay_layout.overlay_ip_x, g_overlay_layout.overlay_ip_y, show_ip,
         w_ip);
+}
+
+void apply_overlay_layout(float screen_w, float screen_h) {
+  const bool dimensions_ready =
+      valid_dimension(screen_w) && valid_dimension(screen_h);
+  g_overlay_layout.screen_w = dimensions_ready ? screen_w : 0.0f;
+  g_overlay_layout.screen_h = dimensions_ready ? screen_h : 0.0f;
+  apply_overlay_layout();
 }
 
 bool LoadSettings()

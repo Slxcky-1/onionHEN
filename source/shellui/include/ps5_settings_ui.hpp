@@ -43,6 +43,8 @@ struct Attrs {
   std::optional<std::string> max_length;
   std::optional<std::string> key;
   std::optional<std::string> initial_focus_to;
+  std::optional<std::string> list_size;
+  std::optional<bool> restorable;
   Style style = Style::None;
 };
 
@@ -56,6 +58,7 @@ struct Node {
     List,
     ListItem,
     TextField,
+    UserCustom,
   } kind = Kind::SettingList;
 
   Attrs attrs;
@@ -101,7 +104,9 @@ public:
 
   Derived& link(std::string id, std::string title, std::string file,
                 std::optional<std::string> second_title = std::nullopt,
-                std::optional<std::string> icon = std::nullopt);
+                std::optional<std::string> icon = std::nullopt,
+                std::optional<std::string> confirm = std::nullopt,
+                std::optional<std::string> confirm_phrase = std::nullopt);
 
   Derived& list(std::string id, std::string title,
                 const std::function<void(ListBuilder&)>& body,
@@ -121,6 +126,9 @@ public:
                       std::optional<std::string> confirm_phrase = std::nullopt,
                       std::optional<std::string> value = std::nullopt,
                       std::optional<std::string> icon = std::nullopt);
+
+  /** Legacy Settings placeholder whose real Panel is appended during Reset. */
+  Derived& user_custom(std::string id);
 
   Derived& group(std::string id, std::string title,
                  const std::function<void(Group&)>& body,
@@ -157,6 +165,8 @@ public:
   Page& root_style(Style style);
   Page& root_focus(std::string id);
   Page& root_icon(std::string icon);
+  Page& root_list_size(std::string size);
+  Page& root_restorable(bool restorable);
 
   /** Serialize to a complete system_settings document. */
   [[nodiscard]] std::string build() const;
@@ -221,7 +231,9 @@ Derived& GroupT<Derived>::toggle(std::string id, std::string title, bool on,
 template <typename Derived>
 Derived& GroupT<Derived>::link(std::string id, std::string title, std::string file,
                                std::optional<std::string> second_title,
-                               std::optional<std::string> icon) {
+                               std::optional<std::string> icon,
+                               std::optional<std::string> confirm,
+                               std::optional<std::string> confirm_phrase) {
   Node n;
   n.kind = Node::Kind::Link;
   n.attrs.id = std::move(id);
@@ -229,6 +241,8 @@ Derived& GroupT<Derived>::link(std::string id, std::string title, std::string fi
   n.attrs.file = std::move(file);
   n.attrs.second_title = std::move(second_title);
   n.attrs.icon = std::move(icon);
+  n.attrs.confirm = std::move(confirm);
+  n.attrs.confirm_phrase = std::move(confirm_phrase);
   return add(std::move(n));
 }
 
@@ -280,6 +294,14 @@ Derived& GroupT<Derived>::text_field(std::string id, std::string title,
   n.attrs.confirm_phrase = std::move(confirm_phrase);
   n.attrs.value = std::move(value);
   n.attrs.icon = std::move(icon);
+  return add(std::move(n));
+}
+
+template <typename Derived>
+Derived& GroupT<Derived>::user_custom(std::string id) {
+  Node n;
+  n.kind = Node::Kind::UserCustom;
+  n.attrs.id = std::move(id);
   return add(std::move(n));
 }
 

@@ -8,6 +8,7 @@
 #include "external_symbols.hpp"
 #include "ipc.hpp"
 #include "onpress_policy.hpp"
+#include "progress_dialog.hpp"
 #include "toolbox_values.hpp"
 
 #include "shellui_state.hpp"
@@ -78,6 +79,11 @@ int OnPreCreate_Hook(MonoObject *Instance, MonoObject *element) {
   const std::string id = GetPropertyValue(element, "Id");
 
   if (!toolbox::toolbox_owns_settings_page(g_ui.active_page)) {
+    return call_original(Instance, element);
+  }
+
+  if (g_ui.active_page == toolbox::Page::CheatProgress) {
+    cheat_progress_bind_page(Instance);
     return call_original(Instance, element);
   }
 

@@ -77,8 +77,8 @@ int CheatApplier::toggle(const game_context_t &game, onion_cheat_file_t &file,
   pid_t pid = game.pid;
 
   if (file.last_applied_pid != 0 && file.last_applied_pid != pid) {
-    LOG_INFO("[Cheat] PID changed %d -> %d, reset states",
-                 (int)file.last_applied_pid, (int)pid);
+    LOG_DEBUG("[Cheat] PID changed %d -> %d, reset states",
+              (int)file.last_applied_pid, (int)pid);
     for (size_t i = 0; i < file.cheat_count; ++i) {
       file.cheats[i].enabled = false;
     }
@@ -114,9 +114,9 @@ int CheatApplier::toggle(const game_context_t &game, onion_cheat_file_t &file,
     fixMasterCode(target, file, entry, base, *backend);
   }
 
-  LOG_INFO("[Cheat] Toggle '%s' patches=%zu base=0x%llx %s", entry.name,
-               entry.patch_count, (unsigned long long)base,
-               entry.enabled ? "ON->OFF" : "OFF->ON");
+  LOG_DEBUG("[Cheat] Toggle '%s' patches=%zu base=0x%llx %s", entry.name,
+            entry.patch_count, (unsigned long long)base,
+            entry.enabled ? "ON->OFF" : "OFF->ON");
 
   for (size_t i = 0; i < entry.patch_count; ++i) {
     auto &patch = entry.patches[i];

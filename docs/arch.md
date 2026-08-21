@@ -45,13 +45,14 @@ OnionHEN 是 PS5 的 All-in-One Homebrew Enabler，基于 **etaHEN**（Lightning
         │               │                 │
         │               └─────────────────┼── 共用 ptrace / ShellUI
         ▼                                 ▼
-  Unix IPC                       fps_elf（游戏 overlay）
+  Unix IPC                       ShellUI monitor bar
 ```
 
-**启动顺序有意串行化：** util → kstuff → daemon。
+**启动顺序有意串行化：** util → kstuff → ftpsrv → ShadowMountPlus → daemon。
 
 - util 先提供网络/IPC 等服务
 - kstuff 需先完成 ShellUI 补丁
+- ftpsrv 与 ShadowMountPlus 在 bootstrapper 中按配置启动
 - daemon 再注入 Toolbox
 
 若并行 ptrace 同一进程，容易导致 Toolbox 超时或崩溃。
@@ -60,8 +61,7 @@ OnionHEN 是 PS5 的 All-in-One Homebrew Enabler，基于 **etaHEN**（Lightning
 
 ```
 shellui.elf ───────┐
-fps_elf.elf ───────┼──► 嵌入 daemon.elf ──┐
-util.elf ──────────┤                       │
+util.elf ──────────┼──► 嵌入 daemon.elf ──┐
 onion_elfldr.elf ──┘                       │
                      util.elf ─────────────┼──► 嵌入 bootstrapper.elf
                      kstuff.elf ───────────┤         │
@@ -75,7 +75,7 @@ onion_elfldr.elf ──┘                       │
 构建阶段（`scripts/build.sh`）：
 
 1. CMake configure
-2. 内部库 + `shellui` + `fps_elf`
+2. 内部库 + `shellui`
 3. sync vendor（kstuff）
 4. `daemon` + `util`
 5. `bootstrapper`（再 lzma 压缩）
@@ -98,7 +98,6 @@ OnionHEN/
 │   ├── daemon/       # 核心守护
 │   ├── util/         # 工具守护（金手指、IPC 等）
 │   ├── shellui/      # Toolbox
-│   ├── fps_elf/      # 游戏 overlay
 │   ├── unpacker/     # 最终 OnionHEN.elf
 │   ├── libhijacker/ libNineS/ libNidResolver/
 │   ├── libonion_*    # 共享：ipc/settings/proc/platform/ready/detour/payload/elfldr
@@ -141,7 +140,7 @@ OnionHEN/
 
 ### 2.3 `daemon` → `daemon.elf`（Critical 守护进程）
 
-- 内嵌 `shellui.elf`、`fps_elf.elf`、`util.elf` 与 `onion_elfldr.elf`
+- 内嵌 `shellui.elf`、`util.elf` 与 `onion_elfldr.elf`
 - 经 **libNineS** 将 Toolbox 注入 `SceShellUI`
 - 按依赖顺序监视私有 9020 与 util：9020 异常时先通过外部 9021 恢复加载器，再通过 9020 恢复 util
 - 9020 在同步加载 Payload 时发布 busy 标记，避免健康检查误杀；超过有界宽限期仍未恢复则按卡死处理
@@ -165,8 +164,13 @@ OnionHEN/
 |------|-------------|------|
 | Cheats | IPC | flat-file cheat engine（flat `TITLE_VERSION.ext` + mdbg/kdirect）；详见 [util_arch](util_arch/) |
 | ShellCore / ShellUI 补丁 | — | 休息模式恢复、toolbox 激活等 |
+| FTP | TCP 2121 | 内嵌 `ftpsrv`，作为 Toolbox 网络服务实时启停 |
+| ShadowMountPlus | util IPC / embedded ELF | 作为“游戏与内容”工具扫描并挂载配置的 PS5 游戏来源 |
 
-> **已移除：** FTP（1337）、Klog 网络服务（9081）、Legacy CMD（9028）。  
+ShadowMountPlus 使用 [Drakmor 的项目](https://github.com/drakmor/ShadowMountPlus)，
+其发展源自 VoidWhisper 的 ShadowMount；OnionHEN 嵌入并按启动顺序拉起该 payload。
+
+> **已移除：** Klog 网络服务（9081）、Legacy CMD（9028）。
 > 注意：代码里仍使用 `ps5/klog.h` 的 `klog_printf` / `klog_puts`，那是内核日志 API，不是 9081 服务。
 
 ### 2.5 `shellui` → `shellui.elf`（Toolbox UI）
@@ -180,20 +184,25 @@ OnionHEN/
 - 内容安装与管理（系统 PkgInstaller UI、附加内容管理）
 - Payload 与内核组件（Payload ELF、kstuff 管理）
 - 游戏辅助（金手指引擎、OnionHEN 游戏选项）
-- 监控与显示（游戏 overlay、Title ID）
+- 监控与显示（ShellUI 监控条、Title ID）
 - 账号激活
 - 系统与硬件（风扇、休息模式、外置 HDD、BD 激活）
+- 网络服务（FTP 服务器、Remote Play 配对）
 - 操作偏好（工具箱语言、手柄快捷键）
 - 高级调试 / 关于
 
+Remote Play 由 `remote_play.cpp` 负责：通过 `libSceRemoteplay.sprx` 解析
+原生 `sceRemoteplay*` API，启用 Remote Play 注册表设置，生成 PIN，并在后台
+确认客户端注册。视频串流与客户端传输仍由 PS5 原生 Remote Play 服务处理；
+OnionHEN 只负责配对和设备注册。配对信息可从网络页面保存到 USB。
+
 注入路径详见 [shellui-injection.md](shellui-injection.md)。
 
-### 2.6 `fps_elf` → `fps_elf.elf`
+HomeUI 顶部导航和 Settings Debug Settings 入口按固件 profile 覆盖 2.30–12.70；11.00 起 Settings 走 `debug_settings_old`。
 
-- 游戏内 overlay（FPS / CPU / RAM / GPU / IP / kstuff 状态等）
-- 通过 IPC 与 util / daemon 通信
+游戏内 `fps_elf` 注入已移除。监控信息走 ShellUI 监控条（CPU / GPU / RAM / IP）。
 
-### 2.7 内部静态库
+### 2.6 内部静态库
 
 | 库 | 作用 |
 |----|------|
@@ -201,10 +210,10 @@ OnionHEN/
 | **libonion_elfldr** | **唯一** ptrace/`pt_*` + inject 侧 `elfldr_load` / `elfldr_payload_args` / 内置 loader 侧 `elfldr_spawn` / `elfldr_read` / `elfldr_raise_privileges`；**authid 不在每条 ptrace 上翻转**（由 inject 入口一次提权） |
 | **libNineS** | 进程注入编排（`inject_elf` / stager）；**pt/elfldr 实现来自 libonion_elfldr** |
 | **libNidResolver** | PS5 模块 NID 解析（SHA1 等） |
-| **libonion_ipc** | **客户端**（injectee 双单例）+ **服务端传输环**（`ipc_server`：listen/accept/loop/reply）；daemon/util/shellui/fps 共用 |
+| **libonion_ipc** | **客户端**（injectee 双单例）+ **服务端传输环**（`ipc_server`：listen/accept/loop/reply）；daemon/util/shellui 共用 |
 | **libonion_settings** | 统一 `config.ini` schema；各进程以 `onion::Settings g_settings` 为真相源 |
-| **libonion_detour** | 共享 Detour + hde64 钩子栈；shellui / fps_elf 共用 |
-| **libonion_proc** | 共享 proc/ucred（allproc 遍历、dynlib、authid）+ **sysctl 进程查询**（`find_pid` / `onion_find_pid_ex` / `isProcessAlive`）；daemon / util / shellui / bootstrapper / fps 共用 |
+| **libonion_detour** | 共享 Detour + hde64 钩子栈 |
+| **libonion_proc** | 共享 proc/ucred（allproc 遍历、dynlib、authid）+ **sysctl 进程查询**（`find_pid` / `onion_find_pid_ex` / `isProcessAlive`）；daemon / util / shellui / bootstrapper 共用 |
 | **libonion_platform** | 平台叶子：`if_exists` / `touch_file` / `rmtree`、`OnionHEN_log`（可配置 tag/路径）、`onion_notify`；修一处全树受益 |
 | **libonion_ready** | 跨进程 ready/runtime 标记（`/system_tmp/onionhen/ready/<name>` + wait/timeout）；替代固定 sleep 与 ad-hoc 文件旗 |
 | **onion/lnc.h** | 共享 LNC 启动 ABI（`LncAppParam` / `Flag` / 错误码）；daemon `launcher.hpp` 仅为 shim |
@@ -216,7 +225,7 @@ OnionHEN/
 |------|------|
 | **msg.cpp** | 仅 `IPC_loop` + transport 胶水 |
 | **ipc_handle.cpp** | crit 命令表分发 |
-| **daemon_inject.cpp** | toolbox / fps 注入 |
+| **daemon_inject.cpp** | toolbox 注入 |
 | **daemon_settings.cpp** | LoadSettings + mtime 缓存 |
 | **daemon_fs.cpp** | remount / chmod / test_sb / reply / fan / ForceKill / pid 查找 |
 
@@ -241,7 +250,7 @@ OnionHEN/
 | `kstuff` | bootstrapper 在 mprotect 成功后 | daemon 注入 toolbox 前 |
 | `daemon` | daemon 在 IPC 线程启动后 | bootstrapper 启动 daemon 之后 |
 | `toolbox` | shellui 注入完成后，内容为自身 PID | daemon 按当前 SceShellUI PID 判断跳过或重注入 |
-| `fps_overlay` | shellui（overlay FPS 开） | daemon 游戏循环触发 fps inject（替代旧的 fps_enabled 文件旗） |
+| `fps_overlay` | shellui（监控条开关） | ShellUI 监控条状态 |
 | `util_booted` | util 冷启动完成后 | rest-mode / toolbox 延迟路径（替代 `util_first_boot`） |
 
 #### IPC 分层（加深后）
@@ -283,7 +292,7 @@ OverlayLayout         仅 shellui：由 overlay_pos 派生的像素坐标
 ## 3. IPC 与通信模型
 
 ```
-shellui / fps_elf / homebrew
+shellui / homebrew
         │ Unix domain socket
         ├─► /system_tmp/onionhen/ipc/crit_service  (daemon, 0x9xxxxxxx)
         └─► /system_tmp/onionhen/ipc/util_service  (util,   0x8xxxxxxx)
@@ -319,8 +328,8 @@ struct IPCMessage {
 
 - `BREW_UTIL_LAUNCH_PAYLOAD`
 - `BREW_UTIL_GET_GAME_VER` / `BREW_UTIL_GET_GAME_CHEAT` / `BREW_UTIL_TOGGLE_CHEAT`
-- `BREW_UTIL_DOWNLOAD_CHEATS`（`RELOAD_CHEATS` 已移除，热重载靠文件签名）
-- `BREW_UTIL_DOWNLOAD_KSTUFF`
+- `BREW_UTIL_DOWNLOAD_CHEATS` / `BREW_UTIL_CHEAT_SYNC_STATUS`（git catalog 同步；`RELOAD_CHEATS` 已移除，热重载靠文件签名）
+- `BREW_UTIL_UNUSED_DOWNLOAD_KSTUFF`
 - `BREW_UTIL_SHELLUI_ON_STANDBY`
 
 **已废弃但保留序号（兼容旧客户端）：**
@@ -329,7 +338,7 @@ struct IPCMessage {
 - `BREW_UTIL_UNUSED_LEGACY_CMD_SERVER`（原 TOGGLE_LEGACY_CMD_SERVER / TCP 9028 已移除）
 - `BREW_UNUSED_DECRYPT_DIR`（原 DECRYPT_DIR，SELF 目录解密已移除）
 - `BREW_UNUSED_TESTKIT_CHECK`（原 TESTKIT_CHECK；客户端改为本地探测）
-- `BREW_UTIL_UNUSED_FTP`（原 TOGGLE_FTP）
+- `BREW_UTIL_TOGGLE_FTP`（保留原 TOGGLE_FTP 序号；通过 Toolbox 实时启停 ftpsrv）
 - `BREW_UTIL_UNUSED_KLOG`（原 TOGGLE_KLOG）
 - `BREW_UTIL_LAUNCH_ELFLDR`（旧手动启动命令；内置 9020 由 bootstrapper 管理）
 
@@ -378,6 +387,9 @@ struct IPCMessage {
 ### 4.3 网络服务
 
 - 首跳依赖外部 **9021 elfldr**；它同时是私有 9020 的恢复根。用户 Payload 严格使用内置 **9020 onion_elfldr**，不回退 9021
+- **FTP**：内嵌 `ftpsrv`，通过 `BREW_UTIL_TOGGLE_FTP` 从 Toolbox 实时启停，监听 TCP **2121**
+- **Remote Play**：ShellUI 直接调用 PS5 原生 Remote Play API 完成 PIN 生成和客户端注册确认，不实现独立串流协议
+- **ShadowMountPlus**：ShellUI 通过 util IPC 选择外部覆盖 ELF 或内嵌 ELF，并经私有 9020 loader 启动 `shadowmountplus.elf`；其 release 为 `1.6beta16`，ShadowMountPlus 自己负责扫描与挂载，OnionHEN 不增加另一层配置系统
 
 ### 4.4 扩展
 
@@ -389,7 +401,6 @@ struct IPCMessage {
 | 能力 | 说明 |
 |------|------|
 | 内嵌 9021 elfldr | 改为内置私有 9020 loader；9021 只作为外部首次引导 / 9020 恢复通道 |
-| FTP 1337 | 服务与 Toolbox 开关已移除 |
 | Legacy CMD 9028 | util TCP hijacker 协议与 Toolbox 开关已移除；app JB 仅 FIFO |
 | Klog server 9081 | 服务与 Toolbox 开关已移除 |
 | ps5debug / app-dumper | 不再内嵌 |
@@ -438,7 +449,7 @@ git submodule update --init --recursive
 |----|------|
 | **libkeystone** (`third_party/keystone/`) | ShnExt 汇编 |
 
-C++ runtime 统一由 `PS5_PAYLOAD_SDK/target/lib` 提供。项目不再携带旧 curl/TLS、minizip/zlib/zstd 或外部 9021 服务镜像。用户 Payload 通过 `common/elfldr_remote.c` 严格走内置 9020；外部 9021 仅用于首次引导和恢复 9020。
+C++ runtime 统一由 `PS5_PAYLOAD_SDK/target/lib` 提供。项目不再携带旧 curl/TLS、minizip/zlib/zstd 或外部 9021 服务镜像；金手指仓库同步直接链接 SDK `target/user/homebrew` 提供的 libcurl/OpenSSL，嵌入 SDK CA bundle 开启证书校验，下载 HTTPS ZIP 后用现有 miniz 定向提取 `cheats/`。用户 Payload 通过 `common/elfldr_remote.c` 严格走内置 9020；外部 9021 仅用于首次引导和恢复 9020。
 
 ### 5.5 PS5 系统库 stub（`source/platform/ps5/stubs/*.so`）
 
@@ -446,7 +457,7 @@ C++ runtime 统一由 `PS5_PAYLOAD_SDK/target/lib` 提供。项目不再携带�
 
 - `libkernel_sys`
 - `SceSystemService` / `SceUserService`
-- `SceNetCtl`
+- `SceNetCtl` / `SceNet`
 - `SceNotification` / `SceRegMgr`
 - `SceSysCore` / `SceAppInstUtil`
 - `SceGnmDriver`

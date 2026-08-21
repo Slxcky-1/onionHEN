@@ -11,7 +11,7 @@ onion_output_dirs()
 set(D_SRC ${D_CWD}/source)
 
 add_executable(${PROJECT_NAME})
-set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${PROJECT_NAME}.elf")
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "util.elf")
 
 target_compile_options(${PROJECT_NAME} PUBLIC
 	$<$<COMPILE_LANGUAGE:C>:${C_DEFS} ${C_FLAGS}>
@@ -24,6 +24,7 @@ file(GLOB SrcFiles CONFIGURE_DEPENDS
   ${D_SRC}/*.cpp
   ${D_SRC}/cheats/*.c
   ${D_SRC}/cheats/*.cpp
+  ${D_SRC}/cheats/sync/*.cpp
   ${ONIONHEN_THIRD_PARTY_DIR}/cheat_support/*.c
   ${D_SRC}/../include/*.h
   ${D_SRC}/../include/*.hpp
@@ -54,11 +55,44 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   "${PROJECT_ROOT}/libonion_elfldr/include"
   "${PROJECT_ROOT}/include"
 )
-# CBC for MC4 / ShnExt AES; no KCF/WMDW
+# CBC for MC4 / ShnExt AES
 target_compile_definitions(${PROJECT_NAME} PRIVATE CBC=1)
+set(ONION_CURL_ROOT "${PS5_PAYLOAD_SDK}/target/user/homebrew")
+set(ONION_CURL_CA_BUNDLE "${ONION_CURL_ROOT}/etc/ca-bundle.crt")
+if(NOT EXISTS "${ONION_CURL_ROOT}/include/curl/curl.h" OR
+   NOT EXISTS "${ONION_CURL_ROOT}/lib/libcurl.a" OR
+   NOT EXISTS "${ONION_CURL_CA_BUNDLE}")
+	message(FATAL_ERROR
+		"PS5 payload SDK libcurl and CA bundle are required for cheat catalog HTTP "
+		"(looked in ${ONION_CURL_ROOT}).")
+endif()
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+	CURL_STATICLIB
+	ONION_CURL_CA_BUNDLE="${ONION_CURL_CA_BUNDLE}"
+  ONIONHEN_FTPSRV_ELF="${ONIONHEN_FTPSRV_ELF}"
+  ONIONHEN_SHADOWMOUNT_ELF="${ONIONHEN_SHADOWMOUNT_ELF}"
+)
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
+	"${ONION_CURL_ROOT}/include")
+# The CA bundle is embedded with .incbin, which is invisible to the compiler's
+# normal dependency scanner.
+set_source_files_properties(
+	"${D_SRC}/cheats/sync/http_transport_ps5.cpp"
+	PROPERTIES OBJECT_DEPENDS "${ONION_CURL_CA_BUNDLE}"
+)
+set_source_files_properties(
+  "${D_SRC}/ftpsrv_payload.c"
+  PROPERTIES OBJECT_DEPENDS "${ONIONHEN_FTPSRV_ELF}"
+)
+set_source_files_properties(
+  "${D_SRC}/shadowmount_payload.c"
+  PROPERTIES OBJECT_DEPENDS "${ONIONHEN_SHADOWMOUNT_ELF}"
+)
 target_link_directories(${PROJECT_NAME} PUBLIC
   "${ONIONHEN_PS5_STUB_DIR}"
   "${ONIONHEN_THIRD_PARTY_DIR}/keystone/lib"
+  "${ONION_CURL_ROOT}/lib"
+  "${PS5_PAYLOAD_SDK}/target/lib"
 )
 add_dependencies(${PROJECT_NAME} hijacker onion_settings onion_ipc onion_proc onion_platform onion_payload onion_ready onion_elfldr)
 # keystone: ShnExt ASM only
@@ -75,14 +109,25 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     SceSystemService
     SceUserService
     SceNetCtl
+    SceNet
     kernel_sys
+    curl
+    psl
+    ssl
+    crypto
+    zstd
+    z
 )
-
 set_source_files_properties(
   ${ONIONHEN_THIRD_PARTY_DIR}/cheat_support/aes.c
   ${ONIONHEN_THIRD_PARTY_DIR}/cheat_support/base64.c
   ${ONIONHEN_THIRD_PARTY_DIR}/cheat_support/miniz.c
   ${ONIONHEN_THIRD_PARTY_DIR}/cheat_support/sha256.c
+  PROPERTIES COMPILE_FLAGS "-Wno-error -Wno-unused-function -Wno-sign-compare -Wno-unused-parameter"
+)
+# miniz.h ships static-inline helpers that trip PS5's global -Werror in C++.
+set_source_files_properties(
+  ${D_SRC}/cheats/sync/zip_archive.cpp
   PROPERTIES COMPILE_FLAGS "-Wno-error -Wno-unused-function -Wno-sign-compare -Wno-unused-parameter"
 )
 file(GLOB CHEAT_ENGINE_SRCS CONFIGURE_DEPENDS ${D_SRC}/cheats/*.c)

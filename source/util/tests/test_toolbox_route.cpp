@@ -1,6 +1,8 @@
 /* Host unit tests for toolbox::resolve_resource state machine (no PS5/Mono). */
 #include "test_harness.h"
 
+#include "onpress_policy.hpp"
+#include "shellui_state.hpp"
 #include "toolbox_route.hpp"
 
 #include <cstring>
@@ -75,6 +77,13 @@ static int test_account_page(void) {
   return 0;
 }
 
+static int test_cheat_progress_page(void) {
+  RouteResult r = resolve_resource(make_in(kCheatProgressXml));
+  TEST_ASSERT_TRUE(r.page == Page::CheatProgress);
+  TEST_ASSERT_TRUE(r.flags.is_cheat_progress);
+  return 0;
+}
+
 static int test_superuser_pass_through(void) {
   RouteResult r = resolve_resource(make_in(kSuperuserXml));
   TEST_ASSERT_TRUE(r.page == Page::SuperuserPass);
@@ -123,6 +132,42 @@ static int test_session_flags_clear(void) {
   return 0;
 }
 
+static int test_progress_page_restores_parent(void) {
+  ToolboxUiState state;
+  state.set_active_page(Page::DebugSettings);
+  state.set_active_page(Page::CheatProgress);
+  TEST_ASSERT_TRUE(state.active_page == Page::CheatProgress);
+  TEST_ASSERT_TRUE(state.page_before_progress == Page::DebugSettings);
+
+  /* Repeated resource loads must not replace the saved parent. */
+  state.set_active_page(Page::CheatProgress);
+  TEST_ASSERT_TRUE(state.page_before_progress == Page::DebugSettings);
+
+  state.leave_page(Page::CheatProgress);
+  TEST_ASSERT_TRUE(state.active_page == Page::DebugSettings);
+  TEST_ASSERT_TRUE(state.page_before_progress == Page::None);
+  TEST_ASSERT_TRUE(onpress_domain_for_page(state.active_page) ==
+                   OnPressDomain::Root);
+  return 0;
+}
+
+static int test_progress_page_restore_is_reusable(void) {
+  ToolboxUiState state;
+  state.set_active_page(Page::DebugSettings);
+  state.set_active_page(Page::CheatProgress);
+  state.leave_page(Page::CheatProgress);
+
+  state.set_active_page(Page::DebugSettings);
+  state.set_active_page(Page::CheatProgress);
+  state.leave_page(Page::CheatProgress);
+  TEST_ASSERT_TRUE(state.active_page == Page::DebugSettings);
+
+  /* A stale/non-active pop must not alter the current page. */
+  state.leave_page(Page::CheatProgress);
+  TEST_ASSERT_TRUE(state.active_page == Page::DebugSettings);
+  return 0;
+}
+
 static int test_cheatmap_tid_reset(void) {
   std::string tid = "A";
   int map[kCheatMapSize]{};
@@ -153,12 +198,17 @@ extern "C" int test_toolbox_route_suite(void) {
   fails += onion_test_run("route.cheats", test_cheats_page);
   fails += onion_test_run("route.auto_plapps", test_auto_payloads_and_plapps);
   fails += onion_test_run("route.account", test_account_page);
+  fails += onion_test_run("route.cheat_progress", test_cheat_progress_page);
   fails += onion_test_run("route.superuser", test_superuser_pass_through);
   fails += onion_test_run("route.og_debug", test_og_debug_redirect);
   fails += onion_test_run("route.shortcut_force", test_shortcut_force_cheats);
   fails += onion_test_run("route.shortcut_not_open", test_shortcut_not_open);
   fails += onion_test_run("route.matrix", test_matrix);
   fails += onion_test_run("session.flags_clear", test_session_flags_clear);
+  fails += onion_test_run("session.progress_restores_parent",
+                          test_progress_page_restores_parent);
+  fails += onion_test_run("session.progress_restore_reusable",
+                          test_progress_page_restore_is_reusable);
   fails += onion_test_run("cheatmap.tid_reset", test_cheatmap_tid_reset);
   fails += onion_test_run("cheatmap.bounds", test_cheatmap_bounds);
   return fails;

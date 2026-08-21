@@ -18,6 +18,8 @@ along with this program; see the file COPYING. If not, see
 
 #include <msg.hpp>
 #include <onion/log.h>
+#include <atomic>
+#include <cstdint>
 #include <mutex>
 #include <string>
 
@@ -50,8 +52,12 @@ public:
 
   bool is_util() const { return util_daemon_; }
 
-  void set_recv_timeout_ms(int ms) { recv_timeout_ms_ = ms; }
-  int recv_timeout_ms() const { return recv_timeout_ms_; }
+  void set_recv_timeout_ms(int ms) {
+    recv_timeout_ms_.store(ms, std::memory_order_relaxed);
+  }
+  int recv_timeout_ms() const {
+    return recv_timeout_ms_.load(std::memory_order_relaxed);
+  }
 
   // Low-level transport
   int OpenConnection(const char *path);
@@ -72,6 +78,7 @@ public:
   void ForceKillPID(int pid);
   IPC_Ret CopyFile(std::string src, std::string dest);
   IPC_Ret LaunchPayload(std::string payload_path, std::string tid);
+  bool LaunchShadowMount();
   bool GameVerFromTid(std::string tid, std::string &out_ver);
   bool Remount(const char *src, const char *dest);
   bool GetGameCheats(const std::string &tid, const std::string &ver,
@@ -79,6 +86,10 @@ public:
   bool ToggleGameCheat(int pid, const std::string &tid, int cheat_index,
                        std::string &cheat_enabled,
                        const std::string &version = "");
+  bool DownloadCheats(const char *catalog, const char *mirror,
+                      std::string &out);
+  bool CheatSyncStatus(std::string &out);
+  bool CancelCheatSync(uint32_t task_id, std::string &out);
   void SendRestModeAction();
   void Reload_Daemon_Settings();
   bool Launch_Elfldr();
@@ -95,7 +106,7 @@ private:
 
   bool util_daemon_;
   int socket_fd_;
-  int recv_timeout_ms_;
+  std::atomic<int> recv_timeout_ms_;
   mutable std::mutex mu_;
 
   const char *socket_path() const;

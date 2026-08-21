@@ -54,6 +54,10 @@ static int test_util_command_base(void) {
   TEST_ASSERT_EQ_U64(0x8000002u, static_cast<unsigned>(BREW_UTIL_RETURN_VALUE));
   TEST_ASSERT_TRUE(static_cast<unsigned>(BREW_UTIL_UNUSED_DPI) >
                    static_cast<unsigned>(BREW_UTIL_RETURN_VALUE));
+  TEST_ASSERT_EQ_U64(0x8000010u,
+                     static_cast<unsigned>(BREW_UTIL_CHEAT_SYNC_STATUS));
+  TEST_ASSERT_EQ_U64(0x8000011u,
+                     static_cast<unsigned>(BREW_UTIL_CANCEL_CHEAT_SYNC));
   return 0;
 }
 

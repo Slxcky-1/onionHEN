@@ -11,15 +11,6 @@ extern "C" {
 
 /* Shared C helpers for C++ parsers + ShnExt. Keep small; no orchestration. */
 
-const char *onion_cheat_skip_ws(const char *p, const char *end);
-const char *onion_cheat_find_key(const char *start, const char *end,
-                                 const char *key);
-const char *onion_cheat_find_matching(const char *start, const char *end,
-                                      char open_ch, char close_ch);
-int onion_cheat_extract_string(const char *start, const char *end,
-                               const char *key, char *out, size_t out_size);
-int onion_cheat_extract_scalar(const char *start, const char *end,
-                               const char *key, char *out, size_t out_size);
 int onion_cheat_hex_decode(const char *hex, uint8_t *out, size_t max_len,
                            size_t *out_len);
 char *onion_cheat_load_file_buffer(const char *path, long *size_out);

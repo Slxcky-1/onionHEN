@@ -63,7 +63,10 @@ OnionHEN 面向已越狱的 PS5，提供一套能日常使用、也方便维护�
 - **ShellUI 工具箱** — 注入 PS5 ShellUI 的设置页
 - **系统准备** — 提权、重新挂载文件系统、阻断系统更新分区
 - **fSELF / fPKG** — 内嵌 kstuff，用来跑自制 SELF / PKG；默认加载，可在工具箱关掉
-- **Payload 管理** — 启动和停止普通 `.elf` payload，可选自动启动
+- **PS5 FTP 服务器** — 内嵌 `nexgen` 分支的 `ftpsrv`，作为内置网络服务实时启停，端口为 `2121`
+- **远程游玩配对** — 在网络菜单中启用 PS5 原生远程游玩服务、生成配对 PIN 并注册客户端
+- **ShadowMountPlus** — 内嵌游戏扫描/挂载器，位于游戏与内容菜单，可单次扫描并管理外部 ELF 覆盖
+- **用户 Payload 管理** — 启动和停止用户添加的普通 `.elf` payload，可选自动启动
 - **游戏监控条** — 游戏中显示 FPS、CPU、GPU、内存、温度和网络信息
 - **金手指** — 本地 JSON、SHN、MC4、ShnExt 文件，运行中即可开关
 - **主机工具** — 休息模式、账号激活、外接硬盘、Title ID、风扇、快捷键和游戏选项
@@ -87,15 +90,41 @@ OnionHEN 不内置内核漏洞。第一次引导仍需要外部 **9021** 上的 
 
 1. 运行内核漏洞利用，并启动外部 `elfldr` 服务。
 2. 用漏洞加载端提供的加载器发送 `OnionHEN.elf`。
-3. 按顺序等待工具守护进程、`kstuff` 和主守护进程启动。
+3. 按顺序等待工具守护进程、`kstuff`、FTP/ShadowMount 服务和主守护进程启动。
 4. 打开 PS5 设置，进入 OnionHEN 工具箱。
 
 启动是按固定顺序进行的。第一次引导之后，OnionHEN 使用自己的
 `onion_elfldr.elf`（端口 **9020**），**9021** 只作为兼容回退。
 
 ```text
-OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstuff.elf → daemon.elf → Toolbox
+OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstuff.elf → ftpsrv.elf → shadowmountplus.elf → daemon.elf → Toolbox
 ```
+
+### FTP 服务器
+
+内嵌的 PS5 FTP 服务器位于 **工具箱 → 网络 → FTP 服务器**，与用户放入
+`payloads/` 目录的 ELF 分开管理。开关会立即启停服务，并记住下次启动时的选择。
+服务器监听 `2121` 端口，并包含上游 `ftpsrv` 的 `KILL`、`SELF`、`SCHK`、
+`MTRW`、`AUTHID` 等命令（具体取决于固件支持）。
+
+### 远程游玩
+
+远程游玩配对位于 **工具箱 → 网络 → 远程游玩**。
+首次使用时，OnionHEN 会启用远程游玩注册表设置；如有需要，会先激活当前离线账号，
+然后显示配对 PIN。保持页面打开，在官方远程游玩客户端中输入该 PIN；OnionHEN 会调用
+PS5 原生远程游玩服务确认已注册的设备。
+
+此功能只负责配对和设备注册。视频串流与客户端传输仍由 Sony 的原生远程游玩服务处理。
+
+### ShadowMountPlus
+
+ShadowMountPlus 位于 **工具箱 → 游戏与内容** 的独立分组中。它作为 OnionHEN
+内置的游戏来源工具展示，不会出现在用户 Payload 列表中。
+`扫描游戏` 会启动内嵌的 `shadowmountplus.elf`；如果存在
+`/data/OnionHEN/shadowmountplus.elf`，
+会优先使用外部 ELF。`删除外部 ShadowMount+` 会删除该覆盖文件。
+ShadowMountPlus 从 `1.6beta16` release tag 构建，并启动自己的游戏扫描/挂载进程。
+OnionHEN 只负责启动 ELF，不增加另一层配置系统。
 
 ### Payload
 
@@ -110,16 +139,20 @@ OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstu
 
 ### 金手指
 
-把金手指文件放到同一目录，文件名用 Title ID 和游戏版本：
+把金手指文件放到同一目录。文件名为 `TITLEID_VERSION`，进程名和 8 位十六进制 HASH 都可省略：
 
 ```text
-/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.json
-/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.shn
-/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.mc4
-/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.ShnExt
+/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<HASH>].json
+/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<HASH>].shn
+/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<HASH>].mc4
+/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<HASH>].ShnExt
 ```
 
+省略 `PROCESS` 表示 `eboot.bin`。省略 `HASH` 表示不区分 eboot 构建。带进程名的文件优先于通用 `TITLE_VERSION`；格式优先级为 json、shn、mc4、ShnExt。
+
 金手指从磁盘加载。文件有改动时会重新载入，不必重启整套进程。
+
+`DOWNLOAD_CHEATS` 会通过 HTTPS 下载金手指仓库 ZIP，只解压 `cheats/` 子树，再 flatten 进上述目录；同步完成后会清理临时 ZIP。镜像由 `[cheats] mirror` 控制：`auto` 时简体中文走 cnb.cool，其它地区走 GitHub。
 
 <br>
 
@@ -135,6 +168,11 @@ OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstu
 | `lzma` 或 `xz` | 压缩 bootstrapper |
 | Git 与 `curl` 或 `wget` | 初始化 submodule 并获取外部 payload 输入 |
 
+构建时会优先下载 [`drakmor/ftpsrv`](https://github.com/drakmor/ftpsrv) 的
+`1.15-ng-stable` release；失败时回退到 `nexgen` 子模块并使用 `Makefile.ps5` 构建。
+ShadowMountPlus 会优先使用 [`1.6beta16`](https://github.com/drakmor/ShadowMountPlus/releases/tag/1.6beta16)
+release ELF；失败时回退到固定版本的 `third_party/ShadowMountPlus` 子模块。
+
 ### 完整构建
 
 ```shell
@@ -145,6 +183,13 @@ export PS5_PAYLOAD_SDK=/path/to/ps5-payload-sdk
 ```
 
 脚本会配置项目、拉取外部依赖，并按所需顺序构建整条嵌入链。
+
+使用 Docker 进行可复现构建：
+
+```shell
+docker compose build onionhen-build
+docker compose run --rm onionhen-build
+```
 
 ### 常用选项
 
@@ -211,6 +256,7 @@ OnionHEN 在下面两处读写同一份配置：
 | `rest_mode.stop_utility_daemon_on_entry` | `false` | `true`, `false` |
 | `rest_mode.close_running_game_on_entry` | `false` | `true`, `false` |
 | `cheats.memory_backend` | `default` | `default`, `libhijacker` |
+| `cheats.mirror` | `auto` | `auto`, `github`, `cnb` |
 | `app_jailbreak.debug_notifications` | `false` | `true`, `false` |
 | `cooling.fan_control` | `automatic` | `automatic`, `temperature_threshold` |
 | `cooling.temperature_threshold_celsius` | `77` | `0` 到 `100` |
@@ -222,6 +268,8 @@ OnionHEN 在下面两处读写同一份配置：
 | `overlay.show_ip_address` | `false` | `true`, `false` |
 | `shortcuts.cheats_menu` | `off` | `off`, `r3_l3`, `l2_triangle`, `long_options`, `long_share`, `share` |
 | `shortcuts.toolbox` | `off` | `off`, `l2_r3`, `long_share`, `share` |
+| `ftp.autoload` | `false` | `true`, `false` |
+| `shadowmount.autoload` | `false` | `true`, `false` |
 
 ### 运行时数据
 
@@ -229,7 +277,12 @@ OnionHEN 在下面两处读写同一份配置：
 | --- | --- |
 | `/data/OnionHEN/payloads/` | 用户 payload ELF |
 | `/data/OnionHEN/cheats/` | 金手指文件 |
+| `/data/OnionHEN/cheats_tmp/` | HTTPS ZIP 与解压临时文件（同步后清理） |
 | `/data/OnionHEN/kstuff.elf` | 可选，用来替换内嵌的 `kstuff` |
+| `/data/OnionHEN/shadowmountplus.elf` | 可选的外部 ShadowMountPlus 覆盖 ELF |
+| `/user/data/OnionHEN/shadowmountplus.elf` | 备用的外部 ShadowMountPlus 覆盖 ELF |
+| `/data/shadowmount/config.ini` | ShadowMountPlus 运行时配置 |
+| `ftpsrv` | 内嵌的 PS5 FTP payload；不会创建用户可见的 ELF 文件 |
 | `/data/OnionHEN/OnionHEN.log` | 主运行日志 |
 | `/data/OnionHEN/OnionHEN_util_daemon.log` | Utility daemon 日志 |
 
@@ -300,16 +353,31 @@ OnionHEN 在下面两处读写同一份配置：
 
 OnionHEN 离不开 PS5 自制软件与逆向工程社区。
 
+### 贡献者
+
+<p align="center">
+  <a href="https://github.com/aydencharles/onionHEN/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=aydencharles/onionHEN" alt="OnionHEN 贡献者"/>
+  </a>
+</p>
+
 ### 来源
 
 - [etaHEN](https://github.com/LightningMods/etaHEN) — LightningMods 与贡献者；本仓库的源码基线
 - [GoldHEN](https://github.com/GoldHEN/GoldHEN) — SiSTR0 与贡献者；PS4 一体化 HEN，本项目沿这条路走
+
+### 参考
+
+- [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager) — itsplk；休息模式唤醒恢复（待机后恢复服务）的设计参考了这个项目
+- [HEN-Cheats-Collection](https://github.com/TeeKay87/HEN-Cheats-Collection) — TeeKay87；内置金手指同步下载所用的社区金手指合集
 
 ### 实际使用或内嵌
 
 - [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) — Prospero 工具链与头文件
 - [elfldr](https://github.com/ps5-payload-dev/elfldr) — 端口 9021 的首次引导加载器；不打进 payload
 - [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch、sleirsgoevy 与贡献者；可选的 `kstuff.elf`
+- [ftpsrv](https://github.com/drakmor/ftpsrv) — drakmor 与上游贡献者；来自 `nexgen` 的内嵌 PS5 FTP 服务器
+- [ShadowMountPlus](https://github.com/drakmor/ShadowMountPlus) — Drakmor；由 VoidWhisper 的 ShadowMount 演进而来；内嵌游戏扫描/挂载器
 - [libhijacker](https://github.com/astrelsky/libhijacker) — astrelsky；进程劫持与内核读写
 - [NineS](https://github.com/buzzer-re/NineS) — buzzer-re；注入 ShellUI
 - [cJSON](https://github.com/DaveGamble/cJSON) — JSON 解析

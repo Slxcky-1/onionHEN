@@ -4,6 +4,7 @@
 #include <string>
 
 #include "cheats/cheat_engine.h"
+#include "cheats/runtime.h"
 #include "util_platform.h"
 
 namespace onion::cheats {
@@ -35,11 +36,12 @@ struct FileSignature {
 class CheatRepository {
 public:
   /**
-   * Resolve an existing cheat file for title+version.
+   * Resolve an existing cheat file for title + version + process + optional
+   * hash. Names are TITLEID_VERSION[_PROCESS][_HASH].ext.
    *
-   * Standard names are preferred. A bounded compatibility lookup accepts
-   * website-specific suffixes after the version when they represent the
-   * legacy eboot scope.
+   * Process-scoped files win over generic TITLE_VERSION.ext. Hashed
+   * collection names are used when no exact name exists; an exact process
+   * hash wins when game.process_hash is set.
    */
   static std::string resolvePath(const game_context_t &game);
 
@@ -51,7 +53,11 @@ public:
 
   static void ensureCheatsDir();
   /** Flatten nested repo tree into ONION_CHEATS_DIR. */
-  static int flattenInstallTree(const std::string &root);
+  static int flattenInstallTree(const std::string &root,
+                                onion_cheat_progress_fn progress,
+                                void *progress_user,
+                                onion_cheat_cancel_fn should_cancel,
+                                void *cancel_user);
 };
 
 } // namespace onion::cheats

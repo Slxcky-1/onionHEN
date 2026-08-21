@@ -1,6 +1,8 @@
 #include <onion/log.h>
 #include "cheats/cheat_service.hpp"
 
+#include "onion_cjson.hpp"
+
 #include <cstdio>
 #include <cstring>
 #include <fstream>
@@ -156,44 +158,52 @@ int CheatService::refreshLocked(const game_context_t &game) {
 }
 
 int CheatService::writeListJson(const std::string &out_path) const {
+  cJSON *root = cJSON_CreateObject();
+  cJSON *authors = nullptr;
+  cJSON *cheats = nullptr;
+  if (!root || !cJSON_AddStringToObject(root, "name", file_.name) ||
+      !(authors = cJSON_AddArrayToObject(root, "authors")) ||
+      !(cheats = cJSON_AddArrayToObject(root, "cheats"))) {
+    cJSON_Delete(root);
+    return -1;
+  }
+
+  for (size_t a = 0; a < file_.author_count; ++a) {
+    cJSON *author = cJSON_CreateString(file_.authors[a]);
+    if (!author || !cJSON_AddItemToArray(authors, author)) {
+      cJSON_Delete(author);
+      cJSON_Delete(root);
+      return -1;
+    }
+  }
+
+  for (size_t i = 0; i < file_.cheat_count; ++i) {
+    cJSON *cheat = cJSON_CreateObject();
+    if (!cheat || !cJSON_AddItemToArray(cheats, cheat)) {
+      cJSON_Delete(cheat);
+      cJSON_Delete(root);
+      return -1;
+    }
+    if (!cJSON_AddStringToObject(cheat, "name", file_.cheats[i].name) ||
+        !cJSON_AddNumberToObject(cheat, "id", i) ||
+        !cJSON_AddBoolToObject(cheat, "enabled", file_.cheats[i].enabled) ||
+        !cJSON_AddStringToObject(cheat, "description",
+                                 file_.cheats[i].description)) {
+      cJSON_Delete(root);
+      return -1;
+    }
+  }
+
+  const std::string body = onion_cjson::print_owned(root);
+  if (body.empty()) {
+    return -1;
+  }
   std::ofstream ofs(out_path, std::ios::trunc);
   if (!ofs) {
     return -1;
   }
-  auto esc = [](const char *s) {
-    std::string o;
-    if (!s) {
-      return o;
-    }
-    for (; *s; ++s) {
-      if (*s == '"' || *s == '\\') {
-        o.push_back('\\');
-      }
-      if (static_cast<unsigned char>(*s) >= 0x20) {
-        o.push_back(*s);
-      }
-    }
-    return o;
-  };
-
-  ofs << "{\"name\":\"" << esc(file_.name) << "\",\"authors\":[";
-  for (size_t a = 0; a < file_.author_count; ++a) {
-    if (a) {
-      ofs << ',';
-    }
-    ofs << '"' << esc(file_.authors[a]) << '"';
-  }
-  ofs << "],\"cheats\":[";
-  for (size_t i = 0; i < file_.cheat_count; ++i) {
-    if (i) {
-      ofs << ',';
-    }
-    ofs << "{\"name\":\"" << esc(file_.cheats[i].name) << "\",\"id\":" << i
-        << ",\"enabled\":" << (file_.cheats[i].enabled ? "true" : "false")
-        << ",\"description\":\"" << esc(file_.cheats[i].description) << "\"}";
-  }
-  ofs << "]}";
-  return 0;
+  ofs.write(body.data(), static_cast<std::streamsize>(body.size()));
+  return ofs.good() ? 0 : -1;
 }
 
 int CheatService::exportList(const std::string &title_id,
@@ -238,11 +248,6 @@ int CheatService::toggle(int pid, int appid, const std::string &title_id,
   game_.pid = game.pid;
   game_.appid = game.appid;
   return applier_.toggle(game_, file_, index, status);
-}
-
-int CheatService::flattenInstallTree(const std::string &root) {
-  ensureDir();
-  return CheatRepository::flattenInstallTree(root);
 }
 
 } // namespace onion::cheats

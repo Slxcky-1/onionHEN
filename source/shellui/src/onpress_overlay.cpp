@@ -4,7 +4,7 @@
 #include <unistd.h>
 
 void RemoveGameWidget(RemoveWidget widget);
-void CreateGameWidget(CreateWidget widget);
+bool CreateGameWidget(CreateWidget widget);
 
 /** Tear down all segments, recompute horizontal packing, rebuild enabled ones. */
 static void rebuild_overlay_bar() {

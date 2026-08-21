@@ -30,11 +30,11 @@
                                     └──────┬───────┘
            ┌───────────────────────────────┼───────────────────────────────┐
            ▼                               ▼                               ▼
-    ShellUI / fps_elf                                          游戏进程
+    ShellUI                                                    游戏进程
     (Unix socket 客户端)                               mdbg|kdirect 写内存
 ```
 
-**典型客户端**：`shellui.elf`、`fps_elf` 通过 `IPC_Client(util_daemon=true)` 连 util socket。
+**典型客户端**：`shellui.elf` 通过 `IPC_Client(util_daemon=true)` 连 util socket。
 
 ---
 
@@ -160,7 +160,8 @@ struct IPCMessage {
 | `GET_GAME_VER` | 游戏版本字符串 | param.json / param.sfo（msg 内实现） |
 | `GET_GAME_CHEAT` | 导出金手指列表 JSON 文件路径 | `CheatService::exportList` |
 | `TOGGLE_CHEAT` | 开关某条金手指 | `CheatService::toggle` |
-| `DOWNLOAD_CHEATS` | 下仓库 zip → staging → flatten | `http` + `CheatService::flattenInstallTree` |
+| `DOWNLOAD_CHEATS` | 后台 HTTPS ZIP 下载 → 定向解压 → flatten | `CheatSyncService` + 现有 flatten |
+| `CHEAT_SYNC_STATUS` | 上次/正在进行的同步快照 | `CheatSyncService::status` |
 | `RELOAD_CHEATS` | **已移除**（枚举占位 `UNUSED_RELOAD_CHEATS`） | 列表/开关靠文件签名热重载，无索引重建 |
 | `DOWNLOAD_KSTUFF` | 下载 kstuff.elf | `http` |
 | `LAUNCH_PAYLOAD` | 加载 payload `.elf` | `load_payload` → `onion_payload_load`（仅私有 9020，必须返回精确 PID；失败不回退 9021） |
@@ -180,7 +181,7 @@ util handleIPC ──► param.json / sfo ──► version 字符串
   │ GET_GAME_CHEAT(tid, version)
   ▼
 cheat_service_export_list
-  │  resolve /data/OnionHEN/cheats/<TID>_<VER>.{json,shn,mc4,ShnExt}
+  │  resolve /data/OnionHEN/cheats/<TID>_<VER>[_PROCESS][_HASH].{json,shn,mc4,ShnExt}
   │  load + parse → 写 /user/data/OnionHEN/<tid>_cheats
   ▼
 ShellUI 读列表 JSON，渲染开关
@@ -223,14 +224,6 @@ cheat_engine_runtime
 
 **与 hijacker 的固件号差异**：hijacker `getSystemSwVersion()` 用 `kern.sdk_version` 做偏移表；金手指门控用 Prospero major。二者用途不同，不可混用。
 
-### 6.3 GitHub 响应解析（`http_github.cpp`）
-
-- `onion_http_extract_commit_sha`：从 GitHub commit JSON 中提取 SHA。
-- 网络下载、curl/TLS 初始化和 minizip 解压链已移除；本模块只负责解析调用方提供的 JSON。
-
-解析逻辑使用树内 cJSON。
-
-
 ### 6.5 IP / Toolbox reinject
 
 - **`start_ip_thread`**（`cpp_service.cpp`）：维护全局 IP 字符串，供 notify 文案使用。
@@ -262,11 +255,11 @@ cheat_engine_runtime
 #### 路径与格式
 
 ```text
-/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>.{json,shn,mc4,ShnExt}
+/data/OnionHEN/cheats/<TITLE_ID>_<VERSION>[_<PROCESS>][_<HASH>].{json,shn,mc4,ShnExt}
 ```
 
-解析优先级：`json` → `shn` → `mc4` → `ShnExt`。  
-**不支持** KCF / WMDW。
+`PROCESS` 与 8 位十六进制 `HASH` 均可省略。匹配顺序：进程限定文件 → 通用 `TITLE_VERSION` → 哈希/作者 eboot 别名。  
+解析优先级：`json` → `shn` → `mc4` → `ShnExt`。
 
 #### 热重载
 
@@ -288,7 +281,7 @@ cheat_engine_runtime
 
 #### 下载 flatten
 
-在线 `DOWNLOAD_CHEATS` 命令已保留为 unsupported 兼容槽位。`onion_cheat_flatten_install_tree` 仍用于把本地导入树规范成 flat 命名并装入 `ONION_CHEATS_DIR`。
+在线 `DOWNLOAD_CHEATS` 走 `onion::cheats::sync`：Catalog（仓库身份）+ Mirror（github / cnb.cool）生成 archive URL，使用 HTTPS 下载 ZIP 到临时目录，miniz 只提取 catalog 声明的 `flattenRoots`（HEN 集合为 `cheats/`），再调用现有 `onion_cheat_flatten_install_tree`，完成后清理临时文件。`[cheats] mirror=auto|github|cnb`；`auto` 时简体中文走 cnb.cool，其它地区走 GitHub。进度经 `CHEAT_SYNC_STATUS.progress` 回传 Toolbox。
 
 ---
 

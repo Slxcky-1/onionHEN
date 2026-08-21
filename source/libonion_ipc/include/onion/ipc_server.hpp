@@ -17,6 +17,7 @@ along with this program; see the file COPYING. If not, see
 #pragma once
 
 #include <msg.hpp>
+#include <atomic>
 #include <cstddef>
 #include <string>
 
@@ -76,10 +77,7 @@ inline void ipc_message_force_nul(IPCMessage &msg) {
   msg.msg[sizeof(msg.msg) - 1] = '\0';
 }
 
-/**
- * Escape a string for inclusion inside a JSON double-quoted value.
- * Handles \, ", control chars (as \u00XX). Pure — no I/O.
- */
+/** Escape one JSON string value using cJSON, without surrounding quotes. */
 std::string ipc_json_escape(const std::string &in);
 
 /**
@@ -99,10 +97,26 @@ struct IpcServerOptions {
   DaemonCommands reply_cmd = BREW_RETURN_VALUE;
   bool detach_clients = true; // util always did; daemon should too (no leak)
   const char *tag = "ipc";
+  // Optional lifecycle control (nullptr = run forever, existing behaviour):
+  //  * running  — the accept loop exits once this goes false.
+  //  * server_fd — holds the current listening fd so a restart can shut it
+  //    down; accept() then returns and the loop re-listens on a fresh socket.
+  std::atomic_bool *running = nullptr;
+  std::atomic<int> *server_fd = nullptr;
 };
 
 // pthread-compatible entry: arg must be IpcServerOptions* with static lifetime.
 void *ipc_server_loop(void *options_ptr);
+
+/** Request a permanent shutdown: clear *running and shut the listener down. */
+void ipc_server_stop(IpcServerOptions *opts);
+
+/**
+ * Re-create the listening socket (restore service). Shuts the current
+ * listener down so the accept loop closes it and re-listens; the loop keeps
+ * running. Used after a rest-mode resume, when the old socket may be dead.
+ */
+void ipc_server_restart(IpcServerOptions *opts);
 
 } // namespace onion
 
