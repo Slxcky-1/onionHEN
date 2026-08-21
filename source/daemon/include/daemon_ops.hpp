@@ -60,17 +60,27 @@ void *fps_sampler_thread(void *args) noexcept;
  */
 [[noreturn]] void cmd_shutdown_onion_stack(void);
 
+/** Immediate (main / IPC) vs rest resume (new ShellUI EXEC). */
+enum class ToolboxInjectStrategy { Immediate, RestResume };
+
+/**
+ * Toolbox inject strategy. Immediate runs on the caller thread.
+ * RestResume may delay; jailbreak calls toolbox_on_new_shellui() so kevent
+ * is not blocked.
+ */
+bool toolbox_inject(ToolboxInjectStrategy strategy, pid_t exec_pid = 0);
+
 bool cmd_enable_toolbox();
+/** Rest strategy on a worker: identified SceShellUI EXEC. */
+void toolbox_on_new_shellui(pid_t pid);
 
 void *IPC_loop(void *args);
 /** LAN TCP :9048 — PC can trigger BREW_SHUTDOWN_STACK without Unix socket. */
 void *control_tcp_loop(void *args);
-/** Re-bind the TCP :9048 listener after a standby resume. */
+/** Re-bind the TCP :9048 listener after accept fails (ps5-payload-manager). */
 void control_tcp_restart();
 /** True while the :9048 accept loop holds a live listen fd. */
 bool control_tcp_is_listening();
-/** Re-create the crit Unix IPC listener after a standby resume. */
-void restart_crit_ipc_server();
 void handleIPC(clientArgs *client, std::string &inputStr, DaemonCommands command);
 
 /* ---- shared helpers (daemon_utils.cpp) ---- */

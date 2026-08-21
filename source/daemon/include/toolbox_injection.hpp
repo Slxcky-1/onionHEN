@@ -1,8 +1,7 @@
 /* Copyright (C) 2025 OnionHEN / LightningMods
  *
- * Serializes Toolbox injection and binds readiness to one SceShellUI process
- * instance.  Policy (delays, notifications, payload selection) stays with the
- * daemon command; this class owns only injection lifecycle coordination.
+ * Serialized Toolbox ELF inject into one SceShellUI PID.
+ * When to inject (immediate vs rest) lives in daemon_inject.cpp.
  */
 #pragma once
 
@@ -32,15 +31,15 @@ struct ToolboxInjectionOutcome {
   }
 };
 
-class ToolboxInjectionCoordinator final {
+class ToolboxInject final {
 public:
   bool is_ready_for(pid_t pid) const noexcept {
     return onion_ready_matches_pid(ONION_READY_TOOLBOX, pid);
   }
 
-  template <typename ResolvePid, typename Inject>
-  ToolboxInjectionOutcome ensure(ResolvePid resolve_pid, Inject inject,
-                                  int timeout_ms, int poll_ms) {
+  template <typename ResolvePid, typename InjectFn>
+  ToolboxInjectionOutcome inject(ResolvePid resolve_pid, InjectFn inject_fn,
+                                 int timeout_ms, int poll_ms) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     const pid_t pid = resolve_pid();
@@ -51,9 +50,9 @@ public:
       return {ToolboxInjectionResult::AlreadyReady, pid};
     }
 
-    // A marker for another PID belongs to an old ShellUI instance.
+    /* Stale marker is another PID; ready file is not the rest-resume signal. */
     onion_ready_clear(ONION_READY_TOOLBOX);
-    if (!inject(pid)) {
+    if (!inject_fn(pid)) {
       onion_ready_clear(ONION_READY_TOOLBOX);
       return {ToolboxInjectionResult::InjectFailed, pid};
     }
@@ -62,8 +61,6 @@ public:
       return {ToolboxInjectionResult::ReadyTimeout, pid};
     }
 
-    // Do not let an acknowledgement from a dying instance mark its
-    // replacement as initialized.
     if (resolve_pid() != pid) {
       onion_ready_clear(ONION_READY_TOOLBOX);
       return {ToolboxInjectionResult::TargetChanged, pid};

@@ -114,9 +114,6 @@ struct Settings {
   // Page to open after OnionHEN finishes loading.
   int startup_open_after_load = kStartupOpenNone;
 
-  // [rest_mode]
-  uint64_t rest_mode_delay_seconds = 10;
-
   // [cheats], [app_jailbreak]
   bool libhijacker_cheats = false;
   int cheats_mirror = kCheatsMirrorAuto;

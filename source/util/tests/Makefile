@@ -106,7 +106,6 @@ TEST_C_SRCS := \
 	test_platform_net.c \
 	test_platform_notify.c \
 	test_util_language.c \
-	test_toolbox_timing.c \
 	test_hijack_retry.c \
 	stubs/host_stubs.c
 
@@ -129,7 +128,6 @@ TEST_CXX_SRCS := \
   test_toolbox_injection.cpp \
   test_overlay_text_metrics.cpp \
   test_fps_formula.cpp \
-  test_rest_mode_recovery.cpp \
 	test_trampoline_arena.cpp \
 	test_hook_lifecycle.cpp \
 	test_hotpatch.cpp \

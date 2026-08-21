@@ -30,9 +30,10 @@ its value with the current `SceShellUI` PID:
 - different/missing PID: clear stale state, inject, then wait for the new PID;
 - ShellUI changes PID during the handshake: reject the acknowledgement.
 
-`ToolboxInjectionCoordinator` serializes this check/inject/wait sequence so
+`ToolboxInject` serializes this check/inject/wait sequence so
 cold-start and util reinjection requests cannot ptrace the same ShellUI in
-parallel. This follows kstuff-lite's process-instance model while retaining the
+parallel. Rest Mode re-inject follows kstuff-lite (new `NPXS40087` PID after
+SceSysCore `NOTE_EXEC`, then wait for trophy SPRXs) while retaining the
 stronger post-hook ready acknowledgement.
 
 ### Live ShellUI hook safety

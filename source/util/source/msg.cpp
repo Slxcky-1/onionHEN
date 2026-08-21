@@ -163,5 +163,3 @@ void *IPC_loop(void *args) {
   (void)args;
   return onion::ipc_server_loop(&g_util_ipc_opts);
 }
-
-void restart_util_ipc_server() { onion::ipc_server_restart(&g_util_ipc_opts); }

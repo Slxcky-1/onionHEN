@@ -146,6 +146,8 @@ OnionHEN/
 - 9020 在同步加载 Payload 时发布 busy 标记，避免健康检查误杀；超过有界宽限期仍未恢复则按卡死处理
 - Unix socket：`/system_tmp/onionhen/ipc/crit_service`
 - IPC 前缀 `0x9000000`（`BREW_*`）
+- 休息后 Toolbox 恢复：SceSysCore `NOTE_EXEC` 认出新 `NPXS40087`，等 `libSceNpTrophy.sprx` 与 `libSceNpTrophy2.sprx` 再注入（参考 [kstuff-lite](https://github.com/EchoStretch/kstuff-lite)）
+- Unix IPC 与 TCP **9048** 在 `accept` 失败时关闭并重新 listen（参考 [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager)）
 
 主要能力：
 
@@ -163,7 +165,7 @@ OnionHEN/
 | 服务 | 端口 / 入口 | 说明 |
 |------|-------------|------|
 | Cheats | IPC | flat-file cheat engine（flat `TITLE_VERSION.ext` + mdbg/kdirect）；详见 [util_arch](util_arch/) |
-| ShellCore / ShellUI 补丁 | — | 休息模式恢复、toolbox 激活等 |
+| Toolbox 请求 | IPC | util 崩溃重拉后向 crit 请求 `BREW_ENABLE_TOOLBOX`；休息恢复在 daemon |
 | FTP | TCP 1337 | 内置 `ftpsrv`；Toolbox 插件页提供本次启停与下次开机自启 |
 | ShadowMountPlus | 内嵌 ELF | Toolbox 插件页提供本次启停与下次开机自启；运行中自行扫描和挂载 |
 
@@ -186,7 +188,7 @@ ShadowMountPlus 使用 [Drakmor 的项目](https://github.com/drakmor/ShadowMoun
 - 游戏辅助（金手指引擎、OnionHEN 游戏选项）
 - 监控与显示（ShellUI 监控条、Title ID）
 - 账号激活
-- 系统与硬件（风扇、休息模式、外置 HDD、BD 激活）
+- 系统与硬件（风扇、外置 HDD、BD 激活）
 - 网络服务（Remote Play 配对）
 - 操作偏好（工具箱语言、手柄快捷键）
 - 高级调试 / 关于
@@ -210,7 +212,7 @@ HomeUI 顶部导航和 Settings Debug Settings 入口按固件 profile 覆盖 2.
 | **libonion_elfldr** | **唯一** ptrace/`pt_*` + inject 侧 `elfldr_load` / `elfldr_payload_args` / 内置 loader 侧 `elfldr_spawn` / `elfldr_read` / `elfldr_raise_privileges`；**authid 不在每条 ptrace 上翻转**（由 inject 入口一次提权） |
 | **libNineS** | 进程注入编排（`inject_elf` / stager）；**pt/elfldr 实现来自 libonion_elfldr** |
 | **libNidResolver** | PS5 模块 NID 解析（SHA1 等） |
-| **libonion_ipc** | **客户端**（injectee 双单例）+ **服务端传输环**（`ipc_server`：listen/accept/loop/reply）；daemon/util/shellui 共用 |
+| **libonion_ipc** | **客户端**（injectee 双单例）+ **服务端传输环**（`ipc_server`：listen/accept/loop/reply；`accept` 失败重绑参考 ps5-payload-manager）；daemon/util/shellui 共用 |
 | **libonion_settings** | 统一 `config.ini` schema；各进程以 `onion::Settings g_settings` 为真相源 |
 | **libonion_fps** | skip-hook FPS 采样（公式 / `/dev/dce` / AgcDriver DMAP / seqlock 发布）；实现来自 [PHU Games Tools](https://github.com/ArkSama) |
 | **libonion_detour** | 共享 Detour + hde64 钩子栈 |
@@ -226,7 +228,7 @@ HomeUI 顶部导航和 Settings Debug Settings 入口按固件 profile 覆盖 2.
 |------|------|
 | **msg.cpp** | 仅 `IPC_loop` + transport 胶水 |
 | **ipc_handle.cpp** | crit 命令表分发 |
-| **daemon_inject.cpp** | toolbox 注入 |
+| **daemon_inject.cpp** | Toolbox 注入：冷启动/IPC 立即注入；休息恢复参考 kstuff-lite（SysCore EXEC + trophy sprx） |
 | **daemon_settings.cpp** | LoadSettings + mtime 缓存 |
 | **daemon_fs.cpp** | remount / chmod / test_sb / reply / fan / ForceKill / pid 查找 |
 | **daemon_fps.cpp** | skip-hook FPS 采样线程；发布 `/system_tmp/onionhen/fps_sample` |
@@ -253,7 +255,7 @@ HomeUI 顶部导航和 Settings Debug Settings 入口按固件 profile 覆盖 2.
 | `daemon` | daemon 在 IPC 线程启动后 | bootstrapper 启动 daemon 之后 |
 | `toolbox` | shellui 注入完成后，内容为自身 PID | daemon 按当前 SceShellUI PID 判断跳过或重注入 |
 | `fps_overlay` | 启动时 clear（legacy） | 旧游戏内 FPS 注入旗；现状态在 `/system_tmp/onionhen/fps_sample` |
-| `util_booted` | util 冷启动完成后 | rest-mode / toolbox 延迟路径（替代 `util_first_boot`） |
+| `util_booted` | util 冷启动完成后 | util 崩溃/重拉后向 daemon 请求再注入 Toolbox |
 
 #### IPC 分层（加深后）
 
@@ -339,7 +341,7 @@ struct IPCMessage {
 
 - `BREW_UNUSED_ACTIVATE_DUMPER`（原 `ACTIVATE_DUMPER`，固定保留 `0x9000004`，避免 Itemzflow ABI 后续命令错位）
 - `BREW_UTIL_UNUSED_LEGACY_CMD_SERVER`（原 TOGGLE_LEGACY_CMD_SERVER / TCP 9028 已移除）
-- `BREW_UTIL_UNUSED_SHELLUI_ON_STANDBY`（原休息备用通知；唤醒只走 `SIGCONT`）
+- `BREW_UTIL_UNUSED_SHELLUI_ON_STANDBY`（原休息备用通知；Toolbox 恢复看 daemon 的 SceSysCore `NOTE_EXEC`，参考 kstuff-lite）
 - `BREW_UNUSED_DECRYPT_DIR`（原 DECRYPT_DIR，SELF 目录解密已移除）
 - `BREW_UNUSED_TESTKIT_CHECK`（原 TESTKIT_CHECK；客户端改为本地探测）
 - `BREW_UTIL_LAUNCH_SHADOWMOUNT`（保留序号）
@@ -376,6 +378,8 @@ struct IPCMessage {
 - 阻止系统更新（unmount `/update`）
 - **kstuff**：fself / fpkg 相关内核能力（通常 ≥ 3.00）
 - App jailbreak（按设置启停；SceSysCore 生命周期 + 沙盒 vnode 事件 + 白名单 TID，无常驻轮询）
+- 休息后 Toolbox 恢复（kstuff-lite：新 ShellUI PID + trophy sprx）
+- 休息后监听套接字重绑（ps5-payload-manager：IPC / TCP `accept` 失败自愈）
 - 双守护进程架构（util 可被 daemon 拉起）
 
 ### 4.2 用户界面（Toolbox）
@@ -432,7 +436,7 @@ struct IPCMessage {
 
 | 组件 | 上游 | 角色 |
 |------|------|------|
-| **kstuff-lite** | [EchoStretch/kstuff-lite](https://github.com/EchoStretch/kstuff-lite) | 提供 `kstuff.elf`，同步进 bootstrapper |
+| **kstuff-lite** | [EchoStretch/kstuff-lite](https://github.com/EchoStretch/kstuff-lite) | 提供 `kstuff.elf`；休息后 Toolbox 恢复也参考其 ShellUI PID 监视 |
 
 ```bash
 git submodule update --init --recursive

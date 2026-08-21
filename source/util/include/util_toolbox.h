@@ -2,7 +2,6 @@
 
 #pragma once
 
-/* Toolbox re-injection entry point (util -> crit daemon).
- * apply_rest_delay: true only for the first rest-cycle attempt so retries
- * do not re-sleep rest_mode.resume_reinject_delay_seconds. */
-bool toolbox_reinject(bool rest_resume, bool apply_rest_delay = false);
+/** Ask crit daemon to inject Toolbox (util crash / re-launch). Rest resume
+ *  is handled in daemon (SceSysCore NOTE_EXEC + sprx wait). */
+bool toolbox_reinject();

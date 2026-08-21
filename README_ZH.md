@@ -69,7 +69,7 @@ OnionHEN 面向已越狱的 PS5，提供一套能日常使用、也方便维护�
 - **用户 Payload 管理** — 启动和停止用户添加的普通 `.elf` payload，可选自动启动
 - **游戏监控条** — 游戏中显示 FPS、CPU、GPU、内存、温度和网络信息
 - **金手指** — 本地 JSON、SHN、MC4、ShnExt 文件，运行中即可开关
-- **主机工具** — 休息模式、账号激活、外接硬盘、Title ID、风扇、快捷键和游戏选项
+- **主机工具** — 账号激活、外接硬盘、Title ID、风扇、快捷键和游戏选项
 - **应用越狱** — 白名单自制软件可通过守护进程沙盒 FIFO 申请提权
 - **可恢复运行时** — 关键守护进程和工具守护进程分开；主进程可以拉起工具进程
 - **统一配置** — 工具箱和守护进程共用一份带版本号的 `config.ini`
@@ -253,7 +253,6 @@ OnionHEN 在下面两处读写同一份配置：
 | `startup.open_after_load` | `none` | `none`, `home_menu` |
 | `home_screen.show_title_ids` | `false` | `true`, `false` |
 | `game_menu.show_onionhen_options` | `true` | `true`, `false` |
-| `rest_mode.resume_reinject_delay_seconds` | `10` | 秒数 |
 | `cheats.memory_backend` | `default` | `default`, `libhijacker` |
 | `cheats.mirror` | `auto` | `auto`, `github`, `cnb` |
 | `app_jailbreak.debug_notifications` | `false` | `true`, `false` |
@@ -366,7 +365,8 @@ OnionHEN 离不开 PS5 自制软件与逆向工程社区。
 
 ### 参考
 
-- [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager) — itsplk；休息模式唤醒恢复（待机后恢复服务）的设计参考了这个项目
+- [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch、sleirsgoevy 与贡献者；休息模式 Toolbox 恢复沿用其 SceSysCore `NOTE_EXEC` 监视 `NPXS40087`，并等待 `libSceNpTrophy.sprx` / `libSceNpTrophy2.sprx`
+- [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager) — itsplk；休息后监听套接字重绑定（Unix IPC 与 TCP `accept` 失败自愈）参考了这个项目
 - [HEN-Cheats-Collection](https://github.com/TeeKay87/HEN-Cheats-Collection) — TeeKay87；内置金手指同步下载所用的社区金手指合集
 - [PHU Games Tools](https://github.com/ArkSama) — ArkSama；游戏内 FPS 计数沿用 PHU Games Tools 的 skip-hook 采样（`/dev/dce` scanout 与对 `libSceAgcDriver` 的 DMAP 读取）
 

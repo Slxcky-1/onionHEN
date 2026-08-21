@@ -257,6 +257,8 @@ void *ipc_server_loop(void *options_ptr) {
     int serverSocket = ipc_network_listen(opts->socket_path);
     if (serverSocket < 0) {
       LOG_ERROR("[%s] networkListen error %s", tag, strerror(errno));
+      LOG_DEBUG("rest: [%s] listen failed path=%s errno=%d", tag,
+                opts->socket_path, errno);
       if (stoppable && !opts->running->load())
         break;
       sleep(1);
@@ -264,6 +266,8 @@ void *ipc_server_loop(void *options_ptr) {
     }
     if (opts->server_fd)
       opts->server_fd->store(serverSocket);
+    LOG_DEBUG("rest: [%s] listening path=%s fd=%d", tag, opts->socket_path,
+              serverSocket);
 
     int clientSocket;
     while ((clientSocket = ipc_network_accept(serverSocket)) >= 0) {
@@ -293,6 +297,8 @@ void *ipc_server_loop(void *options_ptr) {
     // socket may be dead). Re-listen to restore service unless a permanent
     // stop was requested. ipc_release_listen_fd owns the close so a concurrent
     // restart cannot double-close.
+    LOG_DEBUG("rest: [%s] accept failed errno=%d (%s); re-listening", tag,
+              errno, strerror(errno));
     if (opts->server_fd)
       ipc_release_listen_fd(opts->server_fd);
     else
@@ -319,6 +325,7 @@ void ipc_release_listen_fd(std::atomic<int> *fd) {
     return;
   const int s = fd->exchange(-1);
   if (s >= 0) {
+    LOG_DEBUG("rest: release listen fd=%d", s);
     shutdown(s, SHUT_RDWR);
     ipc_network_close(s);
   }
@@ -327,6 +334,8 @@ void ipc_release_listen_fd(std::atomic<int> *fd) {
 void ipc_server_restart(IpcServerOptions *opts) {
   if (!opts)
     return;
+  const char *tag = opts->tag ? opts->tag : "ipc";
+  LOG_DEBUG("rest: [%s] ipc_server_restart", tag);
   ipc_release_listen_fd(opts->server_fd);
 }
 

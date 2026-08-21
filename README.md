@@ -70,7 +70,7 @@ OnionHEN is a practical homebrew stack for jailbroken PS5 consoles.
 - **User payload manager** — start and stop user-provided `.elf` payloads, with optional auto-start
 - **Game overlay** — an in-game bar for FPS, CPU, GPU, RAM, temperatures, and network info
 - **Cheat engine** — local JSON, SHN, MC4, and ShnExt files that can be toggled at runtime
-- **Console tools** — Rest Mode, account activation, external HDD, Title IDs, fan control, shortcuts, and game options
+- **Console tools** — account activation, external HDD, Title IDs, fan control, shortcuts, and game options
 - **App jailbreak** — allowlisted homebrew can ask the daemon for extra privileges through a sandbox FIFO
 - **Resilient runtime** — the critical daemon and utility daemon run apart; the main daemon can restart the utility
 - **Shared configuration** — the Toolbox and daemons use one versioned `config.ini`
@@ -264,7 +264,6 @@ default from [`config.ini.example`](config.ini.example).
 | `startup.open_after_load` | `none` | `none`, `home_menu` |
 | `home_screen.show_title_ids` | `false` | `true`, `false` |
 | `game_menu.show_onionhen_options` | `true` | `true`, `false` |
-| `rest_mode.resume_reinject_delay_seconds` | `10` | seconds |
 | `cheats.memory_backend` | `default` | `default`, `libhijacker` |
 | `cheats.mirror` | `auto` | `auto`, `github`, `cnb` |
 | `app_jailbreak.debug_notifications` | `false` | `true`, `false` |
@@ -376,7 +375,8 @@ OnionHEN exists because of the PS5 homebrew and reverse-engineering community.
 
 ### Referenced
 
-- [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager) — itsplk; the Rest Mode resume recovery design (restoring services after standby) follows this project
+- [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch, sleirsgoevy, and contributors; Rest Mode Toolbox recovery follows its SceSysCore `NOTE_EXEC` watch for `NPXS40087` and wait for `libSceNpTrophy.sprx` / `libSceNpTrophy2.sprx`
+- [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager) — itsplk; listen-socket rebind after Rest Mode (Unix IPC and TCP accept-fail self-heal) follows this project
 - [HEN-Cheats-Collection](https://github.com/TeeKay87/HEN-Cheats-Collection) — TeeKay87; the community cheat collection downloaded by the built-in cheat sync
 - [PHU Games Tools](https://github.com/ArkSama) — ArkSama; the in-game FPS counter follows PHU Games Tools skip-hook sampling (`/dev/dce` scanout and DMAP reads of `libSceAgcDriver`)
 

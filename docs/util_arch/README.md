@@ -55,20 +55,15 @@ main()
  ├─ 8. LoadSettings()                      # /data/OnionHEN/config.ini
  ├─ 9. start_ip_thread()                   # cpp_service：后台刷本机 IP
  ├─10. pthread_create(IPC_loop)            # msg.cpp：常驻 Unix 监听
- ├─11. rest_mode::install()                # SIGCONT 休息唤醒
  │
- └─12. for(;;) 主循环 ─────────────────────────────┐
-        │                                           │
-        │  rest_mode::poll()                        │
-        │    → SIGCONT：重绑 util IPC，延迟后 Toolbox 重注入 │
-        │                                           │
-        └─ sleep → 回到循环 ───────────────────────┘
+ └─11. for(;;) sleep(1)
 ```
 
 要点：
 
-- **IPC 线程先于主循环启动**；休息唤醒会关掉旧 listen fd 再绑。
-- 金手指 **service 状态**在冷启动后 `ensureDir` 一次；主循环只做 `SIGCONT` 休息恢复。
+- **IPC 线程先于主循环启动**；listen `accept` 失败会自愈重绑（参考 [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager)）。
+- Toolbox 休息恢复在 **daemon** 的 SceSysCore `NOTE_EXEC`（新 `NPXS40087`）上，等 `libSceNpTrophy.sprx` 与 `libSceNpTrophy2.sprx` 后再注入（参考 [kstuff-lite](https://github.com/EchoStretch/kstuff-lite)）。
+- 金手指 **service 状态**在冷启动后 `ensureDir` 一次。
 
 ---
 
@@ -104,7 +99,7 @@ source/util/
 | Platform | `util_platform.c` | cheats、可被其它业务复用 |
 | HTTP | `http.c` | msg（下载 cheats/kstuff） |
 | IP poll | `cpp_service.cpp` | main 启动 |
-| Toolbox reinject | `util_toolbox.cpp` | rest_mode SIGCONT 路径 |
+| Toolbox reinject | `util_toolbox.cpp` | util 崩溃重启路径 |
 | Cheats | `cheats/*` | msg IPC |
 
 **依赖原则（目标态）**：
@@ -123,7 +118,7 @@ CheatService ──► Repository / ParserFactory / Applier ──► util_platf
 
 | 线程 | 创建位置 | 生命周期 | 作用 |
 |------|----------|----------|------|
-| main | `main` | 进程 | 主循环、rest SIGCONT 恢复 |
+| main | `main` | 进程 | 保活 |
 | IPC accept | `IPC_loop` | 常驻 | accept Unix 连接 |
 | IPC client | `ipc_client`（每连接一个，detach） | 连接级 | 读 `IPCMessage` → `handleIPC` |
 | IP poll | `start_ip_thread` | 常驻 | 刷新本机 IP 字符串 |
@@ -153,7 +148,7 @@ struct IPCMessage {
 
 | 命令 | 作用 | 内部去向 |
 |------|------|----------|
-| `UNUSED_SHELLUI_ON_STANDBY` | 已移除（唤醒走 SIGCONT） | 序号保留 |
+| `UNUSED_SHELLUI_ON_STANDBY` | 已移除（休息恢复在 daemon SysCore `NOTE_EXEC`，参考 kstuff-lite） | 序号保留 |
 | `DAEMON_PID` | 返回 util pid | `getpid` |
 | `GET_GAME_VER` | 游戏版本字符串 | param.json / param.sfo（msg 内实现） |
 | `GET_GAME_CHEAT` | 导出金手指列表 JSON 文件路径 | `CheatService::exportList` |
@@ -225,7 +220,7 @@ cheat_engine_runtime
 ### 6.5 IP / Toolbox reinject
 
 - **`start_ip_thread`**（`cpp_service.cpp`）：维护全局 IP 字符串，供 notify 文案使用。
-- **`toolbox_reinject` / `enable_toolbox`**（`util_toolbox.cpp`）：休息唤醒后经 crit daemon 重注入 Toolbox。
+- **`toolbox_reinject` / `enable_toolbox`**（`util_toolbox.cpp`）：util 崩溃/重拉后经 crit daemon 请求注入；休息恢复不在 util。
 
 ### 6.6 金手指（C++：`onion::cheats`）
 
@@ -300,7 +295,7 @@ cheat_engine_runtime
 
 | 路径 | 用途 |
 |------|------|
-| `/data/OnionHEN/config.ini` | toolbox、rest mode 等 |
+| `/data/OnionHEN/config.ini` | toolbox 与守护进程配置 |
 | `/data/OnionHEN/cheats/` | 金手指 flat 文件 |
 | `/data/OnionHEN/cheats_staging/` | 下载解压临时区 |
 | `/user/data/OnionHEN/<tid>_cheats` | ShellUI 消费的列表 JSON |
@@ -308,7 +303,7 @@ cheat_engine_runtime
 | `/data/OnionHEN/kstuff.elf` | 下载的 kstuff |
 | `ONION_FLAG_UTIL_BOOTED` | util 是否已完成过冷启动（typed ready flag） |
 
-`LoadSettings` 读取的主要键（节选）：`Rest_Mode_Delay_Seconds`、`Util_rest_kill`、`APP_JB_Debug_Msg`。
+`LoadSettings` 读取统一 `config.ini` schema（`onion::Settings`）；旧键如 `Rest_Mode_Delay_Seconds` / `Util_rest_kill` 已移除。
 
 ---
 

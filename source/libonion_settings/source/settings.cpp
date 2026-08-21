@@ -50,10 +50,6 @@ int atoi_def(const char *s, int def) {
   return s ? atoi(s) : def;
 }
 
-long atol_def(const char *s, long def) {
-  return s ? atol(s) : def;
-}
-
 bool streq_ci(const char *a, const char *b) {
   if (!a || !b) {
     return false;
@@ -91,11 +87,6 @@ bool parse_bool(const char *s, bool def) {
 int parse_int_range(const char *s, int def, int min, int max) {
   const int v = atoi_def(s, def);
   return v < min || v > max ? def : v;
-}
-
-uint64_t parse_u64(const char *s, uint64_t def) {
-  const long v = atol_def(s, static_cast<long>(def));
-  return v < 0 ? def : static_cast<uint64_t>(v);
 }
 
 int parse_language(const char *s, int def) {
@@ -541,9 +532,6 @@ bool apply_parser(IniParser *parser, Settings *out) {
   out->onionhen_game_opts =
       parse_bool(ini_get(parser, "game_menu.show_onionhen_options"),
                  out->onionhen_game_opts);
-  out->rest_mode_delay_seconds = parse_u64(
-      ini_get(parser, "rest_mode.resume_reinject_delay_seconds"),
-      out->rest_mode_delay_seconds);
   out->libhijacker_cheats = parse_libhijacker_backend(
       ini_get(parser, "cheats.memory_backend"), out->libhijacker_cheats);
   out->cheats_mirror = parse_cheats_mirror(ini_get(parser, "cheats.mirror"),
@@ -686,13 +674,6 @@ std::string settings_serialize(const Settings &in) {
   b += "# show_onionhen_options adds OnionHEN entries to the game options menu.\n";
   b += "# Available values: true, false\n";
   b += "show_onionhen_options=" + bool_text(in.onionhen_game_opts) + "\n";
-  b += "\n";
-  b += "[rest_mode]\n";
-  b += "# resume_reinject_delay_seconds waits before Toolbox reinjection after resume.\n";
-  b += "# Available values: 0 or a positive number of seconds.\n";
-  b += "resume_reinject_delay_seconds=" +
-       std::to_string(static_cast<unsigned long long>(in.rest_mode_delay_seconds)) +
-       "\n";
   b += "\n";
   b += "[cheats]\n";
   b += "# memory_backend selects the cheat memory access implementation.\n";

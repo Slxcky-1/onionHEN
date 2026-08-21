@@ -134,51 +134,6 @@ extern bool is_handler_enabled;
 
 namespace {
 
-/**
- * Restore the daemon's listeners after the console wakes from rest mode.
- * FreeBSD delivers SIGCONT to the suspended process on resume; the TCP :9048
- * socket from before the sleep is typically dead, so it is re-bound. The
- * network stack is given a short settle period first.
- */
-volatile sig_atomic_t g_resume_pending = 0;
-
-void on_sigcont(int /*signo*/) { g_resume_pending = 1; }
-
-void install_resume_handler() {
-  struct sigaction action {};
-  action.sa_handler = on_sigcont;
-  sigemptyset(&action.sa_mask);
-  action.sa_flags = 0;
-  sigaction(SIGCONT, &action, nullptr);
-}
-
-void *resume_watchdog_thread(void *arg) {
-  (void)arg;
-  while (true) {
-    if (g_resume_pending != 0) {
-      g_resume_pending = 0;
-      LOG_INFO("daemon resumed from standby; restoring services");
-      usleep(1000000);  // let the network stack settle
-      restart_crit_ipc_server();
-      control_tcp_restart();
-      bool listening = false;
-      for (int i = 0; i < 30; ++i) {
-        if (control_tcp_is_listening()) {
-          listening = true;
-          break;
-        }
-        usleep(100000);
-      }
-      if (listening) {
-        onion_notify(true, "notify.rest.service_restored");
-      } else {
-        LOG_WARN("control_tcp not listening yet after resume; bind loop retries");
-      }
-    }
-    sleep(1);
-  }
-}
-
 void install_crash_handlers() {
   struct sigaction action {};
   action.sa_handler = sig_handler;
@@ -203,9 +158,6 @@ void start_worker_threads(pthread_t* fifo_thr, pthread_t* msg_thr) {
   pthread_t fps_thr = nullptr;
   pthread_create(&fps_thr, nullptr, fps_sampler_thread, nullptr);
   pthread_detach(fps_thr);
-  pthread_t resume_thr = nullptr;
-  pthread_create(&resume_thr, nullptr, resume_watchdog_thread, nullptr);
-  pthread_detach(resume_thr);
 }
 
 /** Keep IPC_loop alive: rejoin + restart on exit. */
@@ -296,7 +248,6 @@ int main() {
           sys_ver.version);
 
   install_crash_handlers();
-  install_resume_handler();
 
   unlink("/data/OnionHEN/OnionHEN_crash.log");
 

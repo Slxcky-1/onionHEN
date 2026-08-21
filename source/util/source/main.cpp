@@ -16,7 +16,6 @@ along with this program; see the file COPYING. If not, see
 
 #include "ipc.hpp"
 #include "cheats/cheat_service.hpp"
-#include "rest_mode.hpp"
 #include "util_language.h"
 #include "util_toolbox.h"
 #include <onion/settings.hpp>
@@ -142,7 +141,7 @@ int main(void) {
     if (onion_ready_is_set(ONION_FLAG_UTIL_BOOTED)) {
         /* onion_util.elf restarted mid-session (crash recover / re-launch) — not rest. */
         LOG_WARN("util already booted once — toolbox reinject (not rest)");
-        toolbox_reinject(/*rest_resume=*/false);
+        toolbox_reinject();
     }
     /* Mark that util completed cold start (typed flag; replaces util_first_boot file). */
     onion_ready_signal(ONION_FLAG_UTIL_BOOTED);
@@ -150,11 +149,7 @@ int main(void) {
     LOG_INFO("Initializing cheat engine...");
     onion::cheats::CheatService::instance().ensureDir();
 
-    /* Rest-mode recovery: SIGCONT (see rest_mode.hpp). */
-    onion::rest_mode::install();
-
     for (;;) {
-        onion::rest_mode::poll();
         sleep(1);
     }
 

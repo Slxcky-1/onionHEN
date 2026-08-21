@@ -40,8 +40,6 @@ void *IPC_loop(void *args) {
   return onion::ipc_server_loop(&g_crit_ipc_opts);
 }
 
-void restart_crit_ipc_server() { onion::ipc_server_restart(&g_crit_ipc_opts); }
-
 /**
  * PC control: TCP :9048
  * Frame (little-endian):
@@ -55,7 +53,10 @@ void restart_crit_ipc_server() { onion::ipc_server_restart(&g_crit_ipc_opts); }
 static std::atomic<int> g_ctrl_fd{-1};
 
 /** Re-bind the TCP :9048 listener (called after a standby resume). */
-void control_tcp_restart() { onion::ipc_release_listen_fd(&g_ctrl_fd); }
+void control_tcp_restart() {
+  LOG_DEBUG("rest: control_tcp_restart fd=%d", g_ctrl_fd.load());
+  onion::ipc_release_listen_fd(&g_ctrl_fd);
+}
 
 bool control_tcp_is_listening() { return g_ctrl_fd.load() >= 0; }
 
@@ -80,6 +81,7 @@ void *control_tcp_loop(void *args) {
     if (bind(s, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
       LOG_ERROR("control_tcp: bind :%d failed: %s", ONION_CTRL_TCP_PORT,
                strerror(errno));
+      LOG_DEBUG("rest: control_tcp bind failed errno=%d, retry", errno);
       close(s);
       if (!is_handler_enabled)
         break;
@@ -101,6 +103,8 @@ void *control_tcp_loop(void *args) {
     while (is_handler_enabled) {
       int client = accept(s, nullptr, nullptr);
       if (client < 0) {
+        LOG_DEBUG("rest: control_tcp accept failed errno=%d (%s)", errno,
+                  strerror(errno));
         break;  // listener shut down for a restart, or a transient error
       }
 

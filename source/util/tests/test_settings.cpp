@@ -36,8 +36,9 @@ static int test_defaults_and_serialize_keys(void) {
   TEST_ASSERT_TRUE(text.find("level=info") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("temperature_threshold_celsius=77") !=
                    std::string::npos);
-  TEST_ASSERT_TRUE(text.find("resume_reinject_delay_seconds=10") !=
+  TEST_ASSERT_TRUE(text.find("resume_reinject_delay_seconds") ==
                    std::string::npos);
+  TEST_ASSERT_TRUE(text.find("[rest_mode]") == std::string::npos);
   TEST_ASSERT_TRUE(text.find("stop_utility_daemon_on_entry") ==
                    std::string::npos);
   TEST_ASSERT_TRUE(text.find("close_running_game_on_entry") ==
@@ -78,7 +79,6 @@ static int test_roundtrip_file(void) {
   onion::Settings in{};
   in.fan_threshold = 55;
   in.cheats_shortcut_opt = 2;
-  in.rest_mode_delay_seconds = 7;
   in.startup_open_after_load = onion::kStartupOpenHomeMenu;
   in.ui_lang = onion::kUiLanguageEn;
   in.log_level = onion::kLogLevelDebug;
@@ -90,7 +90,6 @@ static int test_roundtrip_file(void) {
 
   TEST_ASSERT_EQ_INT(55, out.fan_threshold);
   TEST_ASSERT_EQ_INT(2, out.cheats_shortcut_opt);
-  TEST_ASSERT_EQ_U64(7, out.rest_mode_delay_seconds);
   TEST_ASSERT_EQ_INT(onion::kStartupOpenHomeMenu,
                      out.startup_open_after_load);
   TEST_ASSERT_EQ_INT(onion::kUiLanguageEn, out.ui_lang);
@@ -118,7 +117,6 @@ static int test_full_schema_roundtrip(void) {
 
   onion::Settings in{};
   in.startup_open_after_load = onion::kStartupOpenHomeMenu;
-  in.rest_mode_delay_seconds = 42;
   in.libhijacker_cheats = true;
   in.cheats_mirror = onion::kCheatsMirrorCnb;
   in.app_jailbreak_enabled = false;
@@ -154,7 +152,6 @@ static int test_full_schema_roundtrip(void) {
   onion::Settings out{};
   TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
 
-  TEST_ASSERT_EQ_U64(in.rest_mode_delay_seconds, out.rest_mode_delay_seconds);
   TEST_ASSERT_EQ_INT(in.startup_open_after_load, out.startup_open_after_load);
   TEST_ASSERT_TRUE(out.libhijacker_cheats == in.libhijacker_cheats);
   TEST_ASSERT_TRUE(out.app_jailbreak_enabled == in.app_jailbreak_enabled);
@@ -209,7 +206,6 @@ static int test_partial_ini_keeps_defaults(void) {
   onion::Settings out{};
   TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
   /* Removed keys are ignored; unspecified keys stay at defaults. */
-  TEST_ASSERT_EQ_U64(10, out.rest_mode_delay_seconds);
   TEST_ASSERT_EQ_INT(onion::kStartupOpenNone, out.startup_open_after_load);
   TEST_ASSERT_EQ_INT(77, out.fan_threshold);
   TEST_ASSERT_TRUE(out.overlay_enabled);

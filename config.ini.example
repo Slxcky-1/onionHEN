@@ -37,11 +37,6 @@ show_title_ids=false
 # Available values: true, false
 show_onionhen_options=true
 
-[rest_mode]
-# resume_reinject_delay_seconds waits before Toolbox reinjection after resume.
-# Available values: 0 or a positive number of seconds.
-resume_reinject_delay_seconds=10
-
 [cheats]
 # memory_backend selects the cheat memory access implementation.
 # Available values: default, libhijacker

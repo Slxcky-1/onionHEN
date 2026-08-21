@@ -139,7 +139,6 @@ static int test_ja(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★OnionHEN ツールボックス") ==
                    0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.link"), "チート") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rest.group"), "レストモード") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("lang.ja"), "日本語") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "%s の %s を有効/無効") == 0);
@@ -151,7 +150,6 @@ static int test_fr(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★Boîte à outils OnionHEN") ==
                    0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.link"), "Codes de triche") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rest.group"), "Mode repos") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("lang.fr"), "Français") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "Pour %s, activer/désactiver %s") == 0);
@@ -162,7 +160,6 @@ static int test_de(void) {
   set_lang(Lang::De);
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★OnionHEN-Toolbox") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.link"), "Cheats") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rest.group"), "Ruhemodus") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("lang.de"), "Deutsch") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "Für %s: %s ein-/ausschalten") == 0);
@@ -173,7 +170,6 @@ static int test_ko(void) {
   set_lang(Lang::Ko);
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★OnionHEN 툴박스") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.link"), "치트") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rest.group"), "휴식 모드") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("lang.ko"), "한국어") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "%s의 %s 사용/해제") == 0);
@@ -185,7 +181,6 @@ static int test_es(void) {
   TEST_ASSERT_TRUE(
       std::strcmp(tr("root.title"), "★Caja de herramientas OnionHEN") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.link"), "Trucos") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rest.group"), "Modo de reposo") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("lang.es"), "Español") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "Para %s, activar/desactivar %s") == 0);
@@ -197,7 +192,6 @@ static int test_pt_br(void) {
   TEST_ASSERT_TRUE(
       std::strcmp(tr("root.title"), "★Caixa de ferramentas OnionHEN") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.link"), "Cheats") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rest.group"), "Modo de repouso") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("lang.pt_br"), "Português (Brasil)") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "Para %s, ativar/desativar %s") == 0);
@@ -209,7 +203,6 @@ static int test_it(void) {
   TEST_ASSERT_TRUE(
       std::strcmp(tr("root.title"), "★Cassetta degli attrezzi OnionHEN") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.link"), "Trucchi") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rest.group"), "Modalità riposo") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("lang.it"), "Italiano") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "Per %s, attiva/disattiva %s") == 0);
@@ -220,7 +213,6 @@ static int test_ru(void) {
   set_lang(Lang::Ru);
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★Инструменты OnionHEN") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.link"), "Читы") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rest.group"), "Режим покоя") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("lang.ru"), "Русский") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "Для %s: вкл./выкл. %s") == 0);
@@ -231,7 +223,6 @@ static int test_pl(void) {
   set_lang(Lang::Pl);
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★Narzędzia OnionHEN") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.link"), "Cheaty") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rest.group"), "Tryb spoczynku") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("lang.pl"), "Polski") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "Dla %s: włącz/wyłącz %s") == 0);
@@ -242,7 +233,6 @@ static int test_th(void) {
   set_lang(Lang::Th);
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★OnionHEN Toolbox") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.link"), "สูตรโกง") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("rest.group"), "โหมดพักเครื่อง") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("lang.th"), "ไทย") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "เปิด/ปิด %s สำหรับ %s") == 0);

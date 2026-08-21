@@ -105,11 +105,6 @@ static OnPressResult id_ui_lang(OnPressContext &ctx) {
   return OnPressResult::Handled;
 }
 
-static OnPressResult id_rest_1(OnPressContext &ctx) {
-  g_settings.rest_mode_delay_seconds = atol(ctx.value.c_str());
-  return OnPressResult::Handled;
-}
-
 static OnPressResult id_enable_fan_speed(OnPressContext &ctx) {
   if (atol(ctx.value.c_str()) == g_settings.enable_fan_speed) {
     LOG_WARN("Fan speed control already %s",
@@ -205,7 +200,6 @@ static const OnPressExactEntry kExact[] = {
     {"id_debug_jb", id_debug_jb},
     {"id_custom_game_opts", id_custom_game_opts},
     {"id_ui_lang", id_ui_lang},
-    {"id_rest_1", id_rest_1},
     {"id_enable_fan_speed", id_enable_fan_speed},
     {"id_fan_speed", id_fan_speed},
     {"id_cheats_mirror", id_cheats_mirror},
