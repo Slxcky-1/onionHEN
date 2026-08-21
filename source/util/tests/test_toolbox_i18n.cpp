@@ -14,10 +14,11 @@ static int test_default_zh(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★OnionHEN 工具箱") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.pkg"), "内容安装与管理") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.payloads.sub"),
-                               "用户 Payload ELF 与 Kstuff") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("group.game"), "游戏与内容") == 0);
+                               "用户与自动启动 Payload；Kstuff、FTP 和 "
+                               "ShadowMount+ 插件") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("group.game"), "游戏辅助") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.game.sub"),
-                               "金手指和 ShadowMount+ 游戏来源管理") == 0);
+                               "管理游戏金手指与下载金手指合集") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("ftp.group"), "FTP 服务器") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("ftp.run"), "立即运行 FTP 服务器") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("ftp.autoload"),
@@ -25,6 +26,8 @@ static int test_default_zh(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("group.display"), "监控与显示") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.display.sub"),
                                "游戏覆盖层、主菜单显示与游戏选项入口") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("group.system.sub"),
+                               "风扇、外部存储与光盘许可证激活") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.preferences"), "操作偏好") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("startup.open_after_load"),
                                "OnionHEN 加载后自动打开") == 0);
@@ -64,16 +67,21 @@ static int test_en(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★OnionHEN Toolbox") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.pkg"), "Content Install & Management") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.payloads.sub"),
-                               "User payload ELFs and Kstuff") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("group.game"), "Games & Content") == 0);
+                               "User and auto-start payloads; Kstuff, FTP, "
+                               "and ShadowMount+ plugins") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("group.game"), "Game Tools") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.game.sub"),
-                               "Cheats and ShadowMount+ game sources") == 0);
+                               "Manage cheats and download the cheat "
+                               "collection") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("ftp.group"), "FTP Server") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("ftp.run"), "Run FTP server now") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("ftp.autoload"), "Start FTP with OnionHEN") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.display.sub"),
                                "In-game overlay, home menu display, and game "
                                "options entry") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("group.system.sub"),
+                               "Fan, external storage, and disc license "
+                               "activation") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.preferences"), "Preferences") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("startup.open_after_load"),
                                "Automatically open after OnionHEN loads") == 0);

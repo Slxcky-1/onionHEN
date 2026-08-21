@@ -26,8 +26,7 @@ DUPLICATED_INTERNAL_SPACE = re.compile(r"\S {2,}\S")
 
 REQUIRED_TOKENS = {
     "toolbox": {
-        "group.payloads.sub": ("Kstuff",),
-        "group.game.sub": ("ShadowMount+",),
+        "group.payloads.sub": ("Kstuff", "FTP", "ShadowMount+"),
         "ftp.group": ("FTP",),
         "ftp.run": ("FTP",),
         "ftp.autoload": ("FTP",),
