@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -49,6 +50,22 @@
 #define PTRACE_AUTHID 0x4800000000010003
 
 #define ONION_ELFLDR_STATE ONION_SYSTEM_TMP_ELFLDR_STATE
+
+static volatile sig_atomic_t g_resume_pending = 0;
+
+static void on_sigcont(int signo) {
+  (void)signo;
+  g_resume_pending = 1;
+}
+
+static void install_resume_handler(void) {
+  struct sigaction action;
+  memset(&action, 0, sizeof(action));
+  action.sa_handler = on_sigcont;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = 0;
+  sigaction(SIGCONT, &action, NULL);
+}
 
 static void write_state_file(void) {
   mkdir(ONION_SYSTEM_TMP_ROOT, 0777);
@@ -487,12 +504,41 @@ static int serve_elfldr(uint16_t port) {
   write_state_file();
 
   while(1) {
+    struct pollfd pfd;
+    memset(&pfd, 0, sizeof(pfd));
+    pfd.fd = srvfd;
+    pfd.events = POLLIN;
+
+    const int pr = poll(&pfd, 1, 1000);
+    if (g_resume_pending) {
+      g_resume_pending = 0;
+      LOG_INFO("elfldr resumed from standby; re-binding :%u", port);
+      close(srvfd);
+      return 0;
+    }
+    if (pr < 0) {
+      if (errno == EINTR)
+        continue;
+      LOG_ERROR("poll failed: %s", strerror(errno));
+      break;
+    }
+    if (pr == 0)
+      continue;
+    if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
+      LOG_WARN("listen socket dead; re-binding :%u", port);
+      close(srvfd);
+      return 0;
+    }
+
     struct sockaddr_in cliaddr;
     socklen_t socklen = sizeof(cliaddr);
     int connfd = accept(srvfd, (struct sockaddr*)&cliaddr, &socklen);
     if(connfd < 0) {
+      if (errno == EINTR)
+        continue;
       LOG_ERROR("accept failed: %s", strerror(errno));
-      break;
+      close(srvfd);
+      return 0;
     }
     on_connection(connfd);
     close(connfd);
@@ -507,6 +553,7 @@ static int serve_elfldr(uint16_t port) {
 int main(void) {
   signal(SIGCHLD, SIG_IGN);
   signal(SIGPIPE, SIG_IGN);
+  install_resume_handler();
   syscall(SYS_thr_set_name, -1, "onion_elfldr.elf");
   unlink(ONION_SYSTEM_TMP_ELFLDR_BUSY);
 

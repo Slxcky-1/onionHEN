@@ -48,7 +48,6 @@ uint64_t(*GetManifestResourceStream_Original)(uint64_t inst, MonoString* FileNam
 uint64_t(*GetManifestResourceInternal_Orig)(MonoObject* instance, MonoString* name, int* size, MonoObject& module) = nullptr;
 void (*DebugSettings_GetModel_Orig)(MonoObject* instance, MonoObject* param, MonoObject* promise) = nullptr;
 void (*ReactNavigatorManager_UpdateNavigationState_Orig)(MonoObject* instance, MonoObject* state) = nullptr;
-void (*oTerminate)(void) = nullptr;
 GamePadData (*GetData)(int deviceIndex) = nullptr;
 
 bool (*boot_orig)(MonoString* uri, int opt, MonoString* titleIdForBootAction) = nullptr;
@@ -299,4 +298,4 @@ void Patch_Main_thread_Check(MonoImage * image_core) {
 }
 // Common logic function
 
-// launch/terminate → hook_launch.cpp
+// launch → hook_launch.cpp

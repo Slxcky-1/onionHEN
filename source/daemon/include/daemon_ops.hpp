@@ -67,6 +67,8 @@ void *IPC_loop(void *args);
 void *control_tcp_loop(void *args);
 /** Re-bind the TCP :9048 listener after a standby resume. */
 void control_tcp_restart();
+/** True while the :9048 accept loop holds a live listen fd. */
+bool control_tcp_is_listening();
 /** Re-create the crit Unix IPC listener after a standby resume. */
 void restart_crit_ipc_server();
 void handleIPC(clientArgs *client, std::string &inputStr, DaemonCommands command);

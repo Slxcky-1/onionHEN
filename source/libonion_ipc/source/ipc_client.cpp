@@ -459,17 +459,6 @@ bool IPC_Client::CancelCheatSync(uint32_t task_id, std::string &out) {
   return true;
 }
 
-void IPC_Client::SendRestModeAction() {
-  if (!require_util("SendRestModeAction")) {
-    return;
-  }
-  std::string ipc_msg;
-  std::string json;
-  if (!IPCSendCommand(BREW_UTIL_SHELLUI_ON_STANDBY, ipc_msg, json)) {
-    LOG_ERROR("Failed to send rest-mode action");
-  }
-}
-
 void IPC_Client::Reload_Daemon_Settings() {
   std::string ipc_msg;
   if (!IPCSendCommand(BREW_RELOAD_SETTINGS, ipc_msg)) {

@@ -55,22 +55,20 @@ main()
  ├─ 8. LoadSettings()                      # /data/OnionHEN/config.ini
  ├─ 9. start_ip_thread()                   # cpp_service：后台刷本机 IP
  ├─10. pthread_create(IPC_loop)            # msg.cpp：常驻 Unix 监听
- ├─11. IniliatizeHTTP()                    # http.c：curl 下载能力
- ├─12. (可选) patch_checker()              # 非首启时激活 Toolbox 相关
+ ├─11. rest_mode::install()                # SIGCONT 休息唤醒
  │
- └─13. for(;;) 主循环 ─────────────────────────────┐
+ └─12. for(;;) 主循环 ─────────────────────────────┐
         │                                           │
-        │  无网？                                   │
-        │    → sleep / 探测 rest mode              │
-        │    → 可选 patch_checker()（工具箱 reinject） │
+        │  rest_mode::poll()                        │
+        │    → SIGCONT：重绑 util IPC，延迟后 Toolbox 重注入 │
         │                                           │
         └─ sleep → 回到循环 ───────────────────────┘
 ```
 
 要点：
 
-- **IPC 线程先于主循环启动**，且不随 rest/网络重启销毁。
-- 金手指 **service 状态**在冷启动后 `ensureDir` 一次；主循环只做 rest/网络探测。
+- **IPC 线程先于主循环启动**；休息唤醒会关掉旧 listen fd 再绑。
+- 金手指 **service 状态**在冷启动后 `ensureDir` 一次；主循环只做 `SIGCONT` 休息恢复。
 
 ---
 
@@ -106,7 +104,7 @@ source/util/
 | Platform | `util_platform.c` | cheats、可被其它业务复用 |
 | HTTP | `http.c` | msg（下载 cheats/kstuff） |
 | IP poll | `cpp_service.cpp` | main 启动 |
-| Toolbox reinject | `util_toolbox.cpp` | rest/网络路径 |
+| Toolbox reinject | `util_toolbox.cpp` | rest_mode SIGCONT 路径 |
 | Cheats | `cheats/*` | msg IPC |
 
 **依赖原则（目标态）**：
@@ -125,7 +123,7 @@ CheatService ──► Repository / ParserFactory / Applier ──► util_platf
 
 | 线程 | 创建位置 | 生命周期 | 作用 |
 |------|----------|----------|------|
-| main | `main` | 进程 | 主循环、rest/网络探测 |
+| main | `main` | 进程 | 主循环、rest SIGCONT 恢复 |
 | IPC accept | `IPC_loop` | 常驻 | accept Unix 连接 |
 | IPC client | `ipc_client`（每连接一个，detach） | 连接级 | 读 `IPCMessage` → `handleIPC` |
 | IP poll | `start_ip_thread` | 常驻 | 刷新本机 IP 字符串 |
@@ -155,7 +153,7 @@ struct IPCMessage {
 
 | 命令 | 作用 | 内部去向 |
 |------|------|----------|
-| `SHELLUI_ON_STANDBY` | ShellUI 休息模式标记 | 原子标志 `real_rest_mode_detected` |
+| `UNUSED_SHELLUI_ON_STANDBY` | 已移除（唤醒走 SIGCONT） | 序号保留 |
 | `DAEMON_PID` | 返回 util pid | `getpid` |
 | `GET_GAME_VER` | 游戏版本字符串 | param.json / param.sfo（msg 内实现） |
 | `GET_GAME_CHEAT` | 导出金手指列表 JSON 文件路径 | `CheatService::exportList` |
@@ -227,7 +225,7 @@ cheat_engine_runtime
 ### 6.5 IP / Toolbox reinject
 
 - **`start_ip_thread`**（`cpp_service.cpp`）：维护全局 IP 字符串，供 notify 文案使用。
-- **`patch_checker` / `enable_toolbox`**（`util_toolbox.cpp`）：与 Toolbox 注入、ShellCore 相关修补。
+- **`toolbox_reinject` / `enable_toolbox`**（`util_toolbox.cpp`）：休息唤醒后经 crit daemon 重注入 Toolbox。
 
 ### 6.6 金手指（C++：`onion::cheats`）
 

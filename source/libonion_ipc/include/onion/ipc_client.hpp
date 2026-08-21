@@ -89,7 +89,6 @@ public:
                       std::string &out);
   bool CheatSyncStatus(std::string &out);
   bool CancelCheatSync(uint32_t task_id, std::string &out);
-  void SendRestModeAction();
   void Reload_Daemon_Settings();
   bool Launch_Elfldr();
   bool Set_Fan_Threshold(int temp, bool enabled);

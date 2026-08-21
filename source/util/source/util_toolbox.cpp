@@ -29,32 +29,35 @@ bool enable_toolbox() {
 
 /**
  * Re-request toolbox inject via crit daemon.
- * @param rest_resume  true only for real rest-mode recovery paths.
- *                     false for util restart / re-HEN reinject (no rest copy).
+ * @param rest_resume       true only for real rest-mode recovery paths.
+ * @param apply_rest_delay  true for the first attempt of a rest cycle.
  *
- * The delay policy is driven by the rest_resume flag: only rest-mode recovery
- * waits the configured rest_mode.resume_reinject_delay_seconds (see
- * onion_toolbox_should_apply_rest_delay). The reinjection side effect itself
- * is owned by this function; when to trigger it is the rest_mode state
- * machine's decision.
+ * Delay uses onion_toolbox_should_apply_rest_delay. When to call this is the
+ * rest_mode state machine's decision; retries pass apply_rest_delay=false.
  */
-void toolbox_reinject(bool rest_resume) {
+bool toolbox_reinject(bool rest_resume, bool apply_rest_delay) {
     LoadSettings();
     const onion::Settings cfg = g_settings.snapshot();
 
-    if (rest_resume &&
-        onion_toolbox_should_apply_rest_delay(true, cfg.rest_mode_delay_seconds)) {
+    if (apply_rest_delay &&
+        onion_toolbox_should_apply_rest_delay(rest_resume,
+                                             cfg.rest_mode_delay_seconds)) {
         LOG_DEBUG(
             "rest resume delay %llu secs",
             static_cast<unsigned long long>(cfg.rest_mode_delay_seconds));
         sleep(static_cast<unsigned int>(cfg.rest_mode_delay_seconds));
         onion_notify(true,
                      "notify.rest.reactivating");
-    } else {
+    } else if (!rest_resume) {
         LOG_DEBUG("toolbox reinject (not rest resume)");
     }
 
     if (!enable_toolbox()) {
-        onion_notify(true, "notify.toolbox.inject_failed");
+        LOG_ERROR("toolbox reinject failed (rest_resume=%d)", rest_resume ? 1 : 0);
+        if (apply_rest_delay || !rest_resume) {
+            onion_notify(true, "notify.toolbox.inject_failed");
+        }
+        return false;
     }
+    return true;
 }

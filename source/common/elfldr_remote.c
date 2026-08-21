@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <netinet/in.h>
+#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,6 +17,10 @@
 
 #ifndef MSG_NOSIGNAL
 #define MSG_NOSIGNAL 0x20000
+#endif
+
+#ifndef ELFLDR_CONNECT_TIMEOUT_MS
+#define ELFLDR_CONNECT_TIMEOUT_MS 2000
 #endif
 
 static int connect_port(uint16_t port) {
@@ -29,10 +34,40 @@ static int connect_port(uint16_t port) {
   addr.sin_port = htons(port);
   addr.sin_addr.s_addr = htonl(0x7f000001);
 
-  if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+  const int flags = fcntl(fd, F_GETFL, 0);
+  const int nonblock_ok =
+      flags >= 0 && fcntl(fd, F_SETFL, flags | O_NONBLOCK) == 0;
+  if (!nonblock_ok) {
+    if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+      close(fd);
+      return -1;
+    }
+    return fd;
+  }
+
+  const int rc = connect(fd, (struct sockaddr *)&addr, sizeof(addr));
+  if (rc < 0 && errno != EINPROGRESS) {
     close(fd);
     return -1;
   }
+  if (rc != 0) {
+    struct pollfd pfd;
+    memset(&pfd, 0, sizeof(pfd));
+    pfd.fd = fd;
+    pfd.events = POLLOUT;
+    if (poll(&pfd, 1, ELFLDR_CONNECT_TIMEOUT_MS) <= 0) {
+      close(fd);
+      return -1;
+    }
+    int err = 0;
+    socklen_t len = sizeof(err);
+    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len) < 0 || err != 0) {
+      close(fd);
+      return -1;
+    }
+  }
+
+  (void)fcntl(fd, F_SETFL, flags);
   return fd;
 }
 

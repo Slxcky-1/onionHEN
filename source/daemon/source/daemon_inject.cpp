@@ -6,9 +6,6 @@
 #include <onion/platform.h>
 #include <onion/proc_query.h>
 #include <onion/ready.h>
-#include <onion/settings.hpp>
-#include <onion/toolbox_timing.h>
-#include "globalconf.hpp"
 #include <unistd.h>
 
 extern "C" {
@@ -58,23 +55,7 @@ bool cmd_enable_toolbox(){
     }
 
     LOG_INFO("Activating toolbox...");
-    /*
-     * rest_mode.resume_reinject_delay_seconds only on rest resume — never on
-     * cold start.
-     * util_booted is true almost immediately after util starts (before this
-     * inject), so gating on it alone hung first toolbox load for delay seconds.
-     * Rest re-activation delay lives in util toolbox_reinject (rest_mode::Recovery).
-     */
-    LoadSettings();
-    {
-      const uint64_t delay = g_settings.snapshot().rest_mode_delay_seconds;
-      constexpr bool kRestResume = false; /* daemon cold/direct inject path */
-      if (onion_toolbox_should_apply_rest_delay(kRestResume, delay)) {
-        LOG_DEBUG("rest delay %llu (rest resume path)",
-                  static_cast<unsigned long long>(delay));
-        sleep(static_cast<unsigned int>(delay));
-      }
-    }
+    /* Rest delay is util-only (toolbox_reinject on SIGCONT). */
 
     /* Prefer kstuff ready marker when present; fall back to short settle. */
     if (!onion_ready_wait(ONION_READY_KSTUFF, /*timeout_ms=*/5000, /*poll_ms=*/200)) {

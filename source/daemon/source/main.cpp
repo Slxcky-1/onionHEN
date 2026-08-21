@@ -126,7 +126,6 @@ uintptr_t kernel_base = 0;
 
 // Function declarations
 int launchApp(const char *titleId);
-bool enable_toolbox();
 void sig_handler(int signo);
 int elfldr_raise_privileges(pid_t pid);
 extern void makenewapp();
@@ -162,7 +161,19 @@ void *resume_watchdog_thread(void *arg) {
       usleep(1000000);  // let the network stack settle
       restart_crit_ipc_server();
       control_tcp_restart();
-      onion_notify(true, "notify.rest.service_restored");
+      bool listening = false;
+      for (int i = 0; i < 30; ++i) {
+        if (control_tcp_is_listening()) {
+          listening = true;
+          break;
+        }
+        usleep(100000);
+      }
+      if (listening) {
+        onion_notify(true, "notify.rest.service_restored");
+      } else {
+        LOG_WARN("control_tcp not listening yet after resume; bind loop retries");
+      }
     }
     sleep(1);
   }

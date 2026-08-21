@@ -115,6 +115,12 @@ void *ipc_server_loop(void *options_ptr);
 void ipc_server_stop(IpcServerOptions *opts);
 
 /**
+ * Take ownership of *fd (store -1), then shutdown+close it. Safe to call
+ * concurrently with the accept loop: only one side closes the descriptor.
+ */
+void ipc_release_listen_fd(std::atomic<int> *fd);
+
+/**
  * Re-create the listening socket (restore service). Shuts the current
  * listener down so the accept loop closes it and re-listens; the loop keeps
  * running. Used after a rest-mode resume, when the old socket may be dead.

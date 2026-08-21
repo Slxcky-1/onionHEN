@@ -204,17 +204,3 @@ void createJson_hook(MonoObject* inst, MonoObject* array, MonoString* id, MonoSt
 
     createJson(inst, array, id, label, actionUrl, actionId, messageId, subMenu, enable);
 }
-
-void Terminate() {
-    if (!shellui_hooks_are_ready()) {
-        if (oTerminate)
-            oTerminate();
-        return;
-    }
-
-    LOG_DEBUG("******************************\nShellUI is exiting\n*****************************");
-    LOG_DEBUG("Sending Action");
-    IPC_Client& ipc = IPC_Client::getInstance(true);
-    ipc.SendRestModeAction();
-    oTerminate();
-}

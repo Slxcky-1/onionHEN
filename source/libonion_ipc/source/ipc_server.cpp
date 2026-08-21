@@ -257,7 +257,10 @@ void *ipc_server_loop(void *options_ptr) {
     int serverSocket = ipc_network_listen(opts->socket_path);
     if (serverSocket < 0) {
       LOG_ERROR("[%s] networkListen error %s", tag, strerror(errno));
-      return nullptr;
+      if (stoppable && !opts->running->load())
+        break;
+      sleep(1);
+      continue;
     }
     if (opts->server_fd)
       opts->server_fd->store(serverSocket);
@@ -288,10 +291,12 @@ void *ipc_server_loop(void *options_ptr) {
 
     // accept() failed: the listener is gone (e.g. after a standby resume the
     // socket may be dead). Re-listen to restore service unless a permanent
-    // stop was requested.
-    ipc_network_close(serverSocket);
+    // stop was requested. ipc_release_listen_fd owns the close so a concurrent
+    // restart cannot double-close.
     if (opts->server_fd)
-      opts->server_fd->store(-1);
+      ipc_release_listen_fd(opts->server_fd);
+    else
+      ipc_network_close(serverSocket);
     if (stoppable && !opts->running->load())
       break;
     LOG_WARN("[%s] networkAccept error %s; re-listening", tag, strerror(errno));
@@ -309,12 +314,20 @@ void ipc_server_stop(IpcServerOptions *opts) {
   ipc_server_restart(opts);
 }
 
-void ipc_server_restart(IpcServerOptions *opts) {
-  if (!opts || !opts->server_fd)
+void ipc_release_listen_fd(std::atomic<int> *fd) {
+  if (!fd)
     return;
-  const int fd = opts->server_fd->load();
-  if (fd >= 0)
-    shutdown(fd, SHUT_RDWR);
+  const int s = fd->exchange(-1);
+  if (s >= 0) {
+    shutdown(s, SHUT_RDWR);
+    ipc_network_close(s);
+  }
+}
+
+void ipc_server_restart(IpcServerOptions *opts) {
+  if (!opts)
+    return;
+  ipc_release_listen_fd(opts->server_fd);
 }
 
 } // namespace onion

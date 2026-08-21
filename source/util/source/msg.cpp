@@ -164,5 +164,4 @@ void *IPC_loop(void *args) {
   return onion::ipc_server_loop(&g_util_ipc_opts);
 }
 
-/** Re-create the util Unix IPC listener (called after a standby resume). */
 void restart_util_ipc_server() { onion::ipc_server_restart(&g_util_ipc_opts); }

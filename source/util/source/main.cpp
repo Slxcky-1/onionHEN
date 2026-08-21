@@ -150,8 +150,7 @@ int main(void) {
     LOG_INFO("Initializing cheat engine...");
     onion::cheats::CheatService::instance().ensureDir();
 
-    /* Rest-mode recovery: SIGCONT resume signal + network-up confirmation.
-     * See rest_mode.hpp / rest_mode.cpp. */
+    /* Rest-mode recovery: SIGCONT (see rest_mode.hpp). */
     onion::rest_mode::install();
 
     for (;;) {

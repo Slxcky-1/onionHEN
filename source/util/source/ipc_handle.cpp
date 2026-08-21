@@ -5,7 +5,6 @@
 #include <onion/platform.h>
 #include <onion/payload.h>
 #include "ipc.hpp"
-#include "rest_mode.hpp"
 #include "service_facade.hpp"
 #include <msg.hpp>
 #include <onion/settings.hpp>
@@ -104,12 +103,6 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     reply(sender_app, false, out_var);
     break;
   }
-  case BREW_UTIL_SHELLUI_ON_STANDBY: {
-    LOG_INFO("ShellUI on standby");
-    onion::rest_mode::on_standby();
-    reply(sender_app, false);
-    break;
-  }
   case BREW_UTIL_TOGGLE_FTP:
   case BREW_UTIL_TOGGLE_SHADOWMOUNT: {
     const cJSON *toggle = cJSON_GetObjectItemCaseSensitive(my_json.get(),
@@ -132,7 +125,8 @@ void handleIPC(clientArgs *client, std::string &inputStr,
   case BREW_UTIL_LAUNCH_SHADOWMOUNT:
   case BREW_UTIL_UNUSED_KLOG:
   case BREW_UTIL_UNUSED_DPI:
-    /* Removed scan-now / Klog / DirectPKGInstaller; ordinals stay stable. */
+  case BREW_UTIL_UNUSED_SHELLUI_ON_STANDBY:
+    /* Removed scan-now / Klog / DPI / rest-standby IPC; ordinals stay stable. */
     LOG_WARN("Removed-service toggle: unsupported (cmd=%u)", static_cast<unsigned>(command));
     reply(sender_app, true);
     break;

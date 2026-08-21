@@ -583,9 +583,6 @@ bool install_hooks(const ShellImages& img) {
       {"EventManager.OnShareButton", img.capture_menu, "Sce.Vsh.ShellUI.CaptureMenu",
        "EventManager", "OnShareButton", 1, reinterpret_cast<void*>(&OnShareButton),
        reinterpret_cast<void**>(&OnShareButton_orig), false},
-      {"PowerManager.Terminate", img.app_system, "Sce.Vsh.ShellUI.AppSystem",
-       "PowerManager", "Terminate", 0, reinterpret_cast<void*>(&Terminate),
-       reinterpret_cast<void**>(&oTerminate), false},
   };
 
   for (const MonoHookSpec& h : mono_hooks) {

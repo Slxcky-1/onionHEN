@@ -1,49 +1,44 @@
 /* Copyright (C) 2025 OnionHEN / LightningMods
 
-Production wiring for rest-mode recovery (see rest_mode.hpp for the design).
+Production wiring for rest-mode recovery (see rest_mode.hpp).
 
-This file owns the platform-specific pieces that keep rest_mode.hpp pure:
-- the SIGCONT signal handler (resume event),
-- the concrete NetworkProbe / ToolboxReinjector implementations, and
-- the util IPC listener re-creation performed on resume.
+Owns: SIGCONT handler, util Unix IPC re-bind, and toolbox reinjector
+(delay once per cycle). Plugin payloads recover themselves.
 */
 
 #include "rest_mode.hpp"
 #include "util_toolbox.h"
 
-#include <onion/net.h>
 #include <onion/platform.h>
 
 #include <signal.h>
 
-// Re-create the util IPC listener after a standby resume (defined in msg.cpp).
 void restart_util_ipc_server();
 
 namespace onion::rest_mode {
 
 namespace {
 
-// The only thing safe to touch from an async signal handler.
 volatile sig_atomic_t g_resume_pending = 0;
 
-// Concrete probe over the shared libonion_platform net helper.
-class SceNetCtlProbe final : public NetworkProbe {
- public:
-  bool is_up() const override { return onion_net_has_ipv4(); }
-};
-
-// Concrete reinjector: delegate to the util -> crit-daemon toolbox path.
+// Delay once per rest cycle, then delegate to util -> crit-daemon toolbox.
+// Retries skip rest_mode.resume_reinject_delay_seconds.
 class DaemonToolboxReinjector final : public ToolboxReinjector {
  public:
-  void reinject(bool rest_resume) override { toolbox_reinject(rest_resume); }
+  void arm_rest_delay() { apply_delay_next_ = true; }
+  bool reinject(bool rest_resume) override {
+    const bool apply_delay = rest_resume && apply_delay_next_;
+    apply_delay_next_ = false;
+    return toolbox_reinject(rest_resume, apply_delay);
+  }
+
+ private:
+  bool apply_delay_next_ = false;
 };
 
-SceNetCtlProbe g_probe;
 DaemonToolboxReinjector g_reinjector;
-Recovery g_recovery{g_probe, g_reinjector};
+Recovery g_recovery{g_reinjector};
 
-// FreeBSD delivers SIGCONT to the suspended process when the console wakes
-// from rest mode, so this handler is the resume event.
 void on_sigcont(int /*signo*/) { g_resume_pending = 1; }
 
 }  // namespace
@@ -56,14 +51,11 @@ void install() {
   sigaction(SIGCONT, &action, nullptr);
 }
 
-void on_standby() { g_recovery.on_standby(); }
-
 Action poll() {
   if (g_resume_pending != 0) {
     g_resume_pending = 0;
     g_recovery.on_resume();
-    // The util IPC listener may be dead after standby; re-create it so
-    // ShellUI / daemon clients can connect again.
+    g_reinjector.arm_rest_delay();
     restart_util_ipc_server();
     LOG_INFO("rest-mode resume signal received");
   }

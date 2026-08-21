@@ -180,7 +180,6 @@ void shellui_poll_cheat_progress(void);
 
 bool SetVersionString(const char* str);
 int SendShelluiNotify();
-void Terminate();
 extern int (*Orig_AppInstUtilInstallByPackage)(MonoString* uri, MonoString* ex_uri, MonoString* playgo_scenario_id, MonoString* content_id, MonoString* content_name, MonoString* icon_url, uint32_t slot, bool is_playgo_enabled, MonoObject* pkg_info, MonoArray* languages, MonoArray* playgo_scenario_ids, MonoArray* content_ids);
 
 template <typename result>
@@ -332,7 +331,6 @@ extern void (*oSettingPageStackOnPopping)(MonoObject* Instance,
                                           MonoObject* outgoing,
                                           MonoObject* incoming);
 extern MonoString* (*CxmlUri)(MonoObject* obj,MonoString* uri);
-extern void (*oTerminate)(void);
 
 extern bool (*boot_orig)(MonoString* uri, int opt, MonoString* titleIdForBootAction);
 extern bool (*boot_orig_2)(MonoString* uri, int opt);
