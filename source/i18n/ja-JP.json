@@ -242,7 +242,16 @@
     "cheats.on_off": "オン/オフ",
     "cheats.enable_fmt": "%s の %s を有効/無効",
     "plapps.title": "OnionHEN Payload 自作ソフト - アプリケーション",
-    "plapps.version_fmt": "%s | バージョン: %s"
+    "plapps.version_fmt": "%s | バージョン: %s",
+    "plugins.link": "プラグイン",
+    "plugins.link.sub": "内蔵プラグインを管理：Kstuff、FTP サーバー、ShadowMount+",
+    "plugins.title": "★ OnionHEN プラグイン",
+    "plugin.kstuff.title": "Kstuff",
+    "plugin.kstuff.sub": "fSELF / fPKG をサポートするカーネルパッチ。OnionHEN 起動時に読み込みます",
+    "plugin.ftpsrv.title": "FTP サーバー",
+    "plugin.ftpsrv.sub": "内蔵 FTP サーバー（ポート 2121）。切り替えるとすぐに起動または停止します",
+    "plugin.shadowmount.title": "ShadowMount+",
+    "plugin.shadowmount.sub": "ゲームのスキャンとマウントを行うツール。OnionHEN 起動時に読み込みます"
   },
   "notifications": {
     "notify.boot.starting": "OnionHEN を起動しています...",

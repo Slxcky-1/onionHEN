@@ -242,7 +242,16 @@
     "cheats.on_off": "开/关",
     "cheats.enable_fmt": "为 %s 启用/禁用 %s",
     "plapps.title": "OnionHEN Payload 自制软件 - 应用程序",
-    "plapps.version_fmt": "%s | 版本: %s"
+    "plapps.version_fmt": "%s | 版本: %s",
+    "plugins.link": "插件",
+    "plugins.link.sub": "管理内置插件：Kstuff、FTP 服务器与 ShadowMount+",
+    "plugins.title": "★ OnionHEN 插件",
+    "plugin.kstuff.title": "Kstuff",
+    "plugin.kstuff.sub": "支持 fSELF / fPKG 的内核补丁，OnionHEN 启动时加载",
+    "plugin.ftpsrv.title": "FTP 服务器",
+    "plugin.ftpsrv.sub": "内置 FTP 服务器（端口 2121），切换即可立即运行或停止",
+    "plugin.shadowmount.title": "ShadowMount+",
+    "plugin.shadowmount.sub": "游戏扫描与挂载工具，OnionHEN 启动时加载"
   },
   "notifications": {
     "notify.boot.starting": "OnionHEN 正在启动...",

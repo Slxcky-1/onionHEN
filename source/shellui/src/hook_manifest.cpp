@@ -3,6 +3,7 @@
 #include "hooked_funcs.hpp"
 #include "ipc.hpp"
 #include "external_symbols.hpp"
+#include "plugins_registry.hpp"
 #include "shellui_state.hpp"
 #include "onpress_policy.hpp"
 #include "progress_dialog.hpp"
@@ -16,6 +17,8 @@ extern MonoObject *MemoryStream_Instance;
 extern std::string payloads_xml, debug_settings_xml, cheats_xml;
 extern std::string UI3_dec, legacy_dec;
 void generate_payload_xml(std::string &xml_buffer, bool list_page);
+void generate_plugins_xml(std::string &xml_buffer);
+void generate_plugin_config_xml(std::string &xml_buffer);
 void generate_account_xml(std::string &xml_buffer);
 void generate_plapps_xml(std::string &new_xml);
 void generate_toolbox_xml(std::string &new_xml);
@@ -108,6 +111,17 @@ uint64_t GetManifestResourceStream_Hook(uint64_t inst, MonoString *FileName) {
     g_ui.payloads_list.clear();
     generate_payload_xml(new_xml_string, true);
     break;
+  case toolbox::Page::Plugins:
+    generate_plugins_xml(new_xml_string);
+    break;
+  case toolbox::Page::PluginConfig: {
+    const onion::plugins::Descriptor *d =
+        onion::plugins::find_by_config_xml_resource(resourceName);
+    g_ui.active_plugin =
+        d ? std::string(d->key) : std::string(onion::plugins::default_key());
+    generate_plugin_config_xml(new_xml_string);
+    break;
+  }
   case toolbox::Page::Cheats:
     generate_cheats_xml(new_xml_string, g_ui.current_menu_tid, shortcut,
                         shortcut_not_open);

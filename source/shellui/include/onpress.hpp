@@ -67,6 +67,20 @@ const OnPressPrefixEntry *onpress_payloads_prefix(size_t *count);
 const OnPressPrefixEntry *onpress_cheats_prefix(size_t *count);
 const OnPressPrefixEntry *onpress_packages_prefix(size_t *count);
 
+const OnPressExactEntry *onpress_plugins_exact(size_t *count);
+
+/**
+ * Shared built-in plugin handlers (root page + plugins page). Each persists
+ * the matching g_settings field and drives the live side effect where one
+ * exists (FTP start/stop).
+ */
+OnPressResult onpress_kstuff_autoload(OnPressContext &ctx);
+OnPressResult onpress_ftp_autoload(OnPressContext &ctx);
+OnPressResult onpress_shadowmount_autoload(OnPressContext &ctx);
+OnPressResult onpress_shadowmount_scan(OnPressContext &ctx);
+OnPressResult onpress_delete_kstuff(OnPressContext &ctx);
+OnPressResult onpress_shadowmount_remove_external(OnPressContext &ctx);
+
 /** Shared toggle helpers. */
 inline bool value_as_int(const OnPressContext &ctx) {
   return atoi(ctx.value.c_str());

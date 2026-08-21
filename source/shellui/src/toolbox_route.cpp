@@ -1,6 +1,7 @@
 /* Copyright (C) 2025 OnionHEN / LightningMods */
 
 #include "toolbox_route.hpp"
+#include "plugins_registry.hpp"
 
 namespace toolbox {
 
@@ -16,6 +17,9 @@ RouteResult resolve_resource(const RouteInput &in) {
   out.flags.is_debug_settings = (in.resource == in.names.debug_settings_xml);
   out.flags.is_cheats = (in.resource == in.names.cheats_xml);
   out.flags.is_auto_payload = (in.resource == kAutoPayloadsXml);
+  out.flags.is_plugins = (in.resource == kPluginsXml);
+  out.flags.is_plugin_config =
+      (onion::plugins::find_by_config_xml_resource(in.resource) != nullptr);
   out.flags.is_account = (in.resource == kAccountXml);
   out.flags.is_plapps = (in.resource == kPlappsXml);
   out.flags.is_cheat_progress = (in.resource == kCheatProgressXml);
@@ -32,6 +36,10 @@ RouteResult resolve_resource(const RouteInput &in) {
     out.page = Page::DebugSettings;
   } else if (out.flags.is_payloads) {
     out.page = Page::Payloads;
+  } else if (out.flags.is_plugins) {
+    out.page = Page::Plugins;
+  } else if (out.flags.is_plugin_config) {
+    out.page = Page::PluginConfig;
   } else if (out.flags.is_cheats) {
     out.page = Page::Cheats;
     out.clear_cheat_shortcuts_after = true;

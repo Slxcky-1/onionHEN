@@ -242,7 +242,16 @@
     "cheats.on_off": "تشغيل/إيقاف",
     "cheats.enable_fmt": "تفعيل/تعطيل %s لـ %s",
     "plapps.title": "برامج OnionHEN المنزلية - التطبيقات",
-    "plapps.version_fmt": "%s | الإصدار: %s"
+    "plapps.version_fmt": "%s | الإصدار: %s",
+    "plugins.link": "الإضافات",
+    "plugins.link.sub": "إدارة الإضافات المدمجة: Kstuff وخادم FTP و ShadowMount+",
+    "plugins.title": "★ إضافات OnionHEN",
+    "plugin.kstuff.title": "Kstuff",
+    "plugin.kstuff.sub": "تصحيح النواة لدعم fSELF / fPKG، يُحمَّل عند بدء OnionHEN",
+    "plugin.ftpsrv.title": "خادم FTP",
+    "plugin.ftpsrv.sub": "خادم FTP مدمج على المنفذ 2121؛ بدّله لتشغيله أو إيقافه",
+    "plugin.shadowmount.title": "ShadowMount+",
+    "plugin.shadowmount.sub": "فاحص الألعاب ومثبّتها، يُحمَّل عند بدء OnionHEN"
   },
   "notifications": {
     "notify.boot.starting": "جاري تشغيل OnionHEN...",

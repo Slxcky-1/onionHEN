@@ -8,7 +8,7 @@
 #include <cerrno>
 #include <unistd.h>
 
-static OnPressResult id_kstuff_autoload(OnPressContext &ctx) {
+OnPressResult onpress_kstuff_autoload(OnPressContext &ctx) {
   const bool enabled = atol(ctx.value.c_str()) != 0;
   if (enabled == g_settings.kstuff_autoload)
     return OnPressResult::EarlyReturn;
@@ -53,14 +53,14 @@ static OnPressResult id_download_cheats(OnPressContext &ctx) {
   return OnPressResult::Consumed;
 }
 
-static OnPressResult id_delete_kstuff(OnPressContext &ctx) {
+OnPressResult onpress_delete_kstuff(OnPressContext &ctx) {
   (void)ctx;
   unlink("/user/data/OnionHEN/kstuff.elf");
   notify("notify.kstuff.deleted");
   return OnPressResult::Handled;
 }
 
-static OnPressResult id_shadowmount_scan(OnPressContext &ctx) {
+OnPressResult onpress_shadowmount_scan(OnPressContext &ctx) {
   ctx.dirty = false;
   if (!IPC_Client::getInstance(true).LaunchShadowMount()) {
     notify("notify.shadowmount.launch_failed");
@@ -70,7 +70,7 @@ static OnPressResult id_shadowmount_scan(OnPressContext &ctx) {
   return OnPressResult::Consumed;
 }
 
-static OnPressResult id_shadowmount_autoload(OnPressContext &ctx) {
+OnPressResult onpress_shadowmount_autoload(OnPressContext &ctx) {
   const bool enabled = atol(ctx.value.c_str()) != 0;
   if (enabled == g_settings.shadowmount_autoload)
     return OnPressResult::EarlyReturn;
@@ -80,7 +80,7 @@ static OnPressResult id_shadowmount_autoload(OnPressContext &ctx) {
   return OnPressResult::Handled;
 }
 
-static OnPressResult id_shadowmount_remove_external(OnPressContext &ctx) {
+OnPressResult onpress_shadowmount_remove_external(OnPressContext &ctx) {
   ctx.dirty = false;
   if (unlink("/data/OnionHEN/shadowmountplus.elf") != 0 && errno != ENOENT) {
     notify("notify.shadowmount.remove_failed");
@@ -127,11 +127,6 @@ static OnPressResult id_presentation_card(OnPressContext &ctx) {
 }
 
 static const OnPressExactEntry kRootExact[] = {
-    {"id_kstuff_autoload", id_kstuff_autoload},
-    {"id_delete_kstuff", id_delete_kstuff},
-    {"id_shadowmount_scan", id_shadowmount_scan},
-    {"id_shadowmount_autoload", id_shadowmount_autoload},
-    {"id_shadowmount_remove_external", id_shadowmount_remove_external},
     {"id_download_cheats", id_download_cheats},
     {"id_lm_test", id_lm_test},
     {"id_onionhen_credits", id_onionhen_credits},

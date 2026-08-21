@@ -17,7 +17,7 @@ static OnPressResult id_disp_titleids(OnPressContext &ctx) {
   return OnPressResult::Handled;
 }
 
-static OnPressResult id_ftp_autoload(OnPressContext &ctx) {
+OnPressResult onpress_ftp_autoload(OnPressContext &ctx) {
   const bool enabled = atol(ctx.value.c_str()) != 0;
   if (enabled == g_settings.ftp_autoload)
     return OnPressResult::EarlyReturn;
@@ -66,7 +66,6 @@ static OnPressResult id_save_rp_info(OnPressContext &) {
 
 static const OnPressExactEntry kExact[] = {
     {"id_disp_titleids", id_disp_titleids},
-    {"id_ftp_autoload", id_ftp_autoload},
     {"id_remote_play", id_remote_play},
     {"id_save_rp_info", id_save_rp_info},
 };

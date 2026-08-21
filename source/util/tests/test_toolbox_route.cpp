@@ -2,6 +2,7 @@
 #include "test_harness.h"
 
 #include "onpress_policy.hpp"
+#include "plugins_registry.hpp"
 #include "remote_play.hpp"
 #include "shellui_state.hpp"
 #include "toolbox_route.hpp"
@@ -68,6 +69,66 @@ static int test_auto_payloads_and_plapps(void) {
   RouteResult p = resolve_resource(make_in(kPlappsXml));
   TEST_ASSERT_TRUE(p.page == Page::Plapps);
   TEST_ASSERT_TRUE(p.flags.is_plapps);
+  return 0;
+}
+
+static int test_plugins_page(void) {
+  RouteResult r = resolve_resource(make_in(kPluginsXml));
+  TEST_ASSERT_TRUE(r.page == Page::Plugins);
+  TEST_ASSERT_TRUE(r.flags.is_plugins);
+  TEST_ASSERT_TRUE(onpress_domain_for_page(r.page) == OnPressDomain::Plugins);
+  return 0;
+}
+
+static std::string cfg_res(const char *rel) {
+  return std::string(onion::plugins::kConfigResourcePrefix) + rel;
+}
+
+static int test_plugin_config_page(void) {
+  RouteResult r = resolve_resource(make_in(cfg_res("ftpsrv.xml")));
+  TEST_ASSERT_TRUE(r.page == Page::PluginConfig);
+  TEST_ASSERT_TRUE(r.flags.is_plugin_config);
+  TEST_ASSERT_TRUE(onpress_domain_for_page(r.page) ==
+                   OnPressDomain::PluginConfig);
+  TEST_ASSERT_TRUE(restores_parent_on_pop(r.page));
+
+  RouteResult unknown = resolve_resource(make_in(cfg_res("nope.xml")));
+  TEST_ASSERT_TRUE(unknown.page == Page::None);
+  return 0;
+}
+
+static int test_plugins_registry(void) {
+  using namespace onion::plugins;
+
+  TEST_ASSERT_EQ_INT(3, static_cast<int>(kRegistrySize));
+  TEST_ASSERT_TRUE(find_by_key("ftpsrv") != nullptr);
+  TEST_ASSERT_TRUE(find_by_key("missing") == nullptr);
+  TEST_ASSERT_TRUE(find_by_toggle_id("id_plugin_kstuff") != nullptr);
+  TEST_ASSERT_TRUE(find_by_toggle_id("id_nope") == nullptr);
+  TEST_ASSERT_STREQ("ftpsrv", find_by_key("ftpsrv")->key);
+  TEST_ASSERT_STREQ("id_plugin_ftpsrv", find_by_key("ftpsrv")->toggle_id);
+  TEST_ASSERT_STREQ("ftpsrv.xml", find_by_key("ftpsrv")->config_xml);
+  TEST_ASSERT_TRUE(default_key() == std::string_view("kstuff"));
+
+  const Descriptor *by_res = find_by_config_xml_resource(cfg_res("ftpsrv.xml"));
+  TEST_ASSERT_TRUE(by_res != nullptr);
+  TEST_ASSERT_STREQ("ftpsrv", by_res->key);
+  TEST_ASSERT_TRUE(find_by_config_xml_resource(cfg_res("nope.xml")) == nullptr);
+  return 0;
+}
+
+static int test_plugin_config_restores_parent(void) {
+  ToolboxUiState state;
+  state.set_active_page(Page::Plugins);
+  state.set_active_page(Page::PluginConfig);
+  TEST_ASSERT_TRUE(state.active_page == Page::PluginConfig);
+  TEST_ASSERT_TRUE(state.parent_page == Page::Plugins);
+  TEST_ASSERT_TRUE(state.child_page == Page::PluginConfig);
+
+  state.leave_page(Page::PluginConfig);
+  TEST_ASSERT_TRUE(state.active_page == Page::Plugins);
+  TEST_ASSERT_TRUE(state.parent_page == Page::None);
+  TEST_ASSERT_TRUE(state.child_page == Page::None);
   return 0;
 }
 
@@ -258,6 +319,11 @@ extern "C" int test_toolbox_route_suite(void) {
   fails += onion_test_run("route.debug", test_debug_settings_page);
   fails += onion_test_run("route.cheats", test_cheats_page);
   fails += onion_test_run("route.auto_plapps", test_auto_payloads_and_plapps);
+  fails += onion_test_run("route.plugins", test_plugins_page);
+  fails += onion_test_run("route.plugin_config", test_plugin_config_page);
+  fails += onion_test_run("plugins.registry", test_plugins_registry);
+  fails += onion_test_run("plugins.config_restores_parent",
+                          test_plugin_config_restores_parent);
   fails += onion_test_run("route.account", test_account_page);
   fails += onion_test_run("route.cheat_progress", test_cheat_progress_page);
   fails += onion_test_run("route.remote_play", test_remote_play_page);

@@ -242,7 +242,16 @@
     "cheats.on_off": "On/Off",
     "cheats.enable_fmt": "Enable/disable %s for %s",
     "plapps.title": "OnionHEN Payload homebrew - Applications",
-    "plapps.version_fmt": "%s | version: %s"
+    "plapps.version_fmt": "%s | version: %s",
+    "plugins.link": "Plugins",
+    "plugins.link.sub": "Manage built-in plugins: Kstuff, FTP server, and ShadowMount+",
+    "plugins.title": "★ OnionHEN Plugins",
+    "plugin.kstuff.title": "Kstuff",
+    "plugin.kstuff.sub": "Kernel patch for fSELF / fPKG support, loaded at OnionHEN startup",
+    "plugin.ftpsrv.title": "FTP Server",
+    "plugin.ftpsrv.sub": "Built-in FTP server on port 2121; toggle to run or stop now",
+    "plugin.shadowmount.title": "ShadowMount+",
+    "plugin.shadowmount.sub": "Game scanner and mounter, loaded at OnionHEN startup"
   },
   "notifications": {
     "notify.boot.starting": "OnionHEN is starting...",

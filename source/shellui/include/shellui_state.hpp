@@ -33,6 +33,9 @@ struct ToolboxUiState {
   std::vector<Payloads_Apps> payloads_apps_list;
   std::vector<GameEntry> games_list;
 
+  /* The plugin whose config page is active; a registry key ("kstuff"/…). */
+  std::string active_plugin;
+
   void set_active_page(toolbox::Page page) {
     if (toolbox::restores_parent_on_pop(page) && active_page != page) {
       parent_page = active_page;

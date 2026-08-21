@@ -242,7 +242,16 @@
     "cheats.on_off": "เปิด/ปิด",
     "cheats.enable_fmt": "เปิด/ปิด %s สำหรับ %s",
     "plapps.title": "โฮมบรูว์ Payload ของ OnionHEN - แอปพลิเคชัน",
-    "plapps.version_fmt": "%s | เวอร์ชัน: %s"
+    "plapps.version_fmt": "%s | เวอร์ชัน: %s",
+    "plugins.link": "ปลั๊กอิน",
+    "plugins.link.sub": "จัดการปลั๊กอินในตัว: Kstuff, เซิร์ฟเวอร์ FTP และ ShadowMount+",
+    "plugins.title": "★ ปลั๊กอิน OnionHEN",
+    "plugin.kstuff.title": "Kstuff",
+    "plugin.kstuff.sub": "แพตช์เคอร์เนลสำหรับรองรับ fSELF / fPKG โหลดเมื่อ OnionHEN เริ่มทำงาน",
+    "plugin.ftpsrv.title": "เซิร์ฟเวอร์ FTP",
+    "plugin.ftpsrv.sub": "เซิร์ฟเวอร์ FTP ในตัวบนพอร์ต 2121; สลับเพื่อเรียกใช้หรือหยุด",
+    "plugin.shadowmount.title": "ShadowMount+",
+    "plugin.shadowmount.sub": "เครื่องสแกนและเมาท์เกม โหลดเมื่อ OnionHEN เริ่มทำงาน"
   },
   "notifications": {
     "notify.boot.starting": "OnionHEN กำลังเริ่มทำงาน...",

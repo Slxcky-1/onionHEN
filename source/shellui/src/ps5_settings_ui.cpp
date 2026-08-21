@@ -42,12 +42,17 @@ const char* kind_tag(Node::Kind kind) {
     return "text_field";
   case Node::Kind::UserCustom:
     return "user_custom";
+  case Node::Kind::Option:
+    return "option";
+  case Node::Kind::OptionItem:
+    return "option_item";
   }
   return "unknown";
 }
 
 bool is_container(Node::Kind kind) {
-  return kind == Node::Kind::SettingList || kind == Node::Kind::List;
+  return kind == Node::Kind::SettingList || kind == Node::Kind::List ||
+         kind == Node::Kind::Option;
 }
 
 void write_attr(std::ostringstream& out, const char* key, std::string_view value,
@@ -66,7 +71,7 @@ void write_open_tag(std::ostringstream& out, const Node& node, bool self_close) 
   out << '<' << kind_tag(node.kind);
   /* Display text: single '/'. Icon filesystem paths: / → // for ShellUI. */
   write_attr(out, "id", node.attrs.id, /*path_escape=*/false);
-  if (node.kind != Node::Kind::UserCustom)
+  if (node.kind != Node::Kind::UserCustom && !node.attrs.title.empty())
     write_attr(out, "title", node.attrs.title, /*path_escape=*/false);
   write_optional(out, "second_title", node.attrs.second_title, false);
   write_optional(out, "description", node.attrs.description, false);
@@ -82,6 +87,8 @@ void write_open_tag(std::ostringstream& out, const Node& node, bool self_close) 
   write_optional(out, "confirm_phrase", node.attrs.confirm_phrase, false);
   write_optional(out, "initial_focus_to", node.attrs.initial_focus_to, false);
   write_optional(out, "list_size", node.attrs.list_size, false);
+  write_optional(out, "list_highlight", node.attrs.list_highlight, false);
+  write_optional(out, "raw_title", node.attrs.raw_title, false);
   if (node.attrs.restorable)
     write_attr(out, "restorable", *node.attrs.restorable ? "true" : "false",
                false);

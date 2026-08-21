@@ -23,6 +23,9 @@ void SettingPageStackOnPopping_Hook(MonoObject *instance,
     } else if (remote_play_handle_popping(outgoing)) {
       g_ui.leave_page(toolbox::Page::RemotePlay);
       LOG_DEBUG("remote_play_xml: page popped and parent route restored");
+    } else if (g_ui.active_page == toolbox::Page::PluginConfig) {
+      g_ui.leave_page(toolbox::Page::PluginConfig);
+      LOG_DEBUG("plugin_config_xml: page popped and parent route restored");
     }
   }
 

@@ -13,6 +13,7 @@
 #include "onion_cjson.hpp"
 #include "ps5_settings_ui.hpp"
 #include "toolbox_i18n.hpp"
+#include "toolbox_navigation.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -34,8 +35,6 @@ constexpr int kMaxConsecutiveStatusFailures = 10;
 constexpr std::string_view kCustomElementId = "id_cheat_progress_custom";
 
 constexpr const char *kPuiUi3Namespace = "Sce.PlayStation.PUI.UI3";
-constexpr const char *kLegacyCoreNamespace =
-    "Sce.Vsh.ShellUI.Settings.CoreUI3";
 constexpr const char *kUpdatePanelNamespace =
     "Sce.Vsh.ShellUI.Settings.Peripherals.MorpheusUpdateUI3";
 constexpr const char *kUpdatePanelClass = "UpdateProgressPanel";
@@ -760,51 +759,7 @@ void *cheat_progress_poll(void *raw) {
 } // namespace
 
 bool cheat_progress_open_page(void) {
-  if (!mono_class_from_name || !mono_class_get_method_from_name ||
-      !mono_runtime_invoke || !mono_string_new) {
-    LOG_ERROR("cheat_progress_xml: Legacy navigation API unavailable");
-    return false;
-  }
-
-  MonoImage *legacy_image = getDLLimage(legacy_dec.c_str());
-  MonoClass *manager_class =
-      legacy_image ? mono_class_from_name(legacy_image, kLegacyCoreNamespace,
-                                          "UIManager")
-                   : nullptr;
-  MonoMethod *get_instance = manager_class
-                                 ? mono_class_get_method_from_name(
-                                       manager_class, "get_Instance", 0)
-                                 : nullptr;
-  MonoMethod *push = manager_class
-                         ? mono_class_get_method_from_name(manager_class,
-                                                           "Push", 3)
-                         : nullptr;
-  MonoDomain *domain = current_domain();
-  MonoString *xml =
-      domain ? mono_string_new(domain, "cheat_progress.xml") : nullptr;
-  if (!get_instance || !push || !xml) {
-    LOG_ERROR("cheat_progress_xml: failed to resolve UIManager.Push");
-    return false;
-  }
-
-  MonoObject *exc = nullptr;
-  MonoObject *manager = mono_runtime_invoke(get_instance, nullptr, nullptr, &exc);
-  if (exc || !manager) {
-    LOG_ERROR("cheat_progress_xml: UIManager.Instance unavailable");
-    return false;
-  }
-
-  int animation = 0;
-  void *args[] = {xml, nullptr, &animation};
-  exc = nullptr;
-  mono_runtime_invoke(push, manager, args, &exc);
-  if (exc) {
-    LOG_ERROR("cheat_progress_xml: UIManager.Push threw");
-    return false;
-  }
-
-  LOG_DEBUG("cheat_progress_xml: pushed cheat_progress.xml");
-  return true;
+  return toolbox_push_resource("cheat_progress.xml");
 }
 
 void cheat_progress_show(uint32_t task_id) {

@@ -242,7 +242,16 @@
     "cheats.on_off": "On/Off",
     "cheats.enable_fmt": "Per %s, attiva/disattiva %s",
     "plapps.title": "Homebrew payload OnionHEN - Applicazioni",
-    "plapps.version_fmt": "%s | versione: %s"
+    "plapps.version_fmt": "%s | versione: %s",
+    "plugins.link": "Plugin",
+    "plugins.link.sub": "Gestisci i plugin integrati: Kstuff, server FTP e ShadowMount+",
+    "plugins.title": "★ Plugin OnionHEN",
+    "plugin.kstuff.title": "Kstuff",
+    "plugin.kstuff.sub": "Patch del kernel per il supporto fSELF / fPKG, caricato all'avvio di OnionHEN",
+    "plugin.ftpsrv.title": "Server FTP",
+    "plugin.ftpsrv.sub": "Server FTP integrato sulla porta 2121; attiva/disattiva per avviarlo o arrestarlo",
+    "plugin.shadowmount.title": "ShadowMount+",
+    "plugin.shadowmount.sub": "Scanner e montatore di giochi, caricato all'avvio di OnionHEN"
   },
   "notifications": {
     "notify.boot.starting": "OnionHEN è in avvio...",
