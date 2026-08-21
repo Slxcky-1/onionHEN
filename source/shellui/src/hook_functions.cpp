@@ -45,7 +45,6 @@ int (*oOnPress)(MonoObject* Instance, MonoObject* element, MonoObject* e) = null
 int (*oOnPreCreate)(MonoObject* Instance, MonoObject* element) = nullptr;
 MonoString* (*CxmlUri)(MonoObject* obj, MonoString* uri) = nullptr;
 uint64_t(*GetManifestResourceStream_Original)(uint64_t inst, MonoString* FileName) = nullptr;
-uint64_t(*GetManifestResourceInternal_Orig)(MonoObject* instance, MonoString* name, int* size, MonoObject& module) = nullptr;
 void (*DebugSettings_GetModel_Orig)(MonoObject* instance, MonoObject* param, MonoObject* promise) = nullptr;
 void (*ReactNavigatorManager_UpdateNavigationState_Orig)(MonoObject* instance, MonoObject* state) = nullptr;
 GamePadData (*GetData)(int deviceIndex) = nullptr;
@@ -62,11 +61,6 @@ int (*__sys_regmgr_call)(long, long, int*, int*, long) = nullptr;
 
 MonoString *(*oGetString)(MonoObject *Instance, MonoString *str) = nullptr;
 int (*LaunchApp_orig)(MonoString* titleId, uint64_t* args, int argsSize, LaunchAppParam *param) = nullptr;
-
-// Store original function pointer
-DecryptRnpsBundle_t DecryptRnpsBundle = NULL;
-
-
 
 /* ================================= HOOKED GLOBAL VARS ============================================= */
 MonoClass* MemoryStream_IO = nullptr;

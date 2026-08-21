@@ -17,7 +17,6 @@ along with this program; see the file COPYING. If not, see
 #include "detour.h"
 #include "debug_settings_route_runtime.hpp"
 #include "hooked_funcs.hpp"
-#include "appinst_types.hpp"
 #include "defs.h"
 #include "external_symbols.hpp"
 #include "homeui_top_nav_patch.hpp"
@@ -88,15 +87,7 @@ void (*Orig_ReloadApp)(MonoString* str) = nullptr;
 // Defined in prx_install / prx_overlay
 void ReloadApp(MonoString* str);
 void OnRender_Hook(MonoObject* instance);
-void* dialogue_thread(void* arg);
 int KillAppWithReason_Hook(int appId, int reason);
-
-extern int (*sceAppInstUtilInstallByPackage_orig)(MetaInfo* arg1,
-                                                  SceAppInstallPkgInfo* pkg_info,
-                                                  PlayGoInfo* arg2);
-int sceAppInstUtilInstallByPackage_hook(MetaInfo* arg1,
-                                        SceAppInstallPkgInfo* pkg_info,
-                                        PlayGoInfo* arg2);
 
 // ---------------------------------------------------------------------------
 // Init constants
@@ -180,7 +171,6 @@ struct ShellImages {
   MonoImage* lnc = nullptr; // optional
   MonoImage* react_common = nullptr;
   MonoImage* rn_shell = nullptr;
-  MonoImage* app_install = nullptr;
   MonoImage* pui = nullptr;
 };
 
@@ -197,16 +187,7 @@ MonoImage* require_dll(const char* name) {
 // Phase 1: native dynlib symbols
 // ---------------------------------------------------------------------------
 
-bool resolve_native_symbols(pid_t pid, void*& out_sceAppInstUtilInstallByPackage) {
-  // Locals required by KERNEL_DLSYM (writes into a named variable).
-  static int (*sceAppInstUtilInstallByPackage)(MetaInfo*, SceAppInstallPkgInfo*,
-                                               PlayGoInfo*) = nullptr;
-
-  int appinstaller = get_module_handle(pid, "libSceAppInstUtil.sprx");
-  KERNEL_DLSYM(appinstaller, sceAppInstUtilInstallByPackage);
-  out_sceAppInstUtilInstallByPackage =
-      reinterpret_cast<void*>(sceAppInstUtilInstallByPackage);
-
+bool resolve_native_symbols(pid_t pid) {
   int libkernelsys = get_module_handle(pid, "libkernel_sys.sprx");
   KERNEL_DLSYM(libkernelsys, sceKernelDebugOutText);
   KERNEL_DLSYM(libkernelsys, sceKernelMkdir);
@@ -432,7 +413,6 @@ bool load_shell_images(ShellImages& out) {
 
   out.react_common = require_dll("ReactNative.Vsh.Common.dll");
   out.rn_shell = require_dll("Sce.Vsh.ShellUI.ReactNativeShellApp.dll");
-  out.app_install = require_dll("Sce.Vsh.AppInstUtilWrapper.dll");
   out.pui = require_dll("Sce.PlayStation.PUI.dll");
 
   // Publish images other modules need
@@ -441,8 +421,7 @@ bool load_shell_images(ShellImages& out) {
   pui_img = out.pui;
 
   return out.legacy && out.mscorlib && out.react_pui && out.app_system && out.core &&
-         out.capture_menu && out.react_common && out.rn_shell && out.app_install &&
-         out.pui;
+         out.capture_menu && out.react_common && out.rn_shell && out.pui;
 }
 
 // ---------------------------------------------------------------------------
@@ -711,8 +690,6 @@ void setup_proc_hooks() {
 }
 
 void run_keep_alive() {
-  pthread_t thread_id{};
-  scePthreadCreate(&thread_id, nullptr, dialogue_thread, nullptr, "dialogue_thread");
   // Publish the initialized SceShellUI process instance.  The daemon keeps
   // this marker so a restart cannot inject a second Toolbox into the same PID.
   onion_ready_signal_pid(ONION_READY_TOOLBOX, getpid());
@@ -739,10 +716,7 @@ int main(int argc, char const* argv[]) {
   const pid_t pid = getpid();
   AuthIdGuard auth(pid, set_ucred_to_ptrace());
 
-  void* appinst_fn = nullptr;
-  (void)appinst_fn;
-
-  if (!resolve_native_symbols(pid, appinst_fn))
+  if (!resolve_native_symbols(pid))
     return -1;
 
   LOG_DEBUG("Starting ShellUI Module ....");

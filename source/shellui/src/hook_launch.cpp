@@ -88,49 +88,6 @@ int sceRegMgrGetInt_hook(long regid, int* out_val){
     return 0;
   }
 
-  #define visualize_fps_range 2013460994
-  #define visualize_fps_en 2013460993
-  #define visualize_fps_pos 2013460995
-  #define visualize_fps_port 2013460996
-  static int (*crash)() = nullptr;
-
-  if(regid == visualize_fps_range) {
-      crash();
-    LOG_DEBUG("visualize_fps_range regid %lx", regid);
-    if (out_val) {
-      *out_val = 2;
-    }
-    return 0;
-  }
-  else if(regid == visualize_fps_en) {
-
-	  crash();
-    LOG_DEBUG("visualize_fps_en regid %lx", regid); 
-    if (out_val) {
-      *out_val = 3;
-    }
-    return 0;
-  }
-  else if(regid == visualize_fps_pos) {
-      crash();
-    LOG_DEBUG("visualize_fps_pos regid %lx", regid);
-    if (out_val) {
-      *out_val = 1;
-    }
-    return 0;
-  }
-  else if(regid == visualize_fps_port) {
-      crash();
-    LOG_DEBUG("visualize_fps_port regid %lx", regid);
-    if (out_val) {
-      *out_val = 0;
-    }
-
-    return 0;
-  }
-
-  //LOG_DEBUG("sceRegMgrGetInt_hook: regid %lx", regid);
-
   int ret = 0;
   if(__sys_regmgr_call(2, regid, &ret, out_val, SCE_REGMGR_INT_SIZE)){
 #if SHELL_DEBUG==1

@@ -96,8 +96,6 @@ struct ioctl_C0105203_args
 
 void __syscall();
 extern bool is_patches_plugin_running;
-// Original function pointer type
-typedef int (*DecryptRnpsBundle_t)(uint8_t* data, int offset, int size);
 
 /* Minimal DIR surface used by payload scanners (not full BSD dirent). */
 typedef struct _dirdesc {
@@ -120,7 +118,6 @@ extern "C" int closedir(DIR*);
 void notify(const char* text, ...);
 
 extern uint64_t(*GetManifestResourceStream_Original)(uint64_t inst, MonoString* FileName);
-extern uint64_t(*GetManifestResourceInternal_Orig)(MonoObject* instance, MonoString* name, int* size, MonoObject& module);
 extern void (*DebugSettings_GetModel_Orig)(MonoObject* instance, MonoObject* param, MonoObject* promise);
 extern void (*ReactNavigatorManager_UpdateNavigationState_Orig)(MonoObject* instance, MonoObject* state);
 extern  void (*OnShareButton_orig)(MonoObject* data);
@@ -146,7 +143,6 @@ void Patch_Main_thread_Check(MonoImage * image_core);
 uint64_t Get_Address_of_Method(MonoImage* Assembly_Image, const char* Name_Space, const char* Class_Name, const char* Method_Name, int Param_Count);
 uint64_t Get_Address_of_Method(MonoImage* Assembly_Image, MonoClass* klass, const char* Method_Name, int Param_Count);
 uint64_t GetManifestResourceStream_Hook(uint64_t inst, MonoString* FileName);
-uint64_t GetManifestResourceInternal_Hook(MonoObject* instance, MonoString* name, int* size, MonoObject& module);
 void DebugSettings_GetModel_Hook(MonoObject* instance, MonoObject* param, MonoObject* promise);
 void ReactNavigatorManager_UpdateNavigationState_Hook(MonoObject* instance, MonoObject* state);
 MonoObject* New_Mono_XML_From_String(std::string xml_doc, MonoDomain* domain);
@@ -180,7 +176,6 @@ void shellui_poll_cheat_progress(void);
 
 bool SetVersionString(const char* str);
 int SendShelluiNotify();
-extern int (*Orig_AppInstUtilInstallByPackage)(MonoString* uri, MonoString* ex_uri, MonoString* playgo_scenario_id, MonoString* content_id, MonoString* content_name, MonoString* icon_url, uint32_t slot, bool is_playgo_enabled, MonoObject* pkg_info, MonoArray* languages, MonoArray* playgo_scenario_ids, MonoArray* content_ids);
 
 template <typename result>
 result Get_Property(MonoClass* Klass, MonoObject* Instance, const char* Property_Name)
@@ -337,7 +332,6 @@ extern bool (*boot_orig_2)(MonoString* uri, int opt);
 extern GamePadData (*GetData)(int deviceIndex);
 extern MonoString *(*oGetString)(MonoObject *Instance, MonoString *str);
 extern void (*createJson)(MonoObject*, MonoObject* array, MonoString* id, MonoString* label, MonoString* actionUrl, MonoString* actionId, MonoString* messageId, MonoObject* subMenu, bool enable);
-extern DecryptRnpsBundle_t DecryptRnpsBundle;
 
 extern int (*__sys_regmgr_call)(long, long, int*, int*, long);
 
@@ -398,8 +392,6 @@ GamePadData GetData_hook(int deviceIndex);
 void OnShareButton(MonoObject * data);
 void CaptureScreen_old(MonoObject*  inst, int userId, long deviceId, int capType, MonoObject* capInfo);
 void CaptureScreen_new(MonoObject*  inst, int userId, long deviceId, int capType,  MonoString* format, MonoObject* capInfo);
-int DecryptRnpsBundle_Hook(uint8_t* data, int offset, int size);
-int rnps_decrypt_block(void* buffer, int size);
 int ioctl_hook (int fd, unsigned long request, void *argp);
 int LaunchApp(MonoString* titleId, uint64_t* args, int argsSize, LaunchAppParam *param);
 int sceRegMgrGetInt_hook(long regid, int* out_val);
