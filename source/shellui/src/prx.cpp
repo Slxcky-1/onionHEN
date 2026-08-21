@@ -780,17 +780,11 @@ int main(int argc, char const* argv[]) {
 
   shellui_hooks_publish_ready();
   /*
-   * home_screen.show_title_ids spoofs RegMgr as soon as hooks are ready, but
-   * home already cached the old value. ReloadApp must run on the UI thread
-   * (OnRender), not this inject worker. Queue a one-shot; no wall-clock delay —
-   * the next
-   * OnRender after hooks-ready is the readiness gate (onion_ready TOOLBOX is
-   * only a cross-process marker for the daemon, set later in keep-alive).
+   * Home already cached pre-inject state. Display-TID spoof and the top-nav
+   * RNPS patch both need NPXS40002 ReloadApp on the UI thread (OnRender), not
+   * this inject worker. One pending flag coalesces both reasons.
    */
-  if (g_settings.display_tids) {
-    shellui_request_display_tids_home_reload();
-  }
-  shellui_request_homeui_top_nav_reload();
+  shellui_request_home_reload();
   hooked = true;
   run_keep_alive();
   return 0;

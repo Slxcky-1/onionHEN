@@ -11,7 +11,6 @@
 #include "ipc.hpp" // shellui_log + IPC_Client
 #include <onion/settings.hpp>
 
-#include <atomic>
 #include <cmath>
 
 namespace {
@@ -19,17 +18,6 @@ namespace {
 bool valid_dimension(float value) {
   return std::isfinite(value) && value > 1.0f;
 }
-
-/*
- * Inject worker must not call ReactApplicationSceneManager.ReloadApp.
- * After hooks are ready, OnRender (UI thread) drains this one-shot flag.
- *
- * This is intentionally NOT timed by wall-clock/frames and NOT gated on
- * onion_ready(ONION_READY_TOOLBOX): that marker is a cross-process "toolbox
- * online" handshake for the daemon.  Local readiness is shellui_hooks_are_ready()
- * (already required before OnRender polls), plus "we are on the UI thread".
- */
-std::atomic<bool> g_display_tids_reload_pending{false};
 
 } // namespace
 
@@ -198,25 +186,4 @@ void settings_commit(bool reload_main, bool reload_util)
   /* Apply last so failures while persisting/propagating remain visible even
      when the newly selected level is off or more restrictive. */
   (void)onion::apply_log_settings(g_settings);
-}
-
-void shellui_request_display_tids_home_reload(void) {
-  if (!g_settings.display_tids) {
-    return;
-  }
-  g_display_tids_reload_pending.store(true, std::memory_order_release);
-  LOG_DEBUG("home_screen.show_title_ids: queued NPXS40002 home reload");
-}
-
-void shellui_poll_display_tids_home_reload(void) {
-  /* Caller must already be on UI thread after shellui_hooks_are_ready(). */
-  if (!g_display_tids_reload_pending.exchange(false, std::memory_order_acq_rel)) {
-    return;
-  }
-  if (!g_settings.display_tids) {
-    LOG_WARN("home_screen.show_title_ids: skip home reload (setting off)");
-    return;
-  }
-  LOG_DEBUG("home_screen.show_title_ids: applying home reload on UI thread");
-  ReloadRNPSApp("NPXS40002");
 }

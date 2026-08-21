@@ -2,7 +2,6 @@
 
 
 #include "hooked_funcs.hpp"
-#include "homeui_top_nav_patch.hpp"
 #include "ipc.hpp"
 #include "external_symbols.hpp"
 #include "overlay_text_metrics.hpp"
@@ -531,9 +530,8 @@ void OnRender_Hook(MonoObject* instance) {
     return;
   }
 
-  /* UI thread: apply deferred home reloads after cold inject. */
-  shellui_poll_display_tids_home_reload();
-  shellui_poll_homeui_top_nav_reload();
+  /* UI thread: one NPXS40002 reload covers display TIDs and top-nav patch. */
+  shellui_poll_home_reload();
 
   static bool inited = false;
   static unsigned int idle_thread_id[kCpuCores] = {};
