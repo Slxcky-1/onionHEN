@@ -469,8 +469,6 @@ constexpr const char* kIconAccount =
     "/user/data/OnionHEN/assets/icon_xml_account.png";
 constexpr const char* kIconSettings =
     "/user/data/OnionHEN/assets/icon_xml_settings.png";
-constexpr const char* kIconNetwork =
-  "/user/data/OnionHEN/assets/icon_xml_network.png";
 constexpr const char* kIconShortcuts =
     "/user/data/OnionHEN/assets/icon_xml_shortcuts.png";
 constexpr const char* kIconDebug =
@@ -549,7 +547,7 @@ void append_toolbox_network_group(ps5ui::Group& g) {
   } else if (activator.IsNotActivated()) {
     remote_play_alert =
         std::string(toolbox_i18n::tr("account.status.not_activated")) + "\n" +
-        toolbox_i18n::tr("group.account") + " > " +
+        toolbox_i18n::tr("group.network") + " > " +
         toolbox_i18n::tr("account.link") + "\n" +
         toolbox_i18n::tr("account.link.sub");
   }
@@ -619,7 +617,7 @@ void append_toolbox_display_group(ps5ui::Group& g) {
 
 void append_toolbox_account_group(ps5ui::Group& g) {
   g.link("id_account_activation", toolbox_i18n::tr("account.link"),
-         "account.xml", toolbox_i18n::tr("account.link.sub"), kIconAccount);
+         "account.xml", toolbox_i18n::tr("account.link.sub"));
 }
 
 void append_toolbox_system_group(ps5ui::Group& g) {
@@ -873,19 +871,17 @@ void generate_toolbox_xml(std::string& new_xml) {
           toolbox_i18n::tr("group.game.sub"), kIconGame, "id_cheats")
         .group(
           "id_group_network", toolbox_i18n::tr("group.network"),
-          [](ps5ui::Group& g) { append_toolbox_network_group(g); },
-          toolbox_i18n::tr("group.network.sub"), kIconNetwork,
+          [](ps5ui::Group& g) {
+            append_toolbox_network_group(g);
+            append_toolbox_account_group(g);
+          },
+          toolbox_i18n::tr("group.network.sub"), kIconAccount,
           "id_remote_play")
       .group(
           "id_group_display", toolbox_i18n::tr("group.display"),
           [](ps5ui::Group& g) { append_toolbox_display_group(g); },
           toolbox_i18n::tr("group.display.sub"), kIconMonitor,
           "id_overlay_opts")
-      .group(
-          "id_group_account", toolbox_i18n::tr("group.account"),
-          [](ps5ui::Group& g) { append_toolbox_account_group(g); },
-          toolbox_i18n::tr("group.account.sub"), kIconAccount,
-          "id_account_activation")
       .group(
           "id_group_system", toolbox_i18n::tr("group.system"),
           [](ps5ui::Group& g) { append_toolbox_system_group(g); },
