@@ -53,6 +53,7 @@ void apply_overlay_layout() {
   constexpr float w_gpu = 190.0f;
   constexpr float w_ram = 170.0f;
   constexpr float w_ip = 200.0f;
+  constexpr float w_fps = 130.0f;
   constexpr float kGap = 28.0f; /* roomy group gap (not packed) */
   constexpr float kOffscreen = -4096.0f;
 
@@ -70,6 +71,8 @@ void apply_overlay_layout() {
     g_overlay_layout.overlay_ram_y = 0.0f;
     g_overlay_layout.overlay_ip_x = kOffscreen;
     g_overlay_layout.overlay_ip_y = 0.0f;
+    g_overlay_layout.overlay_fps_x = kOffscreen;
+    g_overlay_layout.overlay_fps_y = 0.0f;
     return;
   }
 
@@ -78,6 +81,7 @@ void apply_overlay_layout() {
   const bool show_gpu = g_settings.overlay_enabled && g_settings.overlay_gpu;
   const bool show_ram = g_settings.overlay_enabled && g_settings.overlay_ram;
   const bool show_ip = g_settings.overlay_enabled && g_settings.overlay_ip;
+  const bool show_fps = g_settings.overlay_enabled && g_settings.overlay_fps;
   const float w_cpu = g_settings.all_cpu_usage ? w_cpu_all : w_cpu_avg;
 
   float content_w = 0.0f;
@@ -89,6 +93,7 @@ void apply_overlay_layout() {
       content_w += kGap;
     content_w += w;
   };
+  acc(show_fps, w_fps);
   acc(show_cpu, w_cpu);
   acc(show_gpu, w_gpu);
   acc(show_ram, w_ram);
@@ -122,6 +127,8 @@ void apply_overlay_layout() {
     x += w + kGap;
   };
 
+  place(g_overlay_layout.overlay_fps_x, g_overlay_layout.overlay_fps_y,
+        show_fps, w_fps);
   place(g_overlay_layout.overlay_cpu_x, g_overlay_layout.overlay_cpu_y,
         show_cpu, w_cpu);
   place(g_overlay_layout.overlay_gpu_x, g_overlay_layout.overlay_gpu_y,

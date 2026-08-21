@@ -134,6 +134,8 @@
     "overlay.pos.bottom": "الحافة السفلية",
     "overlay.gpu": "GPU",
     "overlay.gpu.desc": "إظهار حرارة GPU واستخدام ذاكرة الفيديو",
+    "overlay.fps": "FPS",
+    "overlay.fps.desc": "عرض معدل إطارات اللعبة",
     "overlay.cpu": "CPU",
     "overlay.cpu.desc": "إظهار حرارة CPU ومتوسط الاستخدام",
     "overlay.cpu_all": "إظهار استخدام كل أنوية CPU",

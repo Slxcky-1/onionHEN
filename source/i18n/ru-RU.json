@@ -134,6 +134,8 @@
     "overlay.pos.bottom": "Нижний край",
     "overlay.gpu": "GPU",
     "overlay.gpu.desc": "Температура GPU и занятость видеопамяти",
+    "overlay.fps": "FPS",
+    "overlay.fps.desc": "Показывать частоту кадров игры",
     "overlay.cpu": "CPU",
     "overlay.cpu.desc": "Температура CPU и средняя загрузка",
     "overlay.cpu_all": "Загрузка всех ядер CPU",

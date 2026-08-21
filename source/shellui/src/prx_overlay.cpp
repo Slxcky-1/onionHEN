@@ -6,6 +6,7 @@
 #include "ipc.hpp"
 #include "external_symbols.hpp"
 #include "overlay_text_metrics.hpp"
+#include <onion/fps_sample.h>
 #include <onion/net.h>
 #include <onion/settings.hpp>
 #include <cstdio>
@@ -159,6 +160,7 @@ constexpr int kMaxProcThreads = 3072;
 constexpr int kCpuCores = 8;
 constexpr int kOverlayInitDelayFrames = 30;
 constexpr int kOverlayUpdateIntervalFrames = 60;
+constexpr int kFpsUpdateIntervalFrames = 2;
 constexpr int kOverlayFontSize = 18;
 constexpr int kClockIdRealtime = 4;
 constexpr int kVmSystem = 1;
@@ -221,9 +223,10 @@ void set_label_layout(const char *widget_name, float margin_left,
  * Width is measured from the live text so groups (esp. RAM / IP / all-CPU)
  * expand instead of wrapping when every metric is enabled.
  */
-void layout_bar_labels(const char *cpu_temp, const char *cpu_usage,
-                       const char *gpu_temp, const char *gpu_usage,
-                       const char *ram_str, const char *ip_str) {
+void layout_bar_labels(const char *fps_str, const char *cpu_temp,
+                       const char *cpu_usage, const char *gpu_temp,
+                       const char *gpu_usage, const char *ram_str,
+                       const char *ip_str) {
   constexpr float kPairGap = 8.0f;   /* label → first value */
   constexpr float kValGap = 10.0f;   /* value → value (temp / usage) */
   constexpr float kSepGap = 10.0f;   /* last value → "|" */
@@ -249,9 +252,12 @@ void layout_bar_labels(const char *cpu_temp, const char *cpu_usage,
     const char *v1;
     const char *id_sep;
   };
-  GroupSpec groups[4];
+  GroupSpec groups[5];
   int ng = 0;
 
+  if (g_settings.overlay_fps && fps_str)
+    groups[ng++] = {"id_fps_label", "FPS", "id_fps_value", fps_str, nullptr,
+                    nullptr, "id_fps_sep"};
   if ((g_settings.overlay_cpu || g_settings.all_cpu_usage) && cpu_temp)
     groups[ng++] = {"id_cpu_label",
                     "CPU",
@@ -325,6 +331,7 @@ void layout_bar_labels(const char *cpu_temp, const char *cpu_usage,
   const float margin_top = g_overlay_layout.label_margin_top;
 
   static const char *kAll[] = {
+      "id_fps_label",        "id_fps_value",       "id_fps_sep",
       "id_cpu_label",        "id_cpu_temp_value",  "id_cpu_usage_value",
       "id_cpu_sep",          "id_gpu_label",       "id_gpu_temp_value",
       "id_gpu_usage_value",  "id_gpu_sep",         "id_ram_label",
@@ -381,6 +388,10 @@ bool init_overlay_once(unsigned int idle_tid[kCpuCores]) {
 
   RemoveGameWidget(REMOVE_ALL_OVERLAYS);
   bool widgets_ready = true;
+  if (g_settings.overlay_fps) {
+    if (!CreateGameWidget(CREATE_FPS_OVERLAY))
+      widgets_ready = false;
+  }
   if (g_settings.overlay_cpu || g_settings.all_cpu_usage) {
     if (!CreateGameWidget(CREATE_CPU_OVERLAY))
       widgets_ready = false;
@@ -404,6 +415,7 @@ bool init_overlay_once(unsigned int idle_tid[kCpuCores]) {
 
   /* First paint: center placeholders on the full-width bar. */
   layout_bar_labels(
+      g_settings.overlay_fps ? "--" : nullptr,
       (g_settings.overlay_cpu || g_settings.all_cpu_usage) ? "--C" : nullptr,
       (g_settings.overlay_cpu || g_settings.all_cpu_usage) ? "--%" : nullptr,
       g_settings.overlay_gpu ? "--C" : nullptr,
@@ -460,52 +472,54 @@ bool sample_cpu_usage(unsigned int idle_tid[kCpuCores], int& current_bank,
   return false;
 }
 
-void update_overlay_metrics(unsigned int idle_tid[kCpuCores], int& current_bank) {
+void format_fps_text(char *buf, size_t buf_sz) {
+  if (!buf || buf_sz == 0)
+    return;
+  OnionFpsSample sample {};
+  if (onion_fps_read(&sample) == 0 && sample.valid && sample.fps >= 1.f) {
+    if (sample.fps >= 100.f)
+      snprintf(buf, buf_sz, "%.0f", sample.fps);
+    else
+      snprintf(buf, buf_sz, "%.1f", sample.fps);
+  } else {
+    snprintf(buf, buf_sz, "--");
+  }
+}
+
+void update_overlay_metrics(unsigned int idle_tid[kCpuCores], int& current_bank,
+                            char *cpu_temp, size_t cpu_temp_sz, char *cpu_usage,
+                            size_t cpu_usage_sz, char *gpu_temp, size_t gpu_temp_sz,
+                            char *gpu_usage, size_t gpu_usage_sz, char *ram_str,
+                            size_t ram_sz, char *ip_address, size_t ip_sz) {
   if (!g_settings.overlay_enabled)
     return;
 
-  char gpu_temp[32] = {};
-  char gpu_usage[32] = {};
-  char cpu_temp[32] = {};
-  char cpu_usage[120] = {};
-  char ram_str[32] = {};
-  char ip_address[64] = {};
-
-  sample_cpu_usage(idle_tid, current_bank, cpu_usage, sizeof(cpu_usage));
+  sample_cpu_usage(idle_tid, current_bank, cpu_usage, cpu_usage_sz);
 
   if (g_settings.overlay_ram) {
     Get_Page_Table_Stats(kVmSystem, kPageTableRam, &RAM.Used, &RAM.Free, &RAM.Total);
-    snprintf(ram_str, sizeof(ram_str), "%u MB", RAM.Used);
+    snprintf(ram_str, ram_sz, "%u MB", RAM.Used);
   }
 
   if (g_settings.overlay_gpu) {
     int soc_temp = 0;
     sceKernelGetSocSensorTemperature(0, &soc_temp);
-    snprintf(gpu_temp, sizeof(gpu_temp), "%dC", soc_temp);
+    snprintf(gpu_temp, gpu_temp_sz, "%dC", soc_temp);
     Get_Page_Table_Stats(kVmSystem, kPageTableVram, &VRAM.Used, &VRAM.Free,
                          &VRAM.Total);
     VRAM.Percentage =
         (VRAM.Total > 0) ? ((float)VRAM.Used / (float)VRAM.Total) * 100.0f : 0.f;
-    snprintf(gpu_usage, sizeof(gpu_usage), "%.0f%%", VRAM.Percentage);
+    snprintf(gpu_usage, gpu_usage_sz, "%.0f%%", VRAM.Percentage);
   }
 
   if (g_settings.overlay_ip)
-    (void)onion_net_get_ip_address(ip_address, sizeof(ip_address));
+    (void)onion_net_get_ip_address(ip_address, ip_sz);
 
   if (g_settings.overlay_cpu || g_settings.all_cpu_usage) {
     int cpu_t = 0;
     sceKernelGetCpuTemperature(&cpu_t);
-    snprintf(cpu_temp, sizeof(cpu_temp), "%dC", cpu_t);
+    snprintf(cpu_temp, cpu_temp_sz, "%dC", cpu_t);
   }
-
-  /* Re-center the whole metric run on the full-width edge bar every tick. */
-  layout_bar_labels(
-      (g_settings.overlay_cpu || g_settings.all_cpu_usage) ? cpu_temp : nullptr,
-      (g_settings.overlay_cpu || g_settings.all_cpu_usage) ? cpu_usage : nullptr,
-      g_settings.overlay_gpu ? gpu_temp : nullptr,
-      g_settings.overlay_gpu ? gpu_usage : nullptr,
-      g_settings.overlay_ram ? ram_str : nullptr,
-      g_settings.overlay_ip ? ip_address : nullptr);
 }
 
 } // namespace
@@ -525,7 +539,15 @@ void OnRender_Hook(MonoObject* instance) {
   static unsigned int idle_thread_id[kCpuCores] = {};
   static int current_bank = 0;
   static int frames_until_update = 0;
+  static int frames_until_fps = 0;
   static int frames_until_init = kOverlayInitDelayFrames;
+  static char gpu_temp[32] = {};
+  static char gpu_usage[32] = {};
+  static char cpu_temp[32] = {};
+  static char cpu_usage[120] = {};
+  static char ram_str[32] = {};
+  static char ip_address[64] = {};
+  static char fps_str[16] = "--";
 
   if (!inited) {
     if (frames_until_init > 0) {
@@ -540,10 +562,34 @@ void OnRender_Hook(MonoObject* instance) {
   }
 
   if (frames_until_update <= 0) {
-    update_overlay_metrics(idle_thread_id, current_bank);
+    update_overlay_metrics(idle_thread_id, current_bank, cpu_temp,
+                           sizeof(cpu_temp), cpu_usage, sizeof(cpu_usage),
+                           gpu_temp, sizeof(gpu_temp), gpu_usage,
+                           sizeof(gpu_usage), ram_str, sizeof(ram_str),
+                           ip_address, sizeof(ip_address));
     frames_until_update = kOverlayUpdateIntervalFrames;
   } else {
     frames_until_update--;
+  }
+
+  if (frames_until_fps <= 0) {
+    if (g_settings.overlay_fps)
+      format_fps_text(fps_str, sizeof(fps_str));
+    else
+      fps_str[0] = '\0';
+    layout_bar_labels(
+        g_settings.overlay_fps ? fps_str : nullptr,
+        (g_settings.overlay_cpu || g_settings.all_cpu_usage) ? cpu_temp
+                                                             : nullptr,
+        (g_settings.overlay_cpu || g_settings.all_cpu_usage) ? cpu_usage
+                                                             : nullptr,
+        g_settings.overlay_gpu ? gpu_temp : nullptr,
+        g_settings.overlay_gpu ? gpu_usage : nullptr,
+        g_settings.overlay_ram ? ram_str : nullptr,
+        g_settings.overlay_ip ? ip_address : nullptr);
+    frames_until_fps = kFpsUpdateIntervalFrames;
+  } else {
+    frames_until_fps--;
   }
 
   OnRender_orig(instance);

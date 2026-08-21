@@ -134,6 +134,8 @@
     "overlay.pos.bottom": "ขอบล่าง",
     "overlay.gpu": "GPU",
     "overlay.gpu.desc": "แสดงอุณหภูมิ GPU และการใช้ VRAM",
+    "overlay.fps": "FPS",
+    "overlay.fps.desc": "แสดงอัตราเฟรมของเกม",
     "overlay.cpu": "CPU",
     "overlay.cpu.desc": "แสดงอุณหภูมิ CPU และการใช้งานเฉลี่ย",
     "overlay.cpu_all": "แสดงการใช้งานทุกคอร์ของ CPU",

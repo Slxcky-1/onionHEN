@@ -134,6 +134,8 @@
     "overlay.pos.bottom": "Bottom edge",
     "overlay.gpu": "GPU",
     "overlay.gpu.desc": "Show GPU temperature and VRAM usage",
+    "overlay.fps": "FPS",
+    "overlay.fps.desc": "Show in-game frame rate",
     "overlay.cpu": "CPU",
     "overlay.cpu.desc": "Show CPU temperature and average usage",
     "overlay.cpu_all": "Show all CPU core usage",

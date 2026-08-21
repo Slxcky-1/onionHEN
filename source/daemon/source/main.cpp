@@ -189,6 +189,9 @@ void start_worker_threads(pthread_t* fifo_thr, pthread_t* msg_thr) {
   pthread_t fan_thr = nullptr;
   pthread_create(&fan_thr, nullptr, fan_maintenance_thread, nullptr);
   pthread_detach(fan_thr);
+  pthread_t fps_thr = nullptr;
+  pthread_create(&fps_thr, nullptr, fps_sampler_thread, nullptr);
+  pthread_detach(fps_thr);
   pthread_t resume_thr = nullptr;
   pthread_create(&resume_thr, nullptr, resume_watchdog_thread, nullptr);
   pthread_detach(resume_thr);

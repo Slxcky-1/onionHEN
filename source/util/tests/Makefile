@@ -32,6 +32,7 @@ COMMON_FLAGS := -Wall -Wextra -g -O0 $(DEPFLAGS) -DONION_HOST_TEST=1 -DCBC=1 \
 	-I$(REPO_ROOT)/source/libonion_ipc/include \
 	-I$(REPO_ROOT)/source/libonion_detour/include \
 	-I$(REPO_ROOT)/source/libonion_ready \
+	-I$(REPO_ROOT)/source/libonion_fps/include \
 	-I$(REPO_ROOT)/source/daemon/include \
 	-I$(THIRD_PARTY_ROOT)/cjson \
 	-I$(THIRD_PARTY_ROOT)/cheat_support \
@@ -86,7 +87,8 @@ PROD_CXX_SRCS := \
 	$(REPO_ROOT)/source/libonion_ipc/source/ipc_server.cpp \
 	$(REPO_ROOT)/source/shellui/src/ps5_settings_ui.cpp \
 	$(REPO_ROOT)/source/shellui/src/toolbox_route.cpp \
-	$(REPO_ROOT)/source/shellui/src/toolbox_i18n.cpp
+	$(REPO_ROOT)/source/shellui/src/toolbox_i18n.cpp \
+	$(REPO_ROOT)/source/libonion_fps/source/fps_formula.cpp
 
 TEST_C_SRCS := \
 	test_harness.c \
@@ -126,6 +128,7 @@ TEST_CXX_SRCS := \
 	test_toolbox_i18n.cpp \
   test_toolbox_injection.cpp \
   test_overlay_text_metrics.cpp \
+  test_fps_formula.cpp \
   test_rest_mode_recovery.cpp \
 	test_trampoline_arena.cpp \
 	test_hook_lifecycle.cpp \
@@ -157,6 +160,7 @@ PROD_CXX_OBJS += $(BUILD_DIR)/prod/shellui/hook_lifecycle.o
 PROD_CXX_OBJS += $(BUILD_DIR)/prod/shellui/ps5_settings_ui.o
 PROD_CXX_OBJS += $(BUILD_DIR)/prod/shellui/toolbox_route.o
 PROD_CXX_OBJS += $(BUILD_DIR)/prod/shellui/toolbox_i18n.o
+PROD_CXX_OBJS += $(BUILD_DIR)/prod/libonion_fps/fps_formula.o
 
 TEST_C_OBJS := $(patsubst %.c,$(BUILD_DIR)/tests/%.o,$(TEST_C_SRCS))
 TEST_CXX_OBJS := $(patsubst %.cpp,$(BUILD_DIR)/tests/%.o,$(TEST_CXX_SRCS))
@@ -244,6 +248,10 @@ $(NOTIFY_I18N_CATALOG): $(I18N_DIR)/generate_catalog.py $(I18N_JSON) | $(BUILD_D
 		--output $@
 
 $(BUILD_DIR)/prod/shellui/toolbox_i18n.o: $(REPO_ROOT)/source/shellui/src/toolbox_i18n.cpp $(I18N_CATALOG) | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(HOST_CXX) $(CXXFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/prod/libonion_fps/fps_formula.o: $(REPO_ROOT)/source/libonion_fps/source/fps_formula.cpp | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(HOST_CXX) $(CXXFLAGS) -c -o $@ $<
 

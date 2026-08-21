@@ -587,6 +587,8 @@ bool apply_parser(IniParser *parser, Settings *out) {
                          out->all_cpu_usage);
   out->overlay_gpu =
       parse_bool(ini_get(parser, "overlay.show_gpu"), out->overlay_gpu);
+  out->overlay_fps =
+      parse_bool(ini_get(parser, "overlay.show_fps"), out->overlay_fps);
   out->overlay_ram =
       parse_bool(ini_get(parser, "overlay.show_memory"), out->overlay_ram);
   out->overlay_ip = parse_bool(ini_get(parser, "overlay.show_ip_address"),
@@ -754,6 +756,9 @@ std::string settings_serialize(const Settings &in) {
   b += "# show_gpu displays GPU temperature and usage.\n";
   b += "# Available values: true, false\n";
   b += "show_gpu=" + bool_text(in.overlay_gpu) + "\n";
+  b += "# show_fps displays the skip-hook in-game frame rate.\n";
+  b += "# Available values: true, false\n";
+  b += "show_fps=" + bool_text(in.overlay_fps) + "\n";
   b += "# show_memory displays memory usage.\n";
   b += "# Available values: true, false\n";
   b += "show_memory=" + bool_text(in.overlay_ram) + "\n";

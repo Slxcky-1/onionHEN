@@ -275,7 +275,7 @@ default from [`config.ini.example`](config.ini.example).
 | `overlay.enabled` | `true` | `true`, `false` |
 | `overlay.background` | `true` | `true`, `false` |
 | `overlay.edge` | `top` | `top`, `bottom` |
-| `overlay.show_cpu` / `overlay.show_gpu` / `overlay.show_memory` | `true` | `true`, `false` |
+| `overlay.show_cpu` / `overlay.show_gpu` / `overlay.show_memory` / `overlay.show_fps` | `true` | `true`, `false` |
 | `overlay.cpu_usage_mode` | `average` | `average`, `per_core` |
 | `overlay.show_ip_address` | `false` | `true`, `false` |
 | `shortcuts.cheats_menu` | `off` | `off`, `r3_l3`, `l2_triangle`, `long_options`, `long_share`, `share` |
@@ -380,6 +380,7 @@ OnionHEN exists because of the PS5 homebrew and reverse-engineering community.
 
 - [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager) — itsplk; the Rest Mode resume recovery design (restoring services after standby) follows this project
 - [HEN-Cheats-Collection](https://github.com/TeeKay87/HEN-Cheats-Collection) — TeeKay87; the community cheat collection downloaded by the built-in cheat sync
+- [PHU Games Tools](https://github.com/ArkSama) — ArkSama; the in-game FPS counter follows PHU Games Tools skip-hook sampling (`/dev/dce` scanout and DMAP reads of `libSceAgcDriver`)
 
 ### Used or embedded
 

@@ -264,7 +264,7 @@ OnionHEN 在下面两处读写同一份配置：
 | `overlay.enabled` | `true` | `true`, `false` |
 | `overlay.background` | `true` | `true`, `false` |
 | `overlay.edge` | `top` | `top`, `bottom` |
-| `overlay.show_cpu` / `overlay.show_gpu` / `overlay.show_memory` | `true` | `true`, `false` |
+| `overlay.show_cpu` / `overlay.show_gpu` / `overlay.show_memory` / `overlay.show_fps` | `true` | `true`, `false` |
 | `overlay.cpu_usage_mode` | `average` | `average`, `per_core` |
 | `overlay.show_ip_address` | `false` | `true`, `false` |
 | `shortcuts.cheats_menu` | `off` | `off`, `r3_l3`, `l2_triangle`, `long_options`, `long_share`, `share` |
@@ -370,6 +370,7 @@ OnionHEN 离不开 PS5 自制软件与逆向工程社区。
 
 - [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager) — itsplk；休息模式唤醒恢复（待机后恢复服务）的设计参考了这个项目
 - [HEN-Cheats-Collection](https://github.com/TeeKay87/HEN-Cheats-Collection) — TeeKay87；内置金手指同步下载所用的社区金手指合集
+- [PHU Games Tools](https://github.com/ArkSama) — ArkSama；游戏内 FPS 计数沿用 PHU Games Tools 的 skip-hook 采样（`/dev/dce` scanout 与对 `libSceAgcDriver` 的 DMAP 读取）
 
 ### 实际使用或内嵌
 

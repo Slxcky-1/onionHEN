@@ -134,6 +134,8 @@
     "overlay.pos.bottom": "Dolna krawędź",
     "overlay.gpu": "GPU",
     "overlay.gpu.desc": "Temperatura GPU i użycie VRAM",
+    "overlay.fps": "FPS",
+    "overlay.fps.desc": "Pokaż liczbę klatek gry",
     "overlay.cpu": "CPU",
     "overlay.cpu.desc": "Temperatura CPU i średnie użycie",
     "overlay.cpu_all": "Użycie wszystkich rdzeni CPU",

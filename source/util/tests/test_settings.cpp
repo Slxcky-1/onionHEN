@@ -132,6 +132,7 @@ static int test_full_schema_roundtrip(void) {
   in.overlay_ram = false;
   in.overlay_cpu = false;
   in.overlay_gpu = false;
+  in.overlay_fps = false;
   in.overlay_ip = true;
   in.all_cpu_usage = true;
   in.overlay_pos = 2;
@@ -167,6 +168,7 @@ static int test_full_schema_roundtrip(void) {
   TEST_ASSERT_TRUE(out.overlay_ram == in.overlay_ram);
   TEST_ASSERT_TRUE(out.overlay_cpu == in.overlay_cpu);
   TEST_ASSERT_TRUE(out.overlay_gpu == in.overlay_gpu);
+  TEST_ASSERT_TRUE(out.overlay_fps == in.overlay_fps);
   TEST_ASSERT_TRUE(out.overlay_ip == in.overlay_ip);
   TEST_ASSERT_TRUE(out.all_cpu_usage == in.all_cpu_usage);
   TEST_ASSERT_EQ_INT(in.overlay_pos, out.overlay_pos);
@@ -268,6 +270,7 @@ static int test_serialize_contains_overlay_keys(void) {
   s.overlay_pos = 2;
   std::string text = onion::settings_serialize(s);
   TEST_ASSERT_TRUE(text.find("overlay_fps=") == std::string::npos);
+  TEST_ASSERT_TRUE(text.find("show_fps=") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("enabled=false") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("background=false") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("show_ip_address=true") != std::string::npos);

@@ -37,6 +37,7 @@ extern "C" int test_onpress_policy_suite(void);
 extern "C" int test_toolbox_helpers_suite(void);
 extern "C" int test_toolbox_i18n_suite(void);
 extern "C" int test_overlay_text_metrics_suite(void);
+extern "C" int test_fps_formula_suite(void);
 
 int main() {
   int failures = 0;
@@ -78,6 +79,7 @@ int main() {
   failures += test_toolbox_helpers_suite();
   failures += test_toolbox_i18n_suite();
   failures += test_overlay_text_metrics_suite();
+  failures += test_fps_formula_suite();
 
   if (failures == 0) {
     std::fprintf(stderr, "All util host tests passed.\n");

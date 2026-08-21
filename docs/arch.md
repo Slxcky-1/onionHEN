@@ -200,7 +200,7 @@ OnionHEN 只负责配对和设备注册。配对信息可从网络页面保存�
 
 HomeUI 顶部导航和 Settings Debug Settings 入口按固件 profile 覆盖 2.30–12.70；11.00 起 Settings 走 `debug_settings_old`。
 
-游戏内 `fps_elf` 注入已移除。监控信息走 ShellUI 监控条（CPU / GPU / RAM / IP）。
+游戏内 `fps_elf` 注入已移除。监控条 FPS 由 daemon skip-hook 采样（`libonion_fps`：`/dev/dce` ioctl + DMAP 读游戏已加载的 `libSceAgcDriver`），实现来自 [PHU Games Tools](https://github.com/ArkSama)（ArkSama），显示仍走 ShellUI 监控条（FPS / CPU / GPU / RAM / IP）。
 
 ### 2.6 内部静态库
 
@@ -212,6 +212,7 @@ HomeUI 顶部导航和 Settings Debug Settings 入口按固件 profile 覆盖 2.
 | **libNidResolver** | PS5 模块 NID 解析（SHA1 等） |
 | **libonion_ipc** | **客户端**（injectee 双单例）+ **服务端传输环**（`ipc_server`：listen/accept/loop/reply）；daemon/util/shellui 共用 |
 | **libonion_settings** | 统一 `config.ini` schema；各进程以 `onion::Settings g_settings` 为真相源 |
+| **libonion_fps** | skip-hook FPS 采样（公式 / `/dev/dce` / AgcDriver DMAP / seqlock 发布）；实现来自 [PHU Games Tools](https://github.com/ArkSama) |
 | **libonion_detour** | 共享 Detour + hde64 钩子栈 |
 | **libonion_proc** | 共享 proc/ucred（allproc 遍历、dynlib、authid）+ **sysctl 进程查询**（`find_pid` / `onion_find_pid_ex` / `isProcessAlive`）；daemon / util / shellui / bootstrapper 共用 |
 | **libonion_platform** | 平台叶子：`if_exists` / `touch_file` / `rmtree`、`OnionHEN_log`（可配置 tag/路径）、`onion_notify`；修一处全树受益 |
@@ -228,6 +229,7 @@ HomeUI 顶部导航和 Settings Debug Settings 入口按固件 profile 覆盖 2.
 | **daemon_inject.cpp** | toolbox 注入 |
 | **daemon_settings.cpp** | LoadSettings + mtime 缓存 |
 | **daemon_fs.cpp** | remount / chmod / test_sb / reply / fan / ForceKill / pid 查找 |
+| **daemon_fps.cpp** | skip-hook FPS 采样线程；发布 `/system_tmp/onionhen/fps_sample` |
 
 #### ShellUI 模块（加深后）
 
@@ -250,7 +252,7 @@ HomeUI 顶部导航和 Settings Debug Settings 入口按固件 profile 覆盖 2.
 | `kstuff` | bootstrapper 在 mprotect 成功后 | daemon 注入 toolbox 前 |
 | `daemon` | daemon 在 IPC 线程启动后 | bootstrapper 启动 daemon 之后 |
 | `toolbox` | shellui 注入完成后，内容为自身 PID | daemon 按当前 SceShellUI PID 判断跳过或重注入 |
-| `fps_overlay` | shellui（监控条开关） | ShellUI 监控条状态 |
+| `fps_overlay` | 启动时 clear（legacy） | 旧游戏内 FPS 注入旗；现状态在 `/system_tmp/onionhen/fps_sample` |
 | `util_booted` | util 冷启动完成后 | rest-mode / toolbox 延迟路径（替代 `util_first_boot`） |
 
 #### IPC 分层（加深后）

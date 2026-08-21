@@ -134,6 +134,8 @@
     "overlay.pos.bottom": "底部贴边",
     "overlay.gpu": "GPU",
     "overlay.gpu.desc": "显示 GPU 温度与显存占用",
+    "overlay.fps": "FPS",
+    "overlay.fps.desc": "显示游戏帧率",
     "overlay.cpu": "CPU",
     "overlay.cpu.desc": "显示 CPU 温度与平均使用率",
     "overlay.cpu_all": "显示全部 CPU 核心使用率",

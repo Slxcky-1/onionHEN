@@ -134,6 +134,8 @@
     "overlay.pos.bottom": "아래쪽 가장자리",
     "overlay.gpu": "GPU",
     "overlay.gpu.desc": "GPU 온도와 비디오 메모리 사용량을 표시합니다",
+    "overlay.fps": "FPS",
+    "overlay.fps.desc": "게임 프레임 속도 표시",
     "overlay.cpu": "CPU",
     "overlay.cpu.desc": "CPU 온도와 평균 사용률을 표시합니다",
     "overlay.cpu_all": "모든 CPU 코어 사용률 표시",

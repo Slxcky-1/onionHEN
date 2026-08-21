@@ -134,6 +134,8 @@
     "overlay.pos.bottom": "Unterer Rand",
     "overlay.gpu": "GPU",
     "overlay.gpu.desc": "GPU-Temperatur und VRAM-Auslastung anzeigen",
+    "overlay.fps": "FPS",
+    "overlay.fps.desc": "Spiel-Bildrate anzeigen",
     "overlay.cpu": "CPU",
     "overlay.cpu.desc": "CPU-Temperatur und durchschnittliche Auslastung anzeigen",
     "overlay.cpu_all": "Auslastung aller CPU-Kerne anzeigen",

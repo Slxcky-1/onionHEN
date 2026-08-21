@@ -12,6 +12,8 @@ static void rebuild_overlay_bar() {
   apply_overlay_layout();
   if (!g_settings.overlay_enabled)
     return;
+  if (g_settings.overlay_fps)
+    CreateGameWidget(CREATE_FPS_OVERLAY);
   if (g_settings.overlay_cpu || g_settings.all_cpu_usage)
     CreateGameWidget(CREATE_CPU_OVERLAY);
   if (g_settings.overlay_gpu)
@@ -28,6 +30,7 @@ static OnPressResult toggle_overlay_flag(OnPressContext &ctx, bool &flag) {
   }
   flag = !flag;
   rebuild_overlay_bar();
+  ctx.reload_main = true;
   return OnPressResult::Handled;
 }
 
@@ -53,7 +56,12 @@ static OnPressResult id_overlay_cpu(OnPressContext &ctx) {
   }
   g_settings.overlay_cpu = !g_settings.overlay_cpu;
   rebuild_overlay_bar();
+  ctx.reload_main = true;
   return OnPressResult::Handled;
+}
+
+static OnPressResult id_overlay_fps(OnPressContext &ctx) {
+  return toggle_overlay_flag(ctx, g_settings.overlay_fps);
 }
 
 static OnPressResult id_overlay_ram(OnPressContext &ctx) {
@@ -75,6 +83,7 @@ static OnPressResult id_all_cpu_usage(OnPressContext &ctx) {
   /* Persisted via settings_commit as overlay.cpu_usage_mode in config.ini. */
   g_settings.all_cpu_usage = !g_settings.all_cpu_usage;
   rebuild_overlay_bar();
+  ctx.reload_main = true;
   return OnPressResult::Handled;
 }
 
@@ -84,6 +93,7 @@ static OnPressResult id_overlay_change_pos(OnPressContext &ctx) {
   }
   g_settings.overlay_pos = atoi(ctx.value.c_str());
   rebuild_overlay_bar();
+  ctx.reload_main = true;
   return OnPressResult::Handled;
 }
 
@@ -92,6 +102,7 @@ static const OnPressExactEntry kExact[] = {
     {"id_overlay_background", id_overlay_background},
     {"id_overlay_gpu", id_overlay_gpu},
     {"id_overlay_cpu", id_overlay_cpu},
+    {"id_overlay_fps", id_overlay_fps},
     {"id_overlay_ram", id_overlay_ram},
     {"id_overlay_ip", id_overlay_ip},
     {"id_all_cpu_usage", id_all_cpu_usage},

@@ -134,6 +134,8 @@
     "overlay.pos.bottom": "下端",
     "overlay.gpu": "GPU",
     "overlay.gpu.desc": "GPU 温度とVRAM使用量を表示します",
+    "overlay.fps": "FPS",
+    "overlay.fps.desc": "ゲームのフレームレートを表示",
     "overlay.cpu": "CPU",
     "overlay.cpu.desc": "CPU 温度と平均使用率を表示します",
     "overlay.cpu_all": "全 CPU コアの使用率を表示",

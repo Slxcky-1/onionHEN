@@ -592,6 +592,9 @@ void append_toolbox_display_group(ps5ui::Group& g) {
              .toggle("id_overlay_gpu", toolbox_i18n::tr("overlay.gpu"),
                      toolbox_on("id_overlay_gpu"), std::nullopt,
                      toolbox_i18n::tr("overlay.gpu.desc"))
+             .toggle("id_overlay_fps", toolbox_i18n::tr("overlay.fps"),
+                     toolbox_on("id_overlay_fps"), std::nullopt,
+                     toolbox_i18n::tr("overlay.fps.desc"))
              .toggle("id_overlay_cpu", toolbox_i18n::tr("overlay.cpu"),
                      toolbox_on("id_overlay_cpu"), std::nullopt,
                      toolbox_i18n::tr("overlay.cpu.desc"))
