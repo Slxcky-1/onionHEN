@@ -164,8 +164,8 @@ OnionHEN/
 |------|-------------|------|
 | Cheats | IPC | flat-file cheat engine（flat `TITLE_VERSION.ext` + mdbg/kdirect）；详见 [util_arch](util_arch/) |
 | ShellCore / ShellUI 补丁 | — | 休息模式恢复、toolbox 激活等 |
-| FTP | TCP 2121 | 内嵌 `ftpsrv`，由 Toolbox 网络菜单实时启停 |
-| ShadowMountPlus | util IPC / embedded ELF | 扫描并挂载配置的 PS5 游戏来源 |
+| FTP | TCP 2121 | 内嵌 `ftpsrv`，作为 Toolbox 网络服务实时启停 |
+| ShadowMountPlus | util IPC / embedded ELF | 作为“游戏与内容”工具扫描并挂载配置的 PS5 游戏来源 |
 
 ShadowMountPlus 使用 [Drakmor 的项目](https://github.com/drakmor/ShadowMountPlus)，
 其发展源自 VoidWhisper 的 ShadowMount；OnionHEN 嵌入并按启动顺序拉起该 payload。

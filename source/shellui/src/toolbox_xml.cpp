@@ -396,6 +396,10 @@ constexpr const char* kIconPkg =
 constexpr const char* kIconPlugins =
     "/user/data/OnionHEN/assets/icon_xml_plugins.png";
 constexpr const char* kIconGame = "/user/data/OnionHEN/assets/icon_xml_game.png";
+constexpr const char* kIconCheats =
+    "/user/data/OnionHEN/assets/icon_xml_cheats.png";
+constexpr const char* kIconDownload =
+    "/user/data/OnionHEN/assets/icon_xml_download.png";
 constexpr const char* kIconMonitor =
     "/user/data/OnionHEN/assets/icon_xml_monitor.png";
 constexpr const char* kIconAccount =
@@ -476,41 +480,46 @@ void append_toolbox_payloads_group(ps5ui::Group& g) {
                         std::nullopt, toolbox_i18n::tr("kstuff.delete.desc"));
           },
           toolbox_i18n::tr("kstuff.group.sub"), kIconKstuff,
-            "id_kstuff_autoload")
-          .group(
-            "id_shadowmount_opts", toolbox_i18n::tr("shadowmount.group"),
-            [](ps5ui::Group& shadowmount) {
-            shadowmount
-              .toggle("id_shadowmount_autoload",
-                  toolbox_i18n::tr("shadowmount.autoload"),
-                  toolbox_on("id_shadowmount_autoload"),
-                  toolbox_i18n::tr("shadowmount.autoload.sub"))
-              .button("id_shadowmount_scan",
-                  toolbox_i18n::tr("shadowmount.scan"), std::nullopt,
-                  toolbox_i18n::tr("shadowmount.scan.sub"))
-              .button("id_shadowmount_remove_external",
-                  toolbox_i18n::tr("shadowmount.remove_external"),
-                  std::nullopt,
-                  toolbox_i18n::tr("shadowmount.remove_external.desc"));
-            },
-            toolbox_i18n::tr("shadowmount.group.sub"), kIconDrakmor,
-            "id_shadowmount_autoload");
+          "id_kstuff_autoload");
 }
 
 void append_toolbox_game_group(ps5ui::Group& g) {
   g.link("id_cheats", toolbox_i18n::tr("cheats.link"), "cheats.xml",
-         toolbox_i18n::tr("cheats.link.sub"))
+         toolbox_i18n::tr("cheats.link.sub"), kIconCheats)
       .button("id_download_cheats", toolbox_i18n::tr("cheats.repo.download"),
               toolbox_i18n::tr("cheats.repo.download.desc"), std::nullopt,
-              std::nullopt, ps5ui::Style::None,
+              kIconDownload, ps5ui::Style::None,
               toolbox_i18n::tr("cheats.repo.download.confirm"),
-              toolbox_i18n::tr("cheats.repo.download.confirm_phrase"));
+              toolbox_i18n::tr("cheats.repo.download.confirm_phrase"))
+      .group(
+          "id_shadowmount_opts", toolbox_i18n::tr("shadowmount.group"),
+          [](ps5ui::Group& shadowmount) {
+            shadowmount
+                .button("id_shadowmount_scan",
+                        toolbox_i18n::tr("shadowmount.scan"), std::nullopt,
+                        toolbox_i18n::tr("shadowmount.scan.sub"))
+                .toggle("id_shadowmount_autoload",
+                        toolbox_i18n::tr("shadowmount.autoload"),
+                        toolbox_on("id_shadowmount_autoload"),
+                        toolbox_i18n::tr("shadowmount.autoload.sub"))
+                .button("id_shadowmount_remove_external",
+                        toolbox_i18n::tr("shadowmount.remove_external"),
+                        std::nullopt,
+                        toolbox_i18n::tr("shadowmount.remove_external.desc"));
+          },
+          toolbox_i18n::tr("shadowmount.group.sub"), kIconDrakmor,
+          "id_shadowmount_scan");
 }
 
 void append_toolbox_network_group(ps5ui::Group& g) {
-  g.toggle("id_ftp_autoload", toolbox_i18n::tr("ftp.autoload"),
-           toolbox_on("id_ftp_autoload"),
-           toolbox_i18n::tr("ftp.autoload.sub"))
+  g.group(
+       "id_ftp_opts", toolbox_i18n::tr("ftp.group"),
+       [](ps5ui::Group& ftp) {
+         ftp.toggle("id_ftp_autoload", toolbox_i18n::tr("ftp.autoload"),
+                    toolbox_on("id_ftp_autoload"),
+                    toolbox_i18n::tr("ftp.autoload.sub"));
+       },
+       toolbox_i18n::tr("ftp.group.sub"), kIconNetwork, "id_ftp_autoload")
       .link("id_remote_play", toolbox_i18n::tr("remote_play.title"),
             "remote_play.xml", toolbox_i18n::tr("remote_play.sub"));
 }
@@ -829,7 +838,7 @@ void generate_toolbox_xml(std::string& new_xml) {
           "id_group_network", toolbox_i18n::tr("group.network"),
           [](ps5ui::Group& g) { append_toolbox_network_group(g); },
           toolbox_i18n::tr("group.network.sub"), kIconNetwork,
-          "id_ftp_autoload")
+          "id_ftp_opts")
       .group(
           "id_group_display", toolbox_i18n::tr("group.display"),
           [](ps5ui::Group& g) { append_toolbox_display_group(g); },

@@ -64,10 +64,10 @@ OnionHEN is a practical homebrew stack for jailbroken PS5 consoles.
 - **ShellUI Toolbox** — a settings page injected into the PS5 ShellUI
 - **System preparation** — raise privileges, remount filesystems, and block the update partition
 - **fSELF / fPKG** — bundled kstuff for homebrew SELF / PKG; loads by default, can be turned off in the Toolbox
-- **PS5 FTP server** — embedded `ftpsrv` from the `nexgen` branch; controlled live from the Network section on port `2121`
+- **PS5 FTP server** — embedded `ftpsrv` from the `nexgen` branch; presented as a built-in Network service with live control on port `2121`
 - **Remote Play pairing** — enable the native PS5 Remote Play service, generate a pairing PIN, and register a client from the Network section
-- **ShadowMountPlus** — embedded game scanner/mounter with a one-shot scan action and external ELF removal from Payloads & Kernel
-- **Payload manager** — start and stop plain `.elf` payloads, with optional auto-start
+- **ShadowMountPlus** — embedded game scanner/mounter under Games & Content, with a one-shot scan action and external ELF override management
+- **User payload manager** — start and stop user-provided `.elf` payloads, with optional auto-start
 - **Game overlay** — an in-game bar for FPS, CPU, GPU, RAM, temperatures, and network info
 - **Cheat engine** — local JSON, SHN, MC4, and ShnExt files that can be toggled at runtime
 - **Console tools** — Rest Mode, account activation, external HDD, Title IDs, fan control, shortcuts, and game options
@@ -104,7 +104,10 @@ OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstu
 
 ### FTP server
 
-The embedded PS5 FTP server is available from **Toolbox → Network → FTP server**.
+The embedded PS5 FTP server is available from **Toolbox → Network → FTP
+server** and is managed separately from ELFs placed in the user `payloads/`
+folders. Its toggle starts or stops the service immediately and remembers the
+choice for next boot.
 The server listens on port `2121` and includes the upstream `ftpsrv` commands
 such as `KILL`, `SELF`, `SCHK`, `MTRW`, and `AUTHID` where supported.
 
@@ -121,7 +124,9 @@ transport remain handled by Sony's native Remote Play service.
 
 ### ShadowMountPlus
 
-ShadowMountPlus is available as a separate group under **Toolbox → Payloads & Kernel**.
+ShadowMountPlus is available as a separate group under **Toolbox → Games &
+Content**. It is presented as a built-in game-source tool and does not appear in
+the user Payload list.
 `Scan games` launches the embedded `shadowmountplus.elf`; an external override is
 used first when present at `/data/OnionHEN/shadowmountplus.elf`.
 `Remove external ShadowMount+` removes that override. ShadowMountPlus is built
@@ -374,6 +379,7 @@ OnionHEN exists because of the PS5 homebrew and reverse-engineering community.
 ### Referenced
 
 - [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager) — itsplk; the Rest Mode resume recovery design (restoring services after standby) follows this project
+- [HEN-Cheats-Collection](https://github.com/TeeKay87/HEN-Cheats-Collection) — TeeKay87; the community cheat collection downloaded by the built-in cheat sync
 
 ### Used or embedded
 

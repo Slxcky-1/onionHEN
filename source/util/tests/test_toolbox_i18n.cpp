@@ -13,8 +13,14 @@ static int test_default_zh(void) {
   set_lang(Lang::ZhHans);
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★OnionHEN 工具箱") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.pkg"), "内容安装与管理") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("group.payloads.sub"),
+                               "用户 Payload ELF 与 Kstuff") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("group.game"), "游戏与内容") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.game.sub"),
-                               "当前游戏的金手指菜单") == 0);
+                               "金手指和 ShadowMount+ 游戏来源管理") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("ftp.group"), "FTP 服务器") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("ftp.autoload"),
+                               "运行 FTP 服务器") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.display"), "监控与显示") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.display.sub"),
                                "游戏覆盖层、主菜单显示与游戏选项入口") == 0);
@@ -53,8 +59,13 @@ static int test_en(void) {
   set_lang(Lang::En);
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★OnionHEN Toolbox") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.pkg"), "Content Install & Management") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("group.payloads.sub"),
+                               "User payload ELFs and Kstuff") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("group.game"), "Games & Content") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.game.sub"),
-                               "Cheats for the current game") == 0);
+                               "Cheats and ShadowMount+ game sources") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("ftp.group"), "FTP Server") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("ftp.autoload"), "Run FTP server") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.display.sub"),
                                "In-game overlay, home menu display, and game "
                                "options entry") == 0);

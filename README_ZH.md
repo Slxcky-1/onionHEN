@@ -63,10 +63,10 @@ OnionHEN 面向已越狱的 PS5，提供一套能日常使用、也方便维护�
 - **ShellUI 工具箱** — 注入 PS5 ShellUI 的设置页
 - **系统准备** — 提权、重新挂载文件系统、阻断系统更新分区
 - **fSELF / fPKG** — 内嵌 kstuff，用来跑自制 SELF / PKG；默认加载，可在工具箱关掉
-- **PS5 FTP 服务器** — 内嵌 `nexgen` 分支的 `ftpsrv`，可在网络菜单中实时开关，端口为 `2121`
+- **PS5 FTP 服务器** — 内嵌 `nexgen` 分支的 `ftpsrv`，作为内置网络服务实时启停，端口为 `2121`
 - **远程游玩配对** — 在网络菜单中启用 PS5 原生远程游玩服务、生成配对 PIN 并注册客户端
-- **ShadowMountPlus** — 内嵌游戏扫描/挂载器，在 Payload 与内核组件中提供单次扫描和删除外部 ELF
-- **Payload 管理** — 启动和停止普通 `.elf` payload，可选自动启动
+- **ShadowMountPlus** — 内嵌游戏扫描/挂载器，位于游戏与内容菜单，可单次扫描并管理外部 ELF 覆盖
+- **用户 Payload 管理** — 启动和停止用户添加的普通 `.elf` payload，可选自动启动
 - **游戏监控条** — 游戏中显示 FPS、CPU、GPU、内存、温度和网络信息
 - **金手指** — 本地 JSON、SHN、MC4、ShnExt 文件，运行中即可开关
 - **主机工具** — 休息模式、账号激活、外接硬盘、Title ID、风扇、快捷键和游戏选项
@@ -102,7 +102,8 @@ OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstu
 
 ### FTP 服务器
 
-内嵌的 PS5 FTP 服务器位于 **工具箱 → 网络 → FTP 服务器**。
+内嵌的 PS5 FTP 服务器位于 **工具箱 → 网络 → FTP 服务器**，与用户放入
+`payloads/` 目录的 ELF 分开管理。开关会立即启停服务，并记住下次启动时的选择。
 服务器监听 `2121` 端口，并包含上游 `ftpsrv` 的 `KILL`、`SELF`、`SCHK`、
 `MTRW`、`AUTHID` 等命令（具体取决于固件支持）。
 
@@ -117,7 +118,8 @@ PS5 原生远程游玩服务确认已注册的设备。
 
 ### ShadowMountPlus
 
-ShadowMountPlus 位于 **工具箱 → Payload 与内核组件** 的独立分组中。
+ShadowMountPlus 位于 **工具箱 → 游戏与内容** 的独立分组中。它作为 OnionHEN
+内置的游戏来源工具展示，不会出现在用户 Payload 列表中。
 `扫描游戏` 会启动内嵌的 `shadowmountplus.elf`；如果存在
 `/data/OnionHEN/shadowmountplus.elf`，
 会优先使用外部 ELF。`删除外部 ShadowMount+` 会删除该覆盖文件。
@@ -367,6 +369,7 @@ OnionHEN 离不开 PS5 自制软件与逆向工程社区。
 ### 参考
 
 - [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager) — itsplk；休息模式唤醒恢复（待机后恢复服务）的设计参考了这个项目
+- [HEN-Cheats-Collection](https://github.com/TeeKay87/HEN-Cheats-Collection) — TeeKay87；内置金手指同步下载所用的社区金手指合集
 
 ### 实际使用或内嵌
 
