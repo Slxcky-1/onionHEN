@@ -335,6 +335,7 @@
     "notify.remote_play.paired": "จับคู่อุปกรณ์เล่นระยะไกลแล้ว",
     "notify.remote_play.pairing_start_failed": "เริ่มจับคู่เล่นระยะไกลไม่ได้",
     "notify.remote_play.waiting": "กำลังรออุปกรณ์เล่นระยะไกลเชื่อมต่อ",
+    "notify.remote_play.pairing_cancelled": "ยกเลิกการจับคู่เล่นระยะไกลแล้ว",
     "notify.remote_play.details_unavailable": "ไม่มีรายละเอียดเล่นระยะไกล",
     "notify.remote_play.save_failed": "บันทึกรายละเอียดเล่นระยะไกลไม่ได้",
     "notify.remote_play.saved": "บันทึกรายละเอียดเล่นระยะไกลลง USB แล้ว",

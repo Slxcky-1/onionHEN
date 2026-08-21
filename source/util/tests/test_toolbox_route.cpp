@@ -2,6 +2,7 @@
 #include "test_harness.h"
 
 #include "onpress_policy.hpp"
+#include "remote_play.hpp"
 #include "shellui_state.hpp"
 #include "toolbox_route.hpp"
 
@@ -84,6 +85,13 @@ static int test_cheat_progress_page(void) {
   return 0;
 }
 
+static int test_remote_play_page(void) {
+  RouteResult r = resolve_resource(make_in(kRemotePlayXml));
+  TEST_ASSERT_TRUE(r.page == Page::RemotePlay);
+  TEST_ASSERT_TRUE(r.flags.is_remote_play);
+  return 0;
+}
+
 static int test_superuser_pass_through(void) {
   RouteResult r = resolve_resource(make_in(kSuperuserXml));
   TEST_ASSERT_TRUE(r.page == Page::SuperuserPass);
@@ -137,17 +145,70 @@ static int test_progress_page_restores_parent(void) {
   state.set_active_page(Page::DebugSettings);
   state.set_active_page(Page::CheatProgress);
   TEST_ASSERT_TRUE(state.active_page == Page::CheatProgress);
-  TEST_ASSERT_TRUE(state.page_before_progress == Page::DebugSettings);
+  TEST_ASSERT_TRUE(state.parent_page == Page::DebugSettings);
+  TEST_ASSERT_TRUE(state.child_page == Page::CheatProgress);
 
   /* Repeated resource loads must not replace the saved parent. */
   state.set_active_page(Page::CheatProgress);
-  TEST_ASSERT_TRUE(state.page_before_progress == Page::DebugSettings);
+  TEST_ASSERT_TRUE(state.parent_page == Page::DebugSettings);
 
   state.leave_page(Page::CheatProgress);
   TEST_ASSERT_TRUE(state.active_page == Page::DebugSettings);
-  TEST_ASSERT_TRUE(state.page_before_progress == Page::None);
+  TEST_ASSERT_TRUE(state.parent_page == Page::None);
+  TEST_ASSERT_TRUE(state.child_page == Page::None);
   TEST_ASSERT_TRUE(onpress_domain_for_page(state.active_page) ==
                    OnPressDomain::Root);
+  return 0;
+}
+
+static int test_remote_play_restores_parent(void) {
+  ToolboxUiState state;
+  state.set_active_page(Page::DebugSettings);
+  state.set_active_page(Page::RemotePlay);
+  TEST_ASSERT_TRUE(state.active_page == Page::RemotePlay);
+  TEST_ASSERT_TRUE(state.parent_page == Page::DebugSettings);
+  TEST_ASSERT_TRUE(state.child_page == Page::RemotePlay);
+
+  /* Repeated resource loads must not replace the saved parent. */
+  state.set_active_page(Page::RemotePlay);
+  TEST_ASSERT_TRUE(state.parent_page == Page::DebugSettings);
+
+  state.leave_page(Page::RemotePlay);
+  TEST_ASSERT_TRUE(state.active_page == Page::DebugSettings);
+  TEST_ASSERT_TRUE(state.parent_page == Page::None);
+  TEST_ASSERT_TRUE(state.child_page == Page::None);
+  TEST_ASSERT_TRUE(onpress_domain_for_page(state.active_page) ==
+                   OnPressDomain::Root);
+
+  state.set_active_page(Page::RemotePlay);
+  state.leave_page(Page::RemotePlay);
+  TEST_ASSERT_TRUE(state.active_page == Page::DebugSettings);
+
+  /* A stale/non-active pop must not alter the restored parent. */
+  state.leave_page(Page::RemotePlay);
+  TEST_ASSERT_TRUE(state.active_page == Page::DebugSettings);
+  return 0;
+}
+
+static int test_remote_play_cancel_wins_terminal_race(void) {
+  std::atomic<remote_play::PairingState> state{
+      remote_play::PairingState::Waiting};
+  TEST_ASSERT_TRUE(remote_play::try_finish_pairing(
+      state, remote_play::PairingState::Cancelled));
+  TEST_ASSERT_TRUE(!remote_play::try_finish_pairing(
+      state, remote_play::PairingState::Paired));
+  TEST_ASSERT_TRUE(state.load() == remote_play::PairingState::Cancelled);
+  return 0;
+}
+
+static int test_remote_play_success_wins_terminal_race(void) {
+  std::atomic<remote_play::PairingState> state{
+      remote_play::PairingState::Waiting};
+  TEST_ASSERT_TRUE(remote_play::try_finish_pairing(
+      state, remote_play::PairingState::Paired));
+  TEST_ASSERT_TRUE(!remote_play::try_finish_pairing(
+      state, remote_play::PairingState::Cancelled));
+  TEST_ASSERT_TRUE(state.load() == remote_play::PairingState::Paired);
   return 0;
 }
 
@@ -199,6 +260,7 @@ extern "C" int test_toolbox_route_suite(void) {
   fails += onion_test_run("route.auto_plapps", test_auto_payloads_and_plapps);
   fails += onion_test_run("route.account", test_account_page);
   fails += onion_test_run("route.cheat_progress", test_cheat_progress_page);
+  fails += onion_test_run("route.remote_play", test_remote_play_page);
   fails += onion_test_run("route.superuser", test_superuser_pass_through);
   fails += onion_test_run("route.og_debug", test_og_debug_redirect);
   fails += onion_test_run("route.shortcut_force", test_shortcut_force_cheats);
@@ -209,6 +271,12 @@ extern "C" int test_toolbox_route_suite(void) {
                           test_progress_page_restores_parent);
   fails += onion_test_run("session.progress_restore_reusable",
                           test_progress_page_restore_is_reusable);
+  fails += onion_test_run("session.remote_play_restores_parent",
+                          test_remote_play_restores_parent);
+  fails += onion_test_run("remote_play.cancel_wins_terminal_race",
+                          test_remote_play_cancel_wins_terminal_race);
+  fails += onion_test_run("remote_play.success_wins_terminal_race",
+                          test_remote_play_success_wins_terminal_race);
   fails += onion_test_run("cheatmap.tid_reset", test_cheatmap_tid_reset);
   fails += onion_test_run("cheatmap.bounds", test_cheatmap_bounds);
   return fails;

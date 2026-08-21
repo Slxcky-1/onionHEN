@@ -512,6 +512,18 @@ void append_toolbox_game_group(ps5ui::Group& g) {
 }
 
 void append_toolbox_network_group(ps5ui::Group& g) {
+  Activator activator(true);
+  std::optional<std::string> remote_play_alert;
+  if (!activator.Valid()) {
+    remote_play_alert = toolbox_i18n::tr("account.error.read");
+  } else if (activator.IsNotActivated()) {
+    remote_play_alert =
+        std::string(toolbox_i18n::tr("account.status.not_activated")) + "\n" +
+        toolbox_i18n::tr("group.account") + " > " +
+        toolbox_i18n::tr("account.link") + "\n" +
+        toolbox_i18n::tr("account.link.sub");
+  }
+
   g.group(
        "id_ftp_opts", toolbox_i18n::tr("ftp.group"),
        [](ps5ui::Group& ftp) {
@@ -519,9 +531,19 @@ void append_toolbox_network_group(ps5ui::Group& g) {
                     toolbox_on("id_ftp_autoload"),
                     toolbox_i18n::tr("ftp.autoload.sub"));
        },
-       toolbox_i18n::tr("ftp.group.sub"), kIconNetwork, "id_ftp_autoload")
-      .link("id_remote_play", toolbox_i18n::tr("remote_play.title"),
-            "remote_play.xml", toolbox_i18n::tr("remote_play.sub"));
+       toolbox_i18n::tr("ftp.group.sub"), kIconNetwork, "id_ftp_autoload");
+
+  if (remote_play_alert) {
+    // Legacy Settings only drives its confirm Alert flow for button elements.
+    // The handler consumes this non-navigating entry after confirmation.
+    g.button("id_remote_play", toolbox_i18n::tr("remote_play.title"),
+             toolbox_i18n::tr("remote_play.sub"), std::nullopt, std::nullopt,
+             ps5ui::Style::None, std::move(remote_play_alert),
+             toolbox_i18n::tr("account.activate.confirm_phrase"));
+  } else {
+    g.link("id_remote_play", toolbox_i18n::tr("remote_play.title"),
+           "remote_play.xml", toolbox_i18n::tr("remote_play.sub"));
+  }
 }
 
 void append_toolbox_display_group(ps5ui::Group& g) {

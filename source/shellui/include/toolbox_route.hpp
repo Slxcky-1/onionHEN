@@ -50,6 +50,7 @@ struct RouteFlags {
   bool is_account = false;
   bool is_plapps = false;
   bool is_cheat_progress = false;
+  bool is_remote_play = false;
 };
 
 struct RouteResult {
@@ -61,6 +62,11 @@ struct RouteResult {
 
 RouteResult resolve_resource(const RouteInput &in);
 
+/** Child routes whose page-stack pop should restore the owning parent route. */
+constexpr bool restores_parent_on_pop(Page page) {
+  return page == Page::CheatProgress || page == Page::RemotePlay;
+}
+
 /** Fixed Legacy resource paths (Sony Settings.Plugins module name is fixed). */
 inline constexpr std::string_view kAutoPayloadsXml =
     "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.auto_payloads.xml";
@@ -71,7 +77,7 @@ inline constexpr std::string_view kPlappsXml =
 inline constexpr std::string_view kCheatProgressXml =
     "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.cheat_progress.xml";
 inline constexpr std::string_view kRemotePlayXml =
-  "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.remote_play.xml";
+    "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.remote_play.xml";
 inline constexpr std::string_view kSuperuserXml =
     "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.superuser.xml";
 inline constexpr std::string_view kOgDebugXml =

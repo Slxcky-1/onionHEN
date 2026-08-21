@@ -38,6 +38,9 @@ static int test_default_zh(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("account.warning"),
                                "激活账号后，你可能会丢失现有存档（账号 ID 会改变）。"
                                "请确认你接受这个风险后再继续。") == 0);
+  TEST_ASSERT_TRUE(
+      std::strcmp(onion_notify_tr("notify.remote_play.pairing_cancelled"),
+                  "远程游玩配对已中止。") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "为 %s 启用/禁用 %s") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.game_menu"),
@@ -83,6 +86,9 @@ static int test_en(void) {
                                "You may lose your existing game saves because "
                                "the account ID will change. Continue only if "
                                "you accept that risk.") == 0);
+  TEST_ASSERT_TRUE(
+      std::strcmp(onion_notify_tr("notify.remote_play.pairing_cancelled"),
+                  "Remote Play pairing cancelled.") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "Enable/disable %s for %s") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("payload.start_stop_fmt"),

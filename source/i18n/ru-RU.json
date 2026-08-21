@@ -335,6 +335,7 @@
     "notify.remote_play.paired": "Устройство подключено.",
     "notify.remote_play.pairing_start_failed": "Не удалось начать подключение Дистанционной игры",
     "notify.remote_play.waiting": "Ожидание подключения устройства Дистанционной игры",
+    "notify.remote_play.pairing_cancelled": "Подключение устройства Дистанционной игры отменено.",
     "notify.remote_play.details_unavailable": "Данные Дистанционной игры недоступны",
     "notify.remote_play.save_failed": "Не удалось сохранить данные Дистанционной игры",
     "notify.remote_play.saved": "Данные Дистанционной игры сохранены на USB",

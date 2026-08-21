@@ -335,6 +335,7 @@
     "notify.remote_play.paired": "Appareil associé.",
     "notify.remote_play.pairing_start_failed": "Impossible de démarrer l'association Lecture à distance",
     "notify.remote_play.waiting": "En attente de la connexion d'un appareil de Lecture à distance",
+    "notify.remote_play.pairing_cancelled": "Association Lecture à distance annulée.",
     "notify.remote_play.details_unavailable": "Les détails de la Lecture à distance sont indisponibles",
     "notify.remote_play.save_failed": "Impossible d'enregistrer les détails de la Lecture à distance",
     "notify.remote_play.saved": "Détails de la Lecture à distance enregistrés sur USB",

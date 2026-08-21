@@ -15,7 +15,8 @@
 /** Settings page / resource-stream context for ShellUI hooks. */
 struct ToolboxUiState {
   toolbox::Page active_page = toolbox::Page::None;
-  toolbox::Page page_before_progress = toolbox::Page::None;
+  toolbox::Page parent_page = toolbox::Page::None;
+  toolbox::Page child_page = toolbox::Page::None;
 
   bool cheats_shortcut_activated = false;
   bool cheats_shortcut_activated_not_open = false;
@@ -33,9 +34,9 @@ struct ToolboxUiState {
   std::vector<GameEntry> games_list;
 
   void set_active_page(toolbox::Page page) {
-    if (page == toolbox::Page::CheatProgress &&
-        active_page != toolbox::Page::CheatProgress) {
-      page_before_progress = active_page;
+    if (toolbox::restores_parent_on_pop(page) && active_page != page) {
+      parent_page = active_page;
+      child_page = page;
     }
     active_page = page;
   }
@@ -45,14 +46,15 @@ struct ToolboxUiState {
   }
 
   void leave_page(toolbox::Page page) {
-    if (active_page != page)
-      return;
-    if (page == toolbox::Page::CheatProgress) {
-      active_page = page_before_progress;
-      page_before_progress = toolbox::Page::None;
+    if (child_page == page) {
+      if (active_page == page)
+        active_page = parent_page;
+      parent_page = toolbox::Page::None;
+      child_page = toolbox::Page::None;
       return;
     }
-    active_page = toolbox::Page::None;
+    if (active_page == page)
+      active_page = toolbox::Page::None;
   }
 
   void clear_cheat_shortcuts() {

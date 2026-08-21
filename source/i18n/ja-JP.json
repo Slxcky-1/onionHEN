@@ -335,6 +335,7 @@
     "notify.remote_play.paired": "リモートプレイ機器を登録しました。",
     "notify.remote_play.pairing_start_failed": "リモートプレイのペアリングを開始できません",
     "notify.remote_play.waiting": "リモートプレイ機器の接続を待っています",
+    "notify.remote_play.pairing_cancelled": "リモートプレイのペアリングを中止しました。",
     "notify.remote_play.details_unavailable": "リモートプレイ情報を利用できません",
     "notify.remote_play.save_failed": "リモートプレイ情報を保存できません",
     "notify.remote_play.saved": "リモートプレイ情報をUSBに保存しました",

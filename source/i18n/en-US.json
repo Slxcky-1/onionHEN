@@ -335,6 +335,7 @@
     "notify.remote_play.paired": "Remote Play device paired.",
     "notify.remote_play.pairing_start_failed": "Unable to start Remote Play pairing",
     "notify.remote_play.waiting": "Waiting for a Remote Play device to connect",
+    "notify.remote_play.pairing_cancelled": "Remote Play pairing cancelled.",
     "notify.remote_play.details_unavailable": "Remote Play details are not available",
     "notify.remote_play.save_failed": "Unable to save Remote Play details",
     "notify.remote_play.saved": "Remote Play details saved to USB",

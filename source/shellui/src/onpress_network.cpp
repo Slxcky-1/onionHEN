@@ -1,9 +1,10 @@
 /* Copyright (C) 2025 OnionHEN / LightningMods — OnPress network domain */
+#include "account_activator.h"
 #include "onpress.hpp"
+#include "remote_play.hpp"
+
 #include <cstdlib>
 #include <fstream>
-
-extern std::string g_remote_play_info;
 
 static OnPressResult id_disp_titleids(OnPressContext &ctx) {
   bool &dis_tids = g_settings.display_tids;
@@ -32,6 +33,18 @@ static OnPressResult id_ftp_autoload(OnPressContext &ctx) {
   return OnPressResult::Handled;
 }
 
+static OnPressResult id_remote_play(OnPressContext &ctx) {
+  ctx.dirty = false;
+  Activator activator(true);
+  if (!activator.Valid()) {
+    notify("notify.account.invalid");
+    return OnPressResult::Consumed;
+  }
+  if (activator.IsNotActivated())
+    return OnPressResult::Consumed;
+  return OnPressResult::NotMine;
+}
+
 static OnPressResult id_save_rp_info(OnPressContext &) {
   const int usb = usbpath();
   if (usb < 0 || g_remote_play_info.empty()) {
@@ -54,6 +67,7 @@ static OnPressResult id_save_rp_info(OnPressContext &) {
 static const OnPressExactEntry kExact[] = {
     {"id_disp_titleids", id_disp_titleids},
     {"id_ftp_autoload", id_ftp_autoload},
+    {"id_remote_play", id_remote_play},
     {"id_save_rp_info", id_save_rp_info},
 };
 

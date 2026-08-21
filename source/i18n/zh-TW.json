@@ -335,6 +335,7 @@
     "notify.remote_play.paired": "遠端遊玩裝置已配對。",
     "notify.remote_play.pairing_start_failed": "無法開始遠端遊玩配對",
     "notify.remote_play.waiting": "正在等待遠端遊玩裝置連線",
+    "notify.remote_play.pairing_cancelled": "遠端遊玩配對已中止。",
     "notify.remote_play.details_unavailable": "遠端遊玩詳細資料無法使用",
     "notify.remote_play.save_failed": "無法儲存遠端遊玩詳細資料",
     "notify.remote_play.saved": "遠端遊玩詳細資料已儲存至 USB",

@@ -46,6 +46,44 @@ static int test_notify_send_noop(void) {
   return 0;
 }
 
+static unsigned char g_debug_notify_request[0xC30];
+static size_t g_debug_notify_request_size;
+
+static int32_t capture_debug_notify(int32_t device, void *request, size_t size,
+                                    int32_t blocking) {
+  (void)device;
+  (void)blocking;
+  g_debug_notify_request_size = size;
+  if (request && size <= sizeof(g_debug_notify_request))
+    memcpy(g_debug_notify_request, request, size);
+  return 0;
+}
+
+static int test_notify_debug_localized(void) {
+  memset(g_debug_notify_request, 0xff, sizeof(g_debug_notify_request));
+  g_debug_notify_request_size = 0;
+  onion_notify_set_send(capture_debug_notify);
+  onion_notify_set_language(ONION_NOTIFY_LANG_ZH_HANS);
+
+  onion_notify_debug("notify.remote_play.pairing_cancelled");
+
+  TEST_ASSERT_TRUE(g_debug_notify_request_size ==
+                   sizeof(g_debug_notify_request));
+  TEST_ASSERT_TRUE(g_debug_notify_request[0x2C] == 0);
+  TEST_ASSERT_STREQ("远程游玩配对已中止。",
+                    (const char *)&g_debug_notify_request[0x2D]);
+  TEST_ASSERT_TRUE(g_debug_notify_request[0x42D] == '\0');
+
+  onion_notify_set_language(ONION_NOTIFY_LANG_EN);
+  onion_notify_debug("notify.remote_play.paired");
+  TEST_ASSERT_TRUE(g_debug_notify_request[0x2C] == 0);
+  TEST_ASSERT_STREQ("Remote Play device paired.",
+                    (const char *)&g_debug_notify_request[0x2D]);
+
+  onion_notify_set_send(NULL);
+  return 0;
+}
+
 static int test_notify_language_resolution(void) {
   TEST_ASSERT_EQ_INT(ONION_NOTIFY_LANG_ZH_HANS,
                      onion_notify_resolve_language(0, 11));
@@ -240,6 +278,8 @@ int test_platform_notify_suite(void) {
   failures +=
       onion_test_run("notify_format_no_watermark", test_notify_format_no_watermark);
   failures += onion_test_run("notify_send_noop", test_notify_send_noop);
+  failures += onion_test_run("notify_debug_localized",
+                             test_notify_debug_localized);
   failures += onion_test_run("notify_language_resolution",
                              test_notify_language_resolution);
   failures += onion_test_run("notify_format_localized",

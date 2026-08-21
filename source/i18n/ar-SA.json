@@ -335,6 +335,7 @@
     "notify.remote_play.paired": "تم إقران جهاز اللعب عن بُعد.",
     "notify.remote_play.pairing_start_failed": "تعذر بدء إقران اللعب عن بُعد",
     "notify.remote_play.waiting": "في انتظار اتصال جهاز اللعب عن بُعد",
+    "notify.remote_play.pairing_cancelled": "تم إلغاء إقران اللعب عن بُعد.",
     "notify.remote_play.details_unavailable": "تفاصيل اللعب عن بُعد غير متاحة",
     "notify.remote_play.save_failed": "تعذر حفظ تفاصيل اللعب عن بُعد",
     "notify.remote_play.saved": "تم حفظ تفاصيل اللعب عن بُعد في USB",

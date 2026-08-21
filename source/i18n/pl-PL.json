@@ -335,6 +335,7 @@
     "notify.remote_play.paired": "Urządzenie Gry zdalnej sparowane.",
     "notify.remote_play.pairing_start_failed": "Nie można rozpocząć parowania Gry zdalnej",
     "notify.remote_play.waiting": "Oczekiwanie na połączenie urządzenia Gry zdalnej",
+    "notify.remote_play.pairing_cancelled": "Parowanie Gry zdalnej anulowane.",
     "notify.remote_play.details_unavailable": "Szczegóły Gry zdalnej są niedostępne",
     "notify.remote_play.save_failed": "Nie można zapisać szczegółów Gry zdalnej",
     "notify.remote_play.saved": "Szczegóły Gry zdalnej zapisano na USB",

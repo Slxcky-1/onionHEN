@@ -114,10 +114,12 @@ such as `KILL`, `SELF`, `SCHK`, `MTRW`, and `AUTHID` where supported.
 ### Remote Play
 
 Remote Play pairing is available from **Toolbox → Network → Remote Play**.
-On first use, OnionHEN enables the Remote Play registry setting, activates the
-current offline account when needed, and displays the pairing PIN. Enter that
-PIN in the official Remote Play client while the page is open; OnionHEN uses
-the native PS5 Remote Play service to confirm the registered device.
+The current account must already be activated. If it is not, OnionHEN blocks
+the Remote Play page and directs you to **Toolbox → Account → Account
+activation**. Once the account is activated, OnionHEN enables the Remote Play
+registry setting and displays the pairing PIN. Enter that PIN in the official
+Remote Play client while the page is open; OnionHEN uses the native PS5 Remote
+Play service to confirm the registered device.
 
 The feature provides pairing and registration only. Video streaming and client
 transport remain handled by Sony's native Remote Play service.

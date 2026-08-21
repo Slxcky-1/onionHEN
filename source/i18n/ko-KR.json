@@ -335,6 +335,7 @@
     "notify.remote_play.paired": "리모트 플레이 기기가 등록되었습니다.",
     "notify.remote_play.pairing_start_failed": "리모트 플레이 기기 등록을 시작할 수 없습니다",
     "notify.remote_play.waiting": "리모트 플레이 기기 연결을 기다리는 중입니다",
+    "notify.remote_play.pairing_cancelled": "리모트 플레이 기기 등록을 취소했습니다.",
     "notify.remote_play.details_unavailable": "리모트 플레이 정보를 사용할 수 없습니다",
     "notify.remote_play.save_failed": "리모트 플레이 정보를 저장할 수 없습니다",
     "notify.remote_play.saved": "리모트 플레이 정보를 USB에 저장했습니다",

@@ -6,6 +6,7 @@
 #include "shellui_state.hpp"
 #include "onpress_policy.hpp"
 #include "progress_dialog.hpp"
+#include "remote_play.hpp"
 #include "toolbox_route.hpp"
 #include <onion/platform.h>
 #include <string>
@@ -21,8 +22,6 @@ void generate_toolbox_xml(std::string &new_xml);
 void generate_cheats_xml(std::string &new_xml, std::string &not_open_tid,
                          bool running_as_debug_settings,
                          bool show_while_not_open);
-void generate_remote_play_xml(std::string &new_xml);
-
 static MonoDomain *current_mono_domain() {
   MonoDomain *domain = (mono_domain_get ? mono_domain_get() : nullptr);
   return domain ? domain : Root_Domain;

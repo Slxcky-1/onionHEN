@@ -335,6 +335,7 @@
     "notify.remote_play.paired": "Dispositivo abbinato.",
     "notify.remote_play.pairing_start_failed": "Impossibile avviare l'abbinamento Riproduzione remota",
     "notify.remote_play.waiting": "In attesa della connessione di un dispositivo di Riproduzione remota",
+    "notify.remote_play.pairing_cancelled": "Abbinamento Riproduzione remota annullato.",
     "notify.remote_play.details_unavailable": "I dettagli della Riproduzione remota non sono disponibili",
     "notify.remote_play.save_failed": "Impossibile salvare i dettagli della Riproduzione remota",
     "notify.remote_play.saved": "Dettagli della Riproduzione remota salvati su USB",

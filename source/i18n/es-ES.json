@@ -335,6 +335,7 @@
     "notify.remote_play.paired": "Dispositivo de Uso a distancia emparejado.",
     "notify.remote_play.pairing_start_failed": "No se pudo iniciar el emparejamiento de Uso a distancia",
     "notify.remote_play.waiting": "Esperando a que se conecte un dispositivo de Uso a distancia",
+    "notify.remote_play.pairing_cancelled": "Emparejamiento de Uso a distancia cancelado.",
     "notify.remote_play.details_unavailable": "Los detalles de Uso a distancia no están disponibles",
     "notify.remote_play.save_failed": "No se pudieron guardar los detalles de Uso a distancia",
     "notify.remote_play.saved": "Detalles de Uso a distancia guardados en USB",
