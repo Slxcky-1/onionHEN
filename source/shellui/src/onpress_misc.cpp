@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 OnPressResult onpress_kstuff_autoload(OnPressContext &ctx) {
-  const bool enabled = atol(ctx.value.c_str()) != 0;
+  const bool enabled = value_as_int(ctx);
   if (enabled == g_settings.kstuff_autoload)
     return OnPressResult::EarlyReturn;
 
@@ -56,26 +56,6 @@ OnPressResult onpress_delete_kstuff(OnPressContext &ctx) {
   (void)ctx;
   unlink("/user/data/OnionHEN/kstuff.elf");
   notify("notify.kstuff.deleted");
-  return OnPressResult::Handled;
-}
-
-OnPressResult onpress_shadowmount_scan(OnPressContext &ctx) {
-  ctx.dirty = false;
-  if (!IPC_Client::getInstance(true).LaunchShadowMount()) {
-    notify("notify.shadowmount.launch_failed");
-    return OnPressResult::Consumed;
-  }
-  notify("notify.shadowmount.scan_started");
-  return OnPressResult::Consumed;
-}
-
-OnPressResult onpress_shadowmount_autoload(OnPressContext &ctx) {
-  const bool enabled = atol(ctx.value.c_str()) != 0;
-  if (enabled == g_settings.shadowmount_autoload)
-    return OnPressResult::EarlyReturn;
-  g_settings.shadowmount_autoload = enabled;
-  notify(enabled ? "notify.shadowmount.next_boot_on"
-                 : "notify.shadowmount.next_boot_off");
   return OnPressResult::Handled;
 }
 

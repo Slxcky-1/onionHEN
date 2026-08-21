@@ -110,27 +110,29 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     reply(sender_app, false);
     break;
   }
-  case BREW_UTIL_TOGGLE_FTP: {
+  case BREW_UTIL_TOGGLE_FTP:
+  case BREW_UTIL_TOGGLE_SHADOWMOUNT: {
     const cJSON *toggle = cJSON_GetObjectItemCaseSensitive(my_json.get(),
                                                             "toggle");
     const bool enabled = toggle && cJSON_IsNumber(toggle) && toggle->valueint;
-    if (enabled) {
-      if (!onion::services::ftpService().start()) {
-        reply(sender_app, true);
-        break;
-      }
+    bool ok = true;
+    if (command == BREW_UTIL_TOGGLE_FTP) {
+      if (enabled)
+        ok = onion::services::ftpService().start();
+      else
+        onion::services::ftpService().stop();
+    } else if (enabled) {
+      ok = onion::services::shadowMountService().start();
     } else {
-      onion::services::ftpService().stop();
+      onion::services::shadowMountService().stop();
     }
-    reply(sender_app, false);
+    reply(sender_app, !ok);
     break;
   }
   case BREW_UTIL_LAUNCH_SHADOWMOUNT:
-    reply(sender_app, !onion::services::shadowMountService().scanNow());
-    break;
   case BREW_UTIL_UNUSED_KLOG:
   case BREW_UTIL_UNUSED_DPI:
-    /* Klog (9081) and DirectPKGInstaller remain removed; ordinals stay stable. */
+    /* Removed scan-now / Klog / DirectPKGInstaller; ordinals stay stable. */
     LOG_WARN("Removed-service toggle: unsupported (cmd=%u)", static_cast<unsigned>(command));
     reply(sender_app, true);
     break;

@@ -91,7 +91,7 @@ Third-party (pinned source under third_party/ + release fallbacks):
 
   kstuff.elf              <- EchoStretch/kstuff-lite
   ftpsrv-ps5.elf          <- drakmor/ftpsrv (nexgen), staged by sync_dependencies.sh
-  shadowmountplus.elf     <- drakmor/ShadowMountPlus pinned source + adapter patch; no release ELF fallback
+  shadowmountplus.elf     <- drakmor/ShadowMountPlus 1.6beta16 release ELF
 
   External elfldr @ 9021 is required for initial bootstrap but is not vendored.
   OnionHEN embeds its private runtime loader as onion_elfldr.elf @ 9020.

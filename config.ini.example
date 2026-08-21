@@ -114,11 +114,11 @@ toolbox=off
 autoload=true
 
 [ftp]
-# autoload controls the embedded PS5 FTP server at runtime and on startup.
+# autoload starts the embedded FTP server the next time OnionHEN launches.
 # Available values: true, false
 autoload=false
 
 [shadowmount]
-# autoload controls the embedded ShadowMountPlus payload at runtime and on startup.
+# autoload starts ShadowMountPlus the next time OnionHEN launches.
 # Available values: true, false
 autoload=false

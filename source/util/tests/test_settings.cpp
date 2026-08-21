@@ -59,13 +59,13 @@ static int test_defaults_and_serialize_keys(void) {
   TEST_ASSERT_TRUE(text.find("[kstuff]\n") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("autoload=true") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("[ftp]\n") != std::string::npos);
-  TEST_ASSERT_TRUE(text.find("[ftp]\n# autoload loads the embedded PS5 ftpsrv "
-                                 "payload when OnionHEN starts.\n"
+  TEST_ASSERT_TRUE(text.find("[ftp]\n# autoload starts the embedded FTP server "
+                                 "the next time OnionHEN launches.\n"
                                  "# Available values: true, false\n"
                                  "autoload=false\n") != std::string::npos);
   TEST_ASSERT_TRUE(text.find("ftp.port") == std::string::npos);
-  TEST_ASSERT_TRUE(text.find("[shadowmount]\n# autoload launches "
-                                 "ShadowMountPlus when OnionHEN starts.\n"
+  TEST_ASSERT_TRUE(text.find("[shadowmount]\n# autoload starts "
+                                 "ShadowMountPlus the next time OnionHEN launches.\n"
                                  "# Available values: true, false\n"
                                  "autoload=false\n") != std::string::npos);
   return 0;

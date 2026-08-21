@@ -299,7 +299,9 @@ void generate_ftpsrv_config_xml(std::string &xml_buffer) {
   using namespace onion::plugins;
   const Descriptor *d = find_by_key("ftpsrv");
   ps5ui::Page page("id_plugin_config", toolbox_i18n::tr(d->title_key));
-  page.toggle("id_plugin_ftpsrv_run", toolbox_i18n::tr("ftp.autoload"),
+  page.toggle("id_plugin_ftpsrv_run", toolbox_i18n::tr("ftp.run"), /*on=*/false,
+              toolbox_i18n::tr("ftp.run.sub"))
+      .toggle("id_plugin_ftpsrv_autoload", toolbox_i18n::tr("ftp.autoload"),
               /*on=*/false, toolbox_i18n::tr("ftp.autoload.sub"));
   xml_buffer = page.build();
 }
@@ -308,12 +310,11 @@ void generate_shadowmount_config_xml(std::string &xml_buffer) {
   using namespace onion::plugins;
   const Descriptor *d = find_by_key("shadowmount");
   ps5ui::Page page("id_plugin_config", toolbox_i18n::tr(d->title_key));
-  page.toggle("id_plugin_shadowmount_autoload",
+  page.toggle("id_plugin_shadowmount_run", toolbox_i18n::tr("shadowmount.run"),
+              /*on=*/false, toolbox_i18n::tr("shadowmount.run.sub"))
+      .toggle("id_plugin_shadowmount_autoload",
               toolbox_i18n::tr("shadowmount.autoload"), /*on=*/false,
-              toolbox_i18n::tr("shadowmount.autoload.sub"))
-      .button("id_plugin_shadowmount_scan",
-              toolbox_i18n::tr("shadowmount.scan"), std::nullopt,
-              toolbox_i18n::tr("shadowmount.scan.sub"));
+              toolbox_i18n::tr("shadowmount.autoload.sub"));
   xml_buffer = page.build();
 }
 

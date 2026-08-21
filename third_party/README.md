@@ -11,7 +11,7 @@ code here makes `source/` exclusively first-party code.
 | [`keystone/`](keystone/) | Headers + prebuilt archive | ShnExt assembly support |
 | [`kstuff-lite/`](kstuff-lite/) | Git submodule | Produces the optional embedded `kstuff.elf` |
 | [`ftpsrv/`](ftpsrv/) | Pinned Git submodule (`nexgen`) | Source-built PS5 FTP server payload; OnionHEN launches it on the built-in port |
-| [`ShadowMountPlus/`](ShadowMountPlus/) | Pinned Git submodule + patch | Source-built game scanner/mounter with the thin OnionHEN control adapter from `patches/shadowmountplus-<upstream-commit>.patch` |
+| [`ShadowMountPlus/`](ShadowMountPlus/) | Release ELF | Embedded `1.6beta16` payload staged by `scripts/sync_dependencies.sh` |
 
 Third-party file names retain their upstream spelling even when it differs
 from the project's snake_case convention. This keeps upstream updates easy to
@@ -22,10 +22,9 @@ Source-built or downloaded fallback dependency blobs are cached in
 stages the required bootstrapper input from that cache; generated blobs do not
 belong in `source/`.
 
-`ftpsrv` is built from its pinned source checkout when available, with a verified
-upstream release ELF as fallback. ShadowMountPlus is always built from the pinned
-source plus `patches/shadowmountplus-<commit>.patch`. It never downloads an
-upstream release ELF, because that blob has no OnionHEN control socket.
+`ftpsrv` comes from the pinned `nexgen` source checkout, or the `1.15-ng-stable`
+release ELF if that checkout is missing. ShadowMountPlus is the `1.6beta16`
+release ELF.
 
 ## Runtime-only external dependency
 

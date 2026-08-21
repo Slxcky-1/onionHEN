@@ -70,14 +70,15 @@ const OnPressPrefixEntry *onpress_packages_prefix(size_t *count);
 const OnPressExactEntry *onpress_plugins_exact(size_t *count);
 
 /**
- * Shared built-in plugin handlers (root page + plugins page). Each persists
- * the matching g_settings field and drives the live side effect where one
- * exists (FTP start/stop).
+ * Shared built-in plugin handlers (root page + plugins page).
+ * Run toggles change the current session only. Autoload toggles persist for
+ * the next OnionHEN start and do not start or stop the service now.
  */
 OnPressResult onpress_kstuff_autoload(OnPressContext &ctx);
+OnPressResult onpress_ftp_run(OnPressContext &ctx);
 OnPressResult onpress_ftp_autoload(OnPressContext &ctx);
+OnPressResult onpress_shadowmount_run(OnPressContext &ctx);
 OnPressResult onpress_shadowmount_autoload(OnPressContext &ctx);
-OnPressResult onpress_shadowmount_scan(OnPressContext &ctx);
 OnPressResult onpress_delete_kstuff(OnPressContext &ctx);
 
 /** Shared toggle helpers. */

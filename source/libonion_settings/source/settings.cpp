@@ -776,11 +776,11 @@ std::string settings_serialize(const Settings &in) {
   b += "# Available values: true, false\n";
   b += "autoload=" + bool_text(in.kstuff_autoload) + "\n";
   b += "\n[ftp]\n";
-  b += "# autoload loads the embedded PS5 ftpsrv payload when OnionHEN starts.\n";
+  b += "# autoload starts the embedded FTP server the next time OnionHEN launches.\n";
   b += "# Available values: true, false\n";
   b += "autoload=" + bool_text(in.ftp_autoload) + "\n";
   b += "\n[shadowmount]\n";
-  b += "# autoload launches ShadowMountPlus when OnionHEN starts.\n";
+  b += "# autoload starts ShadowMountPlus the next time OnionHEN launches.\n";
   b += "# Available values: true, false\n";
   b += "autoload=" + bool_text(in.shadowmount_autoload) + "\n";
   return b;

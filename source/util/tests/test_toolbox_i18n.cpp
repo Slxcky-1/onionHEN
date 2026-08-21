@@ -19,8 +19,9 @@ static int test_default_zh(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("group.game.sub"),
                                "金手指和 ShadowMount+ 游戏来源管理") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("ftp.group"), "FTP 服务器") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("ftp.run"), "立即运行 FTP 服务器") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("ftp.autoload"),
-                               "运行 FTP 服务器") == 0);
+                               "随 OnionHEN 启动 FTP") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.display"), "监控与显示") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.display.sub"),
                                "游戏覆盖层、主菜单显示与游戏选项入口") == 0);
@@ -68,7 +69,8 @@ static int test_en(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("group.game.sub"),
                                "Cheats and ShadowMount+ game sources") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("ftp.group"), "FTP Server") == 0);
-  TEST_ASSERT_TRUE(std::strcmp(tr("ftp.autoload"), "Run FTP server") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("ftp.run"), "Run FTP server now") == 0);
+  TEST_ASSERT_TRUE(std::strcmp(tr("ftp.autoload"), "Start FTP with OnionHEN") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.display.sub"),
                                "In-game overlay, home menu display, and game "
                                "options entry") == 0);

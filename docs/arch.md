@@ -48,11 +48,11 @@ OnionHEN 是 PS5 的 All-in-One Homebrew Enabler，基于 **etaHEN**（Lightning
   Unix IPC                       ShellUI monitor bar
 ```
 
-**启动顺序有意串行化：** util → kstuff → ftpsrv → ShadowMountPlus → daemon。
+**启动顺序串行：** util → kstuff → daemon。
 
 - util 先提供网络/IPC 等服务
 - kstuff 需先完成 ShellUI 补丁
-- ftpsrv 与 ShadowMountPlus 在 bootstrapper 中按配置启动
+- `ftp.autoload` / `shadowmount.autoload` 为 true 时，对应 ELF 在 kstuff 之后、daemon 之前启动
 - daemon 再注入 Toolbox
 
 若并行 ptrace 同一进程，容易导致 Toolbox 超时或崩溃。
@@ -164,12 +164,11 @@ OnionHEN/
 |------|-------------|------|
 | Cheats | IPC | flat-file cheat engine（flat `TITLE_VERSION.ext` + mdbg/kdirect）；详见 [util_arch](util_arch/) |
 | ShellCore / ShellUI 补丁 | — | 休息模式恢复、toolbox 激活等 |
-| FTP | TCP 1337 | 从固定源码构建 `ftpsrv`，通过 Facade 作为 Toolbox 网络服务实时启停；ELF 与端口均为内置策略 |
-| ShadowMountPlus | util IPC / Unix socket / embedded ELF | 常驻独立进程；Facade 通过控制 socket 在同一进程内触发上游扫描器 |
+| FTP | TCP 1337 | 内置 `ftpsrv`；Toolbox 插件页提供本次启停与下次开机自启 |
+| ShadowMountPlus | 内嵌 ELF | Toolbox 插件页提供本次启停与下次开机自启；运行中自行扫描和挂载 |
 
 ShadowMountPlus 使用 [Drakmor 的项目](https://github.com/drakmor/ShadowMountPlus)，
-其发展源自 VoidWhisper 的 ShadowMount；OnionHEN 从固定源码构建，并只增加薄控制
-Adapter。扫描和挂载逻辑仍由上游实现，进程隔离保持不变。
+内嵌 payload 是上游 `1.6beta16` release ELF。
 
 > **已移除：** Klog 网络服务（9081）、Legacy CMD（9028）。
 > 注意：代码里仍使用 `ps5/klog.h` 的 `klog_printf` / `klog_puts`，那是内核日志 API，不是 9081 服务。
@@ -183,12 +182,12 @@ Adapter。扫描和挂载逻辑仍由上游实现，进程隔离保持不变。
 主要菜单能力：
 
 - 内容安装与管理（系统 PkgInstaller UI、附加内容管理）
-- Payload 与内核组件（Payload ELF、kstuff 管理）
+- Payload 与内核组件（用户 Payload；插件：kstuff、FTP、ShadowMountPlus）
 - 游戏辅助（金手指引擎、OnionHEN 游戏选项）
 - 监控与显示（ShellUI 监控条、Title ID）
 - 账号激活
 - 系统与硬件（风扇、休息模式、外置 HDD、BD 激活）
-- 网络服务（FTP 服务器、Remote Play 配对）
+- 网络服务（Remote Play 配对）
 - 操作偏好（工具箱语言、手柄快捷键）
 - 高级调试 / 关于
 
@@ -332,6 +331,8 @@ struct IPCMessage {
 - `BREW_UTIL_DOWNLOAD_CHEATS` / `BREW_UTIL_CHEAT_SYNC_STATUS`（git catalog 同步；`RELOAD_CHEATS` 已移除，热重载靠文件签名）
 - `BREW_UTIL_UNUSED_DOWNLOAD_KSTUFF`
 - `BREW_UTIL_SHELLUI_ON_STANDBY`
+- `BREW_UTIL_TOGGLE_FTP`（Toolbox 本次启停 ftpsrv）
+- `BREW_UTIL_TOGGLE_SHADOWMOUNT`（Toolbox 本次启停 ShadowMountPlus）
 
 **已废弃但保留序号（兼容旧客户端）：**
 
@@ -339,7 +340,7 @@ struct IPCMessage {
 - `BREW_UTIL_UNUSED_LEGACY_CMD_SERVER`（原 TOGGLE_LEGACY_CMD_SERVER / TCP 9028 已移除）
 - `BREW_UNUSED_DECRYPT_DIR`（原 DECRYPT_DIR，SELF 目录解密已移除）
 - `BREW_UNUSED_TESTKIT_CHECK`（原 TESTKIT_CHECK；客户端改为本地探测）
-- `BREW_UTIL_TOGGLE_FTP`（保留原 TOGGLE_FTP 序号；通过 Toolbox 实时启停 ftpsrv）
+- `BREW_UTIL_LAUNCH_SHADOWMOUNT`（保留序号）
 - `BREW_UTIL_UNUSED_KLOG`（原 TOGGLE_KLOG）
 - `BREW_UTIL_LAUNCH_ELFLDR`（旧手动启动命令；内置 9020 由 bootstrapper 管理）
 
@@ -379,6 +380,7 @@ struct IPCMessage {
 
 - Debug Settings 替代菜单
 - 内容安装与管理、Payload 与内核组件
+- 插件（kstuff、FTP 服务器、ShadowMountPlus）
 - 游戏辅助、监控与显示
 - 账号激活
 - 系统与硬件、操作偏好
@@ -388,9 +390,9 @@ struct IPCMessage {
 ### 4.3 网络服务
 
 - 首跳依赖外部 **9021 elfldr**；它同时是私有 9020 的恢复根。用户 Payload 严格使用内置 **9020 onion_elfldr**，不回退 9021
-- **FTP**：固定源码构建的 `ftpsrv` 由 Facade 包装，通过 `BREW_UTIL_TOGGLE_FTP` 从 Toolbox 实时启停；固定监听 **1337**，不接受用户 ELF 或端口覆盖
-- **Remote Play**：ShellUI 直接调用 PS5 原生 Remote Play API 完成 PIN 生成和客户端注册确认，不实现独立串流协议
-- **ShadowMountPlus**：首次请求时经私有 9020 loader 启动内嵌常驻进程；后续 `Scan games` 由 util Facade 通过 `/system_tmp/onionhen/ipc/shadowmountplus_service` 发送 `scan`，调用上游 `request_scan_now()`，不重启进程。为保证控制协议始终可用，不接受用户 ELF 覆盖；ShadowMountPlus 仍自行负责扫描、挂载与配置
+- **FTP**：内置 `ftpsrv`，监听 **1337**；Toolbox 插件页提供本次启停与下次开机自启
+- **Remote Play**：ShellUI 调用 PS5 原生 Remote Play API 完成 PIN 生成和客户端注册确认
+- **ShadowMountPlus**：内嵌上游 `1.6beta16` ELF；Toolbox 插件页提供本次启停与下次开机自启；运行中自行扫描和挂载
 
 ### 4.4 扩展
 

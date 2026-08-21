@@ -13,15 +13,9 @@ public:
 
 class ShadowMountFacade {
 public:
-  // Starts the resident scanner when needed. A new instance performs its
-  // normal startup scan; an existing instance receives an in-process scan.
-  bool scanNow();
-  bool ensureRunning();
-  bool running() const;
+  bool start();
   void stop();
-
-private:
-  bool sendControl(const char *command) const;
+  bool running() const;
 };
 
 FtpServiceFacade &ftpService();

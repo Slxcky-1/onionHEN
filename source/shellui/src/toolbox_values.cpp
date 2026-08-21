@@ -48,7 +48,15 @@ const ExactValueEntry kExactValues[] = {
     {"id_plugin_kstuff_autoload",
      +[]() -> std::string { return bool_str(g_settings.kstuff_autoload); }},
     {"id_plugin_ftpsrv_run",
+     +[]() -> std::string {
+       return bool_str(shellui_payload_is_running("ftpsrv"));
+     }},
+    {"id_plugin_ftpsrv_autoload",
      +[]() -> std::string { return bool_str(g_settings.ftp_autoload); }},
+    {"id_plugin_shadowmount_run",
+     +[]() -> std::string {
+       return bool_str(shellui_payload_is_running("shadowmountplus"));
+     }},
     {"id_plugin_shadowmount_autoload",
      +[]() -> std::string { return bool_str(g_settings.shadowmount_autoload); }},
     {"id_disp_titleids",
