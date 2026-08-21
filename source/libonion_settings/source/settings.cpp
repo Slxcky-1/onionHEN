@@ -601,7 +601,7 @@ bool apply_parser(IniParser *parser, Settings *out) {
       parse_bool(ini_get(parser, "kstuff.autoload"), out->kstuff_autoload);
   out->ftp_autoload =
       parse_bool(ini_get(parser, "ftp.autoload"), out->ftp_autoload);
-    out->shadowmount_autoload = parse_bool(
+  out->shadowmount_autoload = parse_bool(
       ini_get(parser, "shadowmount.autoload"), out->shadowmount_autoload);
   return true;
 }

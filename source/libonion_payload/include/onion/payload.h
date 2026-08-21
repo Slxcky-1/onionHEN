@@ -30,6 +30,9 @@ void onion_payload_write_pid_file(const char *pid_path, pid_t pid);
 /** Kill process recorded in /system_tmp/onionhen/pid/<key>.PID if still valid. */
 void onion_payload_stop_by_title(const char *title_id);
 
+/** True when the PID file for @title_id names a still-live process. */
+bool onion_payload_running(const char *title_id);
+
 /**
  * Stage ELF under /data/OnionHEN/payloads/<key>.elf and launch exclusively via
  * OnionHEN's private 9020 elfldr. User payloads never fall back to the external
@@ -40,6 +43,15 @@ void onion_payload_stop_by_title(const char *title_id);
  */
 pid_t onion_payload_launch_elfldr(const char *title_id, const uint8_t *elf,
                                   size_t elf_sz);
+
+/**
+ * Stage a built-in ELF under /data/OnionHEN/.runtime/@runtime_filename, launch
+ * it through the private loader with optional @args, unlink the staging file,
+ * and record the PID. @runtime_filename is a basename only.
+ */
+pid_t onion_payload_launch_runtime(const char *title_id, const uint8_t *elf,
+                                   size_t elf_sz, const char *runtime_filename,
+                                   const char *args);
 
 /** malloc'd file contents; caller free(). NULL on error. */
 uint8_t *onion_payload_read_file(const char *path, size_t *out_size);

@@ -5,7 +5,6 @@
 #include "onion_cjson.hpp"
 
 #include <cstring>
-#include <cerrno>
 #include <unistd.h>
 
 OnPressResult onpress_kstuff_autoload(OnPressContext &ctx) {
@@ -78,16 +77,6 @@ OnPressResult onpress_shadowmount_autoload(OnPressContext &ctx) {
   notify(enabled ? "notify.shadowmount.next_boot_on"
                  : "notify.shadowmount.next_boot_off");
   return OnPressResult::Handled;
-}
-
-OnPressResult onpress_shadowmount_remove_external(OnPressContext &ctx) {
-  ctx.dirty = false;
-  if (unlink("/data/OnionHEN/shadowmountplus.elf") != 0 && errno != ENOENT) {
-    notify("notify.shadowmount.remove_failed");
-    return OnPressResult::Consumed;
-  }
-  notify("notify.shadowmount.external_removed");
-  return OnPressResult::Consumed;
 }
 
 static OnPressResult id_activate_account(OnPressContext &ctx) {

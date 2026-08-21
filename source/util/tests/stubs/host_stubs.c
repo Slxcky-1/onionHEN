@@ -66,6 +66,21 @@ pid_t elfldr_remote_onion_write_and_launch_get_pid(const char *abs_path,
   return g_test_onion_launch_pid;
 }
 
+pid_t elfldr_remote_onion_launch_file_get_pid(const char *abs_path,
+                                              const char *args) {
+  (void)abs_path;
+  (void)args;
+  ++g_test_onion_launch_calls;
+  g_test_onion_last_port = ONION_ELFLDR_PORT;
+  return g_test_onion_launch_pid;
+}
+
+pid_t elfldr_remote_onion_write_and_launch_get_pid_with_args(
+    const char *abs_path, const uint8_t *elf, size_t size, const char *args) {
+  (void)args;
+  return elfldr_remote_onion_write_and_launch_get_pid(abs_path, elf, size);
+}
+
 pid_t find_pid(const char *name) {
   (void)name;
   return -1;

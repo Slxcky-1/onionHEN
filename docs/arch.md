@@ -164,11 +164,12 @@ OnionHEN/
 |------|-------------|------|
 | Cheats | IPC | flat-file cheat engine（flat `TITLE_VERSION.ext` + mdbg/kdirect）；详见 [util_arch](util_arch/) |
 | ShellCore / ShellUI 补丁 | — | 休息模式恢复、toolbox 激活等 |
-| FTP | TCP 2121 | 内嵌 `ftpsrv`，作为 Toolbox 网络服务实时启停 |
-| ShadowMountPlus | util IPC / embedded ELF | 作为“游戏与内容”工具扫描并挂载配置的 PS5 游戏来源 |
+| FTP | TCP 1337 | 从固定源码构建 `ftpsrv`，通过 Facade 作为 Toolbox 网络服务实时启停；ELF 与端口均为内置策略 |
+| ShadowMountPlus | util IPC / Unix socket / embedded ELF | 常驻独立进程；Facade 通过控制 socket 在同一进程内触发上游扫描器 |
 
 ShadowMountPlus 使用 [Drakmor 的项目](https://github.com/drakmor/ShadowMountPlus)，
-其发展源自 VoidWhisper 的 ShadowMount；OnionHEN 嵌入并按启动顺序拉起该 payload。
+其发展源自 VoidWhisper 的 ShadowMount；OnionHEN 从固定源码构建，并只增加薄控制
+Adapter。扫描和挂载逻辑仍由上游实现，进程隔离保持不变。
 
 > **已移除：** Klog 网络服务（9081）、Legacy CMD（9028）。
 > 注意：代码里仍使用 `ps5/klog.h` 的 `klog_printf` / `klog_puts`，那是内核日志 API，不是 9081 服务。
@@ -387,9 +388,9 @@ struct IPCMessage {
 ### 4.3 网络服务
 
 - 首跳依赖外部 **9021 elfldr**；它同时是私有 9020 的恢复根。用户 Payload 严格使用内置 **9020 onion_elfldr**，不回退 9021
-- **FTP**：内嵌 `ftpsrv`，通过 `BREW_UTIL_TOGGLE_FTP` 从 Toolbox 实时启停，监听 TCP **2121**
+- **FTP**：固定源码构建的 `ftpsrv` 由 Facade 包装，通过 `BREW_UTIL_TOGGLE_FTP` 从 Toolbox 实时启停；固定监听 **1337**，不接受用户 ELF 或端口覆盖
 - **Remote Play**：ShellUI 直接调用 PS5 原生 Remote Play API 完成 PIN 生成和客户端注册确认，不实现独立串流协议
-- **ShadowMountPlus**：ShellUI 通过 util IPC 选择外部覆盖 ELF 或内嵌 ELF，并经私有 9020 loader 启动 `shadowmountplus.elf`；其 release 为 `1.6beta16`，ShadowMountPlus 自己负责扫描与挂载，OnionHEN 不增加另一层配置系统
+- **ShadowMountPlus**：首次请求时经私有 9020 loader 启动内嵌常驻进程；后续 `Scan games` 由 util Facade 通过 `/system_tmp/onionhen/ipc/shadowmountplus_service` 发送 `scan`，调用上游 `request_scan_now()`，不重启进程。为保证控制协议始终可用，不接受用户 ELF 覆盖；ShadowMountPlus 仍自行负责扫描、挂载与配置
 
 ### 4.4 扩展
 

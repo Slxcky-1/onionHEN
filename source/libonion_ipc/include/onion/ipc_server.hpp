@@ -49,6 +49,9 @@ using IpcCommandHandler = void (*)(IpcClientArgs *client, std::string &msg,
 int ipc_network_listen(const char *soc_path);
 int ipc_network_accept(int socket_fd);
 
+/** Connect to an AF_UNIX socket at @path. Returns fd >= 0, or -1. */
+int ipc_unix_connect(const char *path);
+
 /** Single recv (may be short). Prefer ipc_network_recv_full for frames. */
 int ipc_network_recv(int socket_fd, void *buffer, int32_t size);
 

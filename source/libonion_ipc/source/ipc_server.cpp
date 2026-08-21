@@ -123,6 +123,25 @@ int ipc_network_accept(int socket_fd) {
   return accept(socket_fd, nullptr, nullptr);
 }
 
+int ipc_unix_connect(const char *path) {
+  if (!path || !path[0])
+    return -1;
+
+  const int soc = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (soc < 0)
+    return -1;
+
+  sockaddr_un server{};
+  server.sun_family = AF_UNIX;
+  strncpy(server.sun_path, path, sizeof(server.sun_path) - 1);
+  if (connect(soc, reinterpret_cast<struct sockaddr *>(&server),
+              SUN_LEN(&server)) == -1) {
+    close(soc);
+    return -1;
+  }
+  return soc;
+}
+
 int ipc_network_recv(int socket_fd, void *buffer, int32_t size) {
   int n = recv(socket_fd, buffer, size, 0);
   LOG_DEBUG("got %i bytes", n);

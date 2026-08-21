@@ -10,17 +10,22 @@ code here makes `source/` exclusively first-party code.
 | [`cheat_support/`](cheat_support/) | Vendored source | AES, base64, miniz and SHA-256 used by cheat parsers |
 | [`keystone/`](keystone/) | Headers + prebuilt archive | ShnExt assembly support |
 | [`kstuff-lite/`](kstuff-lite/) | Git submodule | Produces the optional embedded `kstuff.elf` |
-| [`ftpsrv/`](ftpsrv/) | Git submodule (`nexgen`) | Embedded PS5 FTP server payload |
-| [`ShadowMountPlus/`](ShadowMountPlus/) | Git submodule (`main`) | Embedded ShadowMountPlus game scanner/mounter payload |
+| [`ftpsrv/`](ftpsrv/) | Pinned Git submodule (`nexgen`) | Source-built PS5 FTP server payload; OnionHEN launches it on the built-in port |
+| [`ShadowMountPlus/`](ShadowMountPlus/) | Pinned Git submodule + patch | Source-built game scanner/mounter with the thin OnionHEN control adapter from `patches/shadowmountplus-<upstream-commit>.patch` |
 
 Third-party file names retain their upstream spelling even when it differs
 from the project's snake_case convention. This keeps upstream updates easy to
 review.
 
-Downloaded or locally built dependency blobs are cached in
+Source-built or downloaded fallback dependency blobs are cached in
 `.cache/dependencies/` and ignored by Git. `scripts/sync_dependencies.sh`
 stages the required bootstrapper input from that cache; generated blobs do not
 belong in `source/`.
+
+`ftpsrv` is built from its pinned source checkout when available, with a verified
+upstream release ELF as fallback. ShadowMountPlus is always built from the pinned
+source plus `patches/shadowmountplus-<commit>.patch`. It never downloads an
+upstream release ELF, because that blob has no OnionHEN control socket.
 
 ## Runtime-only external dependency
 

@@ -6,6 +6,7 @@
 #include <onion/payload.h>
 #include "ipc.hpp"
 #include "rest_mode.hpp"
+#include "service_facade.hpp"
 #include <msg.hpp>
 #include <onion/settings.hpp>
 #include "common_utils.h"
@@ -35,10 +36,6 @@ extern "C" {
 #include <vector>
 
 extern bool is_handler_enabled;
-extern uint8_t ftpsrv_start[];
-extern const unsigned int ftpsrv_size;
-extern uint8_t shadowmount_start[];
-extern const unsigned int shadowmount_size;
 
 void reply(int sender_socket, bool error, std::string out_var = "Nothing");
 extern "C" {
@@ -48,30 +45,6 @@ std::string GetPS5Version(const std::string &jsonpath);
 std::vector<uint8_t> readFile(std::string filename);
 
 namespace {
-
-bool launch_shadowmount() {
-  constexpr const char *kExternalPath =
-      "/data/OnionHEN/shadowmountplus.elf";
-
-  if (access(kExternalPath, R_OK) == 0) {
-    LOG_INFO("Launching external ShadowMount+ from %s", kExternalPath);
-    const std::vector<uint8_t> external = readFile(kExternalPath);
-    if (onion_payload_is_elf(external.data(), external.size()) &&
-        elfldr_remote_send_bytes_to(ONION_ELFLDR_PORT, external.data(),
-                                    external.size()))
-      return true;
-    LOG_WARN("External ShadowMount+ failed validation or launch: %s",
-             kExternalPath);
-  }
-
-  if (!onion_payload_is_elf(shadowmount_start, shadowmount_size)) {
-    LOG_ERROR("Embedded ShadowMount+ ELF is missing or invalid");
-    return false;
-  }
-
-  return elfldr_remote_send_bytes_to(ONION_ELFLDR_PORT, shadowmount_start,
-                                     shadowmount_size);
-}
 
 std::string make_state_json(const char *state, uint32_t task_id = 0) {
   cJSON *root = cJSON_CreateObject();
@@ -142,21 +115,18 @@ void handleIPC(clientArgs *client, std::string &inputStr,
                                                             "toggle");
     const bool enabled = toggle && cJSON_IsNumber(toggle) && toggle->valueint;
     if (enabled) {
-      onion_payload_stop_by_title("ftpsrv");
-      if (!elfldr_remote_send_bytes_to(ONION_ELFLDR_PORT, ftpsrv_start,
-                                       (size_t)ftpsrv_size)) {
-        LOG_ERROR("Failed to start embedded ftpsrv");
+      if (!onion::services::ftpService().start()) {
         reply(sender_app, true);
         break;
       }
     } else {
-      onion_payload_stop_by_title("ftpsrv");
+      onion::services::ftpService().stop();
     }
     reply(sender_app, false);
     break;
   }
   case BREW_UTIL_LAUNCH_SHADOWMOUNT:
-    reply(sender_app, !launch_shadowmount());
+    reply(sender_app, !onion::services::shadowMountService().scanNow());
     break;
   case BREW_UTIL_UNUSED_KLOG:
   case BREW_UTIL_UNUSED_DPI:

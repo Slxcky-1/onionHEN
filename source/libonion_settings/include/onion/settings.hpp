@@ -88,7 +88,6 @@ inline constexpr int kLogLevelTrace = 5;
 inline constexpr int kFanThresholdMinCelsius = 0;
 inline constexpr int kFanThresholdMaxCelsius = 100;
 inline constexpr int kFanAutomaticThresholdCelsius = 77;
-
 inline constexpr int clamp_fan_threshold(int celsius) {
   if (celsius < kFanThresholdMinCelsius)
     return kFanThresholdMinCelsius;

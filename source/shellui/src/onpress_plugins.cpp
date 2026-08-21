@@ -14,8 +14,6 @@ static const OnPressExactEntry kPluginsExact[] = {
     {"id_plugin_ftpsrv_run", onpress_ftp_autoload},
     {"id_plugin_shadowmount_autoload", onpress_shadowmount_autoload},
     {"id_plugin_shadowmount_scan", onpress_shadowmount_scan},
-    {"id_plugin_shadowmount_remove_external",
-     onpress_shadowmount_remove_external},
 };
 
 const OnPressExactEntry *onpress_plugins_exact(size_t *count) {

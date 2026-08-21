@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Sync / build external dependencies for OnionHEN.
 #
-# Remaining external embeds: kstuff.elf, ftpsrv-ps5.elf, shadowmountplus.elf
-# Built from source: onion_elfldr.elf (private 9020 runtime loader)
+# Embedded payload inputs: kstuff.elf plus source-built ftpsrv and ShadowMountPlus
+# Also built from source: onion_elfldr.elf (private 9020 runtime loader)
 # Removed: external elfldr.elf (9021 service), ps5debug, ps5-app-dumper, Byepervisor/hen.bin
 #
 set -euo pipefail
@@ -22,11 +22,10 @@ KSTUFF_SOURCE_DIR="${TP}/kstuff-lite"
 FTPSRV_URL="https://github.com/drakmor/ftpsrv/releases/download/1.15-ng-stable/ftpsrv-ps5.elf"
 FTPSRV_SHA256="913a443af847b6861ec11748e2640f62d1fc1027076f576aa0ddccab8507311f"
 FTPSRV_SOURCE_DIR="${TP}/ftpsrv"
-SHADOWMOUNT_URL="https://github.com/drakmor/ShadowMountPlus/releases/download/1.6beta16/shadowmountplus.elf"
-SHADOWMOUNT_SHA256="a35246fb3bb6042b25653b51cdcbc33254b40339342bf1d2dd0d2eceee2ca526"
 SHADOWMOUNT_SOURCE_DIR="${TP}/ShadowMountPlus"
-SHADOWMOUNT_RELEASE_TAG="1.6beta16"
 SHADOWMOUNT_COMMIT="8566c0294cbf37b55375602e950a0e6b6bb928d7"
+SHADOWMOUNT_ONION_PATCH="${TP}/patches/shadowmountplus-${SHADOWMOUNT_COMMIT}.patch"
+FTPSRV_SOURCE_REV="b6c4784f33d6fc8d26f719f7dc9e1cc9bb8d58cd"
 # Real release blob is hundreds of KB+; stubs are tiny markers.
 KSTUFF_MIN_BYTES=65536
 
@@ -41,21 +40,22 @@ Sync OnionHEN external dependencies from open-source upstreams.
 
 Submodules (under third_party/):
   kstuff-lite      https://github.com/EchoStretch/kstuff-lite
-  ftpsrv           release 1.15-ng-stable, fallback submodule nexgen
+  ftpsrv           pinned nexgen source, fallback release 1.15-ng-stable
 
 Runtime-only external dependency:
   elfldr @ 9021    https://github.com/ps5-payload-dev/elfldr
                   Required only for initial bootstrap; OnionHEN starts
                   onion_elfldr.elf @ 9020 for runtime launches.
 
-  ShadowMountPlus   submodule pinned to release 1.6beta16
+  ShadowMountPlus   pinned source + patches/shadowmountplus-<commit>.patch
+                  Never falls back to an upstream release ELF.
 
 Removed from OnionHEN (not synced):
   external elfldr.elf (9021 service), ps5debug, ps5-app-dumper, Byepervisor/hen.bin
 
 Options:
   --init-submodules   git submodule update --init --recursive
-  --from-source       Prefer building submodules with make (needs SDK)
+  --from-source       Require source checkouts; disable release fallbacks
   --stub-missing      Write tiny placeholders if download/build fails
   --force             Re-download/rebuild external dependencies
   -h, --help
@@ -93,13 +93,26 @@ place() {
   ok "$(basename "${dest}") <- ${src}"
 }
 
+file_sha256() {
+  local path="$1"
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "${path}" | awk '{print $1}'
+  else
+    shasum -a 256 "${path}" | awk '{print $1}'
+  fi
+}
+
+shadowmount_adapter_rev() {
+  local patch="$1"
+  printf '%s:%s' "${SHADOWMOUNT_COMMIT}" "$(file_sha256 "${patch}")"
+}
+
 download_verified() {
   local url="$1" dest="$2" expected="$3"
   if ! download "${url}" "${dest}"; then
     return 1
   fi
-  if ! command -v sha256sum >/dev/null 2>&1 ||
-      [[ "$(sha256sum "${dest}" | awk '{print $1}')" != "${expected}" ]]; then
+  if [[ "$(file_sha256 "${dest}")" != "${expected}" ]]; then
     warn "checksum mismatch for $(basename "${dest}")"
     rm -f "${dest}"
     return 1
@@ -196,36 +209,38 @@ sync_kstuff() {
 sync_ftpsrv() {
   local dest="${CACHE}/ftpsrv-ps5.elf"
   local source_elf="${FTPSRV_SOURCE_DIR}/ftpsrv-ps5.elf"
+  local stamp="${CACHE}/ftpsrv-ps5.source-rev"
 
-  if [[ "${FORCE_DOWNLOAD}" -eq 0 ]] && ftpsrv_looks_cached "${dest}"; then
-    ok "ftpsrv-ps5.elf already present ($(wc -c < "${dest}" | tr -d ' ') bytes) — skip build"
+  if [[ "${FORCE_DOWNLOAD}" -eq 0 ]] && ftpsrv_looks_cached "${dest}" &&
+     [[ -f "${stamp}" ]] && [[ "$(<"${stamp}")" == "${FTPSRV_SOURCE_REV}" ]]; then
+    ok "ftpsrv-ps5.elf source build already present ($(wc -c < "${dest}" | tr -d ' ') bytes)"
     return 0
   fi
 
-  if [[ "${FROM_SOURCE}" -eq 0 ]]; then
-    log "ftpsrv: download release 1.15-ng-stable"
-    if download_verified "${FTPSRV_URL}" "${dest}" "${FTPSRV_SHA256}"; then
-      ok "ftpsrv-ps5.elf (1.15-ng-stable)"
-      return 0
-    fi
-    warn "ftpsrv release download failed, trying submodule build"
+  if [[ -f "${FTPSRV_SOURCE_DIR}/Makefile.ps5" ]]; then
+    need_sdk
+    log "ftpsrv: build pinned third_party/ftpsrv source"
+    make -C "${FTPSRV_SOURCE_DIR}" -f Makefile.ps5 clean
+    make -C "${FTPSRV_SOURCE_DIR}" -f Makefile.ps5 \
+      PS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}"
+    [[ -f "${source_elf}" ]] || die "ftpsrv build did not produce ${source_elf}"
+    place "${source_elf}" "${dest}"
+    printf '%s' "${FTPSRV_SOURCE_REV}" > "${stamp}"
+    return 0
   fi
 
-  if [[ ! -d "${FTPSRV_SOURCE_DIR}" || ! -f "${FTPSRV_SOURCE_DIR}/Makefile.ps5" ]]; then
-    if [[ "${STUB_MISSING}" -eq 1 ]]; then
-      stub "${dest}" "ftpsrv-ps5.elf"
-      return 0
-    fi
-    die "missing ftpsrv submodule or Makefile.ps5: ${FTPSRV_SOURCE_DIR}"
+  [[ "${FROM_SOURCE}" -eq 0 ]] || die "missing ftpsrv source: ${FTPSRV_SOURCE_DIR}"
+  log "ftpsrv: source unavailable, download release 1.15-ng-stable"
+  if download_verified "${FTPSRV_URL}" "${dest}" "${FTPSRV_SHA256}"; then
+    rm -f "${stamp}"
+    ok "ftpsrv-ps5.elf (1.15-ng-stable fallback)"
+    return 0
   fi
-
-  need_sdk
-  log "ftpsrv: build third_party/ftpsrv (nexgen)"
-  make -C "${FTPSRV_SOURCE_DIR}" -f Makefile.ps5 clean
-  make -C "${FTPSRV_SOURCE_DIR}" -f Makefile.ps5 \
-    PS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}"
-  [[ -f "${source_elf}" ]] || die "ftpsrv build did not produce ${source_elf}"
-  place "${source_elf}" "${dest}"
+  if [[ "${STUB_MISSING}" -eq 1 ]]; then
+    stub "${dest}" "ftpsrv-ps5.elf"
+    return 0
+  fi
+  die "ftpsrv source and release are unavailable"
 }
 
 shadowmount_looks_cached() {
@@ -240,39 +255,49 @@ shadowmount_looks_cached() {
 sync_shadowmount() {
   local dest="${CACHE}/shadowmountplus.elf"
   local src="${SHADOWMOUNT_SOURCE_DIR}"
+  local stamp="${CACHE}/shadowmountplus.source-rev"
 
-  if [[ "${FROM_SOURCE}" -eq 0 ]]; then
-    log "shadowmount: download release 1.6beta16"
-    if download_verified "${SHADOWMOUNT_URL}" "${dest}" "${SHADOWMOUNT_SHA256}"; then
-      ok "shadowmountplus.elf (1.6beta16)"
-      return 0
-    fi
-    warn "ShadowMountPlus release download failed, trying submodule build"
+  [[ -f "${SHADOWMOUNT_ONION_PATCH}" ]] ||
+    die "ShadowMountPlus adapter patch missing: ${SHADOWMOUNT_ONION_PATCH}"
+  local adapter_rev
+  adapter_rev="$(shadowmount_adapter_rev "${SHADOWMOUNT_ONION_PATCH}")"
+
+  if [[ "${FORCE_DOWNLOAD}" -eq 0 ]] && shadowmount_looks_cached "${dest}" &&
+     [[ -f "${stamp}" ]] &&
+     [[ "$(<"${stamp}")" == "${adapter_rev}" ]]; then
+    ok "shadowmountplus.elf adapted source build already present"
+    return 0
   fi
 
-  if [[ ! -d "${src}" || ! -f "${src}/Makefile" ]]; then
-    if [[ "${STUB_MISSING}" -eq 1 ]]; then
-      stub "${dest}" "shadowmountplus.elf"
-      return 0
+  if [[ -f "${src}/Makefile" ]]; then
+    need_sdk
+    local sdk_stub="${PS5_PAYLOAD_SDK}/src/sce_stubs/libkernel_sys.c"
+    local homebrew_include="${PS5_PAYLOAD_SDK}/target/user/homebrew/include"
+    [[ -f "${sdk_stub}" ]] ||
+      die "PS5 SDK source stub missing: ${sdk_stub}"
+    [[ -f "${homebrew_include}/sqlite3.h" ]] ||
+      die "PS5 SDK sqlite3 headers missing: ${homebrew_include}"
+    git -C "${src}" checkout --detach "${SHADOWMOUNT_COMMIT}"
+    if git -C "${src}" apply --reverse --check "${SHADOWMOUNT_ONION_PATCH}"; then
+      ok "ShadowMountPlus OnionHEN control adapter already applied"
+    elif git -C "${src}" apply --check "${SHADOWMOUNT_ONION_PATCH}"; then
+      git -C "${src}" apply "${SHADOWMOUNT_ONION_PATCH}"
+      ok "applied ShadowMountPlus OnionHEN control adapter"
+    else
+      die "ShadowMountPlus control adapter does not apply cleanly"
     fi
-    die "missing ShadowMountPlus submodule or Makefile: ${src}"
-  fi
-
-  need_sdk
-  git -C "${src}" checkout --detach "${SHADOWMOUNT_COMMIT}"
-  log "shadowmount: build release ${SHADOWMOUNT_RELEASE_TAG}"
-  make -C "${src}" clean
-  make -C "${src}" -j4
-  if [[ -f "${src}/shadowmountplus.elf" ]]; then
+    log "shadowmount: build pinned source with OnionHEN adapter"
+    make -C "${src}" clean
+    C_INCLUDE_PATH="${homebrew_include}${C_INCLUDE_PATH:+:${C_INCLUDE_PATH}}" \
+      make -C "${src}" -j4
+    [[ -f "${src}/shadowmountplus.elf" ]] ||
+      die "ShadowMountPlus source build did not produce an ELF"
     place "${src}/shadowmountplus.elf" "${dest}"
+    printf '%s' "${adapter_rev}" > "${stamp}"
     return 0
   fi
 
-  if [[ "${STUB_MISSING}" -eq 1 ]]; then
-    stub "${dest}" "shadowmountplus.elf"
-    return 0
-  fi
-  die "shadowmountplus.elf unavailable after pinned upstream build"
+  die "ShadowMountPlus source is required: ${src} (no release ELF fallback)"
 }
 
 main() {
@@ -286,7 +311,7 @@ main() {
     init_submodules
   elif [[ ! -d "${TP}/kstuff-lite" ]]; then
     warn "submodules not checked out — run: git submodule update --init --recursive"
-    warn "release downloads still work without submodules"
+    warn "kstuff/ftpsrv release downloads still work without submodules; ShadowMountPlus does not"
   fi
 
   sync_kstuff

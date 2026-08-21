@@ -63,9 +63,9 @@ OnionHEN 面向已越狱的 PS5，提供一套能日常使用、也方便维护�
 - **ShellUI 工具箱** — 注入 PS5 ShellUI 的设置页
 - **系统准备** — 提权、重新挂载文件系统、阻断系统更新分区
 - **fSELF / fPKG** — 内嵌 kstuff，用来跑自制 SELF / PKG；默认加载，可在工具箱关掉
-- **PS5 FTP 服务器** — 内嵌 `nexgen` 分支的 `ftpsrv`，作为内置网络服务实时启停，端口为 `2121`
+- **PS5 FTP 服务器** — 内嵌 `nexgen` 分支的 `ftpsrv`，作为内置网络服务实时启停，固定端口为 `1337`
 - **远程游玩配对** — 在网络菜单中启用 PS5 原生远程游玩服务、生成配对 PIN 并注册客户端
-- **ShadowMountPlus** — 内嵌游戏扫描/挂载器，位于游戏与内容菜单，可单次扫描并管理外部 ELF 覆盖
+- **ShadowMountPlus** — 内嵌游戏扫描/挂载器，位于游戏与内容菜单，可手动触发实时扫描
 - **用户 Payload 管理** — 启动和停止用户添加的普通 `.elf` payload，可选自动启动
 - **游戏监控条** — 游戏中显示 FPS、CPU、GPU、内存、温度和网络信息
 - **金手指** — 本地 JSON、SHN、MC4、ShnExt 文件，运行中即可开关
@@ -104,8 +104,8 @@ OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstu
 
 内嵌的 PS5 FTP 服务器位于 **工具箱 → 网络 → FTP 服务器**，与用户放入
 `payloads/` 目录的 ELF 分开管理。开关会立即启停服务，并记住下次启动时的选择。
-服务器监听 `2121` 端口，并包含上游 `ftpsrv` 的 `KILL`、`SELF`、`SCHK`、
-`MTRW`、`AUTHID` 等命令（具体取决于固件支持）。
+服务器固定监听 `1337` 端口，并包含上游 `ftpsrv` 的 `KILL`、`SELF`、`SCHK`、
+`MTRW`、`AUTHID` 等命令（具体取决于固件支持）。内置 ELF 和监听端口均不接受用户覆盖。
 
 ### 远程游玩
 
@@ -121,11 +121,9 @@ OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstu
 
 ShadowMountPlus 位于 **工具箱 → 游戏与内容** 的独立分组中。它作为 OnionHEN
 内置的游戏来源工具展示，不会出现在用户 Payload 列表中。
-`扫描游戏` 会启动内嵌的 `shadowmountplus.elf`；如果存在
-`/data/OnionHEN/shadowmountplus.elf`，
-会优先使用外部 ELF。`删除外部 ShadowMount+` 会删除该覆盖文件。
-ShadowMountPlus 从 `1.6beta16` release tag 构建，并启动自己的游戏扫描/挂载进程。
-OnionHEN 只负责启动 ELF，不增加另一层配置系统。
+`扫描游戏` 会启动内嵌的 `shadowmountplus.elf`，后续扫描通过控制 IPC 在同一进程中触发。
+OnionHEN 始终使用内嵌版本，不接受外部 ELF 覆盖；Payload 管理器也拒绝这些保留服务名。
+ShadowMountPlus 从固定源码构建，并启动自己的游戏扫描/挂载进程。
 
 ### Payload
 
@@ -169,10 +167,11 @@ OnionHEN 只负责启动 ELF，不增加另一层配置系统。
 | `lzma` 或 `xz` | 压缩 bootstrapper |
 | Git 与 `curl` 或 `wget` | 初始化 submodule 并获取外部 payload 输入 |
 
-构建时会优先下载 [`drakmor/ftpsrv`](https://github.com/drakmor/ftpsrv) 的
-`1.15-ng-stable` release；失败时回退到 `nexgen` 子模块并使用 `Makefile.ps5` 构建。
-ShadowMountPlus 会优先使用 [`1.6beta16`](https://github.com/drakmor/ShadowMountPlus/releases/tag/1.6beta16)
-release ELF；失败时回退到固定版本的 `third_party/ShadowMountPlus` 子模块。
+构建时会从固定的 [`drakmor/ftpsrv`](https://github.com/drakmor/ftpsrv)
+`nexgen` 子模块和 [`ShadowMountPlus`](https://github.com/drakmor/ShadowMountPlus)
+子模块源码构建这两个 PS5 payload。ShadowMountPlus 会应用
+`third_party/patches/shadowmountplus-<上游 commit>.patch` 这份控制 adapter 补丁，
+并且永远不会回退到上游 release ELF。`ftpsrv` 在源码 checkout 不可用时仍可回退到已校验的 release ELF。
 
 ### 完整构建
 
@@ -280,10 +279,9 @@ OnionHEN 在下面两处读写同一份配置：
 | `/data/OnionHEN/cheats/` | 金手指文件 |
 | `/data/OnionHEN/cheats_tmp/` | HTTPS ZIP 与解压临时文件（同步后清理） |
 | `/data/OnionHEN/kstuff.elf` | 可选，用来替换内嵌的 `kstuff` |
-| `/data/OnionHEN/shadowmountplus.elf` | 可选的外部 ShadowMountPlus 覆盖 ELF |
-| `/user/data/OnionHEN/shadowmountplus.elf` | 备用的外部 ShadowMountPlus 覆盖 ELF |
 | `/data/shadowmount/config.ini` | ShadowMountPlus 运行时配置 |
-| `ftpsrv` | 内嵌的 PS5 FTP payload；不会创建用户可见的 ELF 文件 |
+| `shadowmountplus` | 内嵌的 PS5 payload；不接受外部 ELF 覆盖 |
+| `ftpsrv` | 内嵌的 PS5 FTP payload，固定端口 `1337`；不接受 ELF/端口覆盖 |
 | `/data/OnionHEN/OnionHEN.log` | 主运行日志 |
 | `/data/OnionHEN/OnionHEN_util_daemon.log` | Utility daemon 日志 |
 

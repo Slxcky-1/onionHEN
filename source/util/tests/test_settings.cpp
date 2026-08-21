@@ -63,6 +63,7 @@ static int test_defaults_and_serialize_keys(void) {
                                  "payload when OnionHEN starts.\n"
                                  "# Available values: true, false\n"
                                  "autoload=false\n") != std::string::npos);
+  TEST_ASSERT_TRUE(text.find("ftp.port") == std::string::npos);
   TEST_ASSERT_TRUE(text.find("[shadowmount]\n# autoload launches "
                                  "ShadowMountPlus when OnionHEN starts.\n"
                                  "# Available values: true, false\n"
@@ -482,6 +483,30 @@ static int test_language_new_locales_roundtrip(void) {
   return 0;
 }
 
+static int test_v0_0_10_config_does_not_autoload_plugins(void) {
+  std::string path = temp_ini_path();
+  TEST_ASSERT_TRUE(!path.empty());
+  FILE *f = fopen(path.c_str(), "w");
+  TEST_ASSERT_TRUE(f != nullptr);
+  fputs("[meta]\n"
+        "schema_version=1\n"
+        "\n[toolbox]\n"
+        "language=zh-Hans\n"
+        "\n[kstuff]\n"
+        "autoload=true\n",
+        f);
+  fclose(f);
+
+  onion::Settings out{};
+  TEST_ASSERT_TRUE(onion::settings_load_file(path.c_str(), &out));
+  TEST_ASSERT_TRUE(out.kstuff_autoload);
+  TEST_ASSERT_TRUE(!out.ftp_autoload);
+  TEST_ASSERT_TRUE(!out.shadowmount_autoload);
+
+  unlink(path.c_str());
+  return 0;
+}
+
 static int test_clamp_fan_threshold(void) {
   TEST_ASSERT_EQ_INT(onion::kFanAutomaticThresholdCelsius,
                      onion::Settings{}.fan_threshold);
@@ -520,6 +545,8 @@ extern "C" int test_settings_suite(void) {
   failures += onion_test_run("settings_language_ar", test_language_ar_roundtrip);
   failures += onion_test_run("settings_language_new_locales",
                              test_language_new_locales_roundtrip);
+  failures += onion_test_run("settings_v0_0_10_no_plugin_autoload",
+                             test_v0_0_10_config_does_not_autoload_plugins);
   failures += onion_test_run("settings_clamp_fan_threshold",
                              test_clamp_fan_threshold);
   return failures;

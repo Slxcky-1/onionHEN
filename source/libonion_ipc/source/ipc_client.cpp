@@ -23,7 +23,6 @@ along with this program; see the file COPYING. If not, see
 #include <errno.h>
 #include <strings.h>
 #include <sys/socket.h>
-#include <sys/un.h>
 #include <unistd.h>
 
 #include "onion_cjson.hpp"
@@ -105,17 +104,8 @@ bool IPC_Client::require_crit(const char *what) const {
 }
 
 int IPC_Client::OpenConnection(const char *path) {
-  sockaddr_un server{};
-  int soc = socket(AF_UNIX, SOCK_STREAM, 0);
-  if (soc == -1) {
-    LOG_ERROR("Failed to create socket: %s", strerror(errno));
-    return -1;
-  }
-  server.sun_family = AF_UNIX;
-  strncpy(server.sun_path, path, sizeof(server.sun_path) - 1);
-  if (connect(soc, reinterpret_cast<struct sockaddr *>(&server),
-              SUN_LEN(&server)) == -1) {
-    close(soc);
+  const int soc = onion::ipc_unix_connect(path);
+  if (soc < 0) {
     LOG_ERROR("Failed to connect to %s: %s", path, strerror(errno));
     return -1;
   }

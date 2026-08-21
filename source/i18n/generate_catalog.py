@@ -38,8 +38,6 @@ REQUIRED_TOKENS = {
         "notify.kstuff.deleted": ("Kstuff",),
         "notify.shadowmount.scan_started": ("ShadowMount+",),
         "notify.shadowmount.launch_failed": ("ShadowMount+",),
-        "notify.shadowmount.external_removed": ("ShadowMount+",),
-        "notify.shadowmount.remove_failed": ("ShadowMount+",),
         "notify.shadowmount.next_boot_on": ("ShadowMount+",),
         "notify.shadowmount.next_boot_off": ("ShadowMount+",),
     },

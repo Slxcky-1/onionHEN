@@ -53,7 +53,6 @@ void append_payload_entry(G& page, const std::string& directory, const char* fil
     LOG_ERROR("Skipping invalid payload name: %s", filename);
     return;
   }
-
   /* Confirm file is readable (ELF magic checked at launch). */
   const int fd = open(path.c_str(), O_RDONLY, 0);
   if (fd < 0) {
@@ -314,10 +313,7 @@ void generate_shadowmount_config_xml(std::string &xml_buffer) {
               toolbox_i18n::tr("shadowmount.autoload.sub"))
       .button("id_plugin_shadowmount_scan",
               toolbox_i18n::tr("shadowmount.scan"), std::nullopt,
-              toolbox_i18n::tr("shadowmount.scan.sub"))
-      .button("id_plugin_shadowmount_remove_external",
-              toolbox_i18n::tr("shadowmount.remove_external"), std::nullopt,
-              toolbox_i18n::tr("shadowmount.remove_external.desc"));
+              toolbox_i18n::tr("shadowmount.scan.sub"));
   xml_buffer = page.build();
 }
 
