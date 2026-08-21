@@ -278,7 +278,7 @@
     "notify.mount.system_ex": "/system_ex 마운트에 실패했습니다\n이 메시지가 보이면 본체를 다시 시작하세요",
     "notify.mount.system": "/system 마운트에 실패했습니다\n이 메시지가 보이면 본체를 다시 시작하세요",
     "notify.crash.resolved": "치명적인 오류에서 복구했습니다\n\n걱정하지 않으셔도 됩니다",
-    "notify.crash.main": "OnionHEN이 중단되었습니다……\n\n/data/OnionHEN/OnionHEN_crash.log 를 PKG-Zone Discord로 보내 주세요: https://discord.gg/BduZHudWGj",
+    "notify.crash.main": "OnionHEN이 중단되었습니다……\n\n/data/OnionHEN/OnionHEN_crash.log 파일을 GitHub Issue에 첨부해 주세요: https://github.com/aydencharles/onionHEN/issues",
     "notify.stack.shutdown": "OnionHEN 구성 요소를 종료했습니다(util + ShellUI + daemon. Kstuff는 계속 실행)",
     "notify.fan.open_failed": "팬 설정을 열 수 없습니다!",
     "notify.fan.set_failed": "팬 속도를 설정할 수 없습니다!",

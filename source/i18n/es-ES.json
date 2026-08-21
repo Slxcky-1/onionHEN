@@ -278,7 +278,7 @@
     "notify.mount.system_ex": "fallo al montar /system_ex\nsi ve este mensaje, reinicie la consola",
     "notify.mount.system": "fallo al montar /system\nsi ve este mensaje, reinicie la consola",
     "notify.crash.resolved": "El error fatal se ha recuperado\n\nno hay de qué preocuparse",
-    "notify.crash.main": "OnionHEN se ha cerrado de forma inesperada…\n\nEnvíe /data/OnionHEN/OnionHEN_crash.log al Discord de PKG-Zone: https://discord.gg/BduZHudWGj",
+    "notify.crash.main": "OnionHEN se ha cerrado de forma inesperada…\n\nAdjunte /data/OnionHEN/OnionHEN_crash.log a una incidencia de GitHub: https://github.com/aydencharles/onionHEN/issues",
     "notify.stack.shutdown": "Pila OnionHEN detenida (util + ShellUI + daemon; Kstuff sigue activo)",
     "notify.fan.open_failed": "No se pudieron abrir los ajustes del ventilador.",
     "notify.fan.set_failed": "No se pudo ajustar la velocidad del ventilador.",

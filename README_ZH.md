@@ -281,6 +281,7 @@ OnionHEN 在下面两处读写同一份配置：
 | `shadowmountplus` | 内嵌的 ShadowMountPlus `1.6beta16` ELF |
 | `ftpsrv` | 内嵌 FTP payload，端口 `1337` |
 | `/data/OnionHEN/OnionHEN.log` | 主运行日志 |
+| `/data/OnionHEN/OnionHEN_crash.log` | 保留的 daemon 崩溃信号与回溯日志 |
 | `/data/OnionHEN/OnionHEN_util_daemon.log` | Utility daemon 日志 |
 
 <br>

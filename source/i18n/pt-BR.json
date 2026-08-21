@@ -278,7 +278,7 @@
     "notify.mount.system_ex": "falha ao montar /system_ex\nse esta mensagem aparecer, reinicie o console",
     "notify.mount.system": "falha ao montar /system\nse esta mensagem aparecer, reinicie o console",
     "notify.crash.resolved": "O erro fatal foi recuperado\n\nnão há com o que se preocupar",
-    "notify.crash.main": "O OnionHEN travou…\n\nEnvie /data/OnionHEN/OnionHEN_crash.log para o Discord do PKG-Zone: https://discord.gg/BduZHudWGj",
+    "notify.crash.main": "O OnionHEN travou…\n\nAnexe /data/OnionHEN/OnionHEN_crash.log a uma issue no GitHub: https://github.com/aydencharles/onionHEN/issues",
     "notify.stack.shutdown": "Pilha OnionHEN encerrada (util + ShellUI + daemon; o Kstuff continua ativo)",
     "notify.fan.open_failed": "Não foi possível abrir os ajustes da ventoinha!",
     "notify.fan.set_failed": "Não foi possível definir a velocidade da ventoinha!",

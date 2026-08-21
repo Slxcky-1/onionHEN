@@ -278,7 +278,7 @@
     "notify.mount.system_ex": "/system_ex のマウントに失敗しました\nこの表示が出たら本体を再起動してください",
     "notify.mount.system": "/system のマウントに失敗しました\nこの表示が出たら本体を再起動してください",
     "notify.crash.resolved": "致命的なエラーから復旧しました\n\n心配はいりません",
-    "notify.crash.main": "OnionHEN がクラッシュしました……\n\n/data/OnionHEN/OnionHEN_crash.log を PKG-Zone の Discord までお送りください：https://discord.gg/BduZHudWGj",
+    "notify.crash.main": "OnionHEN がクラッシュしました……\n\n/data/OnionHEN/OnionHEN_crash.log を GitHub Issue に添付してください：https://github.com/aydencharles/onionHEN/issues",
     "notify.stack.shutdown": "OnionHEN の構成要素を停止しました（util + ShellUI + daemon。Kstuff は稼働したままです）",
     "notify.fan.open_failed": "ファン設定を開けませんでした！",
     "notify.fan.set_failed": "ファン回転数を設定できませんでした！",

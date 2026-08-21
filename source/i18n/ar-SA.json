@@ -278,7 +278,7 @@
     "notify.mount.system_ex": "فشل تركيب /system_ex\nإذا رأيت هذا فأعد التشغيل",
     "notify.mount.system": "فشل تركيب /system\nإذا رأيت هذا فأعد التشغيل",
     "notify.crash.resolved": "تم حل الخطأ الفادح بنجاح\n\nلا داعي للقلق",
-    "notify.crash.main": "انهار OnionHEN ...\n\nأرسل /data/OnionHEN/OnionHEN_crash.log إلى ديسكورد PKG-Zone: https://discord.gg/BduZHudWGj",
+    "notify.crash.main": "تعطل OnionHEN...\n\nيرجى إرفاق /data/OnionHEN/OnionHEN_crash.log ببلاغ مشكلة على GitHub: https://github.com/aydencharles/onionHEN/issues",
     "notify.stack.shutdown": "تم إيقاف مكدس OnionHEN (util + ShellUI + daemon؛ يبقى kstuff)",
     "notify.fan.open_failed": "تعذّر فتح إعدادات المروحة!",
     "notify.fan.set_failed": "تعذّر تعيين سرعة المروحة!",

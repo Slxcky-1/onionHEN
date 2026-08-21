@@ -291,6 +291,7 @@ default from [`config.ini.example`](config.ini.example).
 | `shadowmountplus` | Embedded ShadowMountPlus `1.6beta16` ELF |
 | `ftpsrv` | Embedded FTP payload on port `1337` |
 | `/data/OnionHEN/OnionHEN.log` | Main runtime log |
+| `/data/OnionHEN/OnionHEN_crash.log` | Preserved daemon signal and backtrace log |
 | `/data/OnionHEN/OnionHEN_util_daemon.log` | Utility daemon log |
 
 <br>

@@ -355,6 +355,7 @@ struct IPCMessage {
 | `/data/OnionHEN/` | 数据根目录 |
 | `/data/OnionHEN/config.ini` | 配置 |
 | `/data/OnionHEN/OnionHEN.log` | 日志 |
+| `/data/OnionHEN/OnionHEN_crash.log` | daemon 崩溃信号与回溯日志；跨重启追加保留 |
 | `/data/OnionHEN/payloads/` | payload `.elf`（唯一扩展包格式；启动时 stage 到同目录） |
 | `/system_tmp/onionhen/ipc/*` | Unix IPC socket |
 | `/system_tmp/onionhen/ready/<name>` | ready/runtime 标记；`toolbox` 内容为 SceShellUI PID |

@@ -48,6 +48,7 @@ along with this program; see the file COPYING. If not, see
 #include "startup_navigation.hpp"
 #include "welcome_toast.hpp"
 #include <onion/debug_settings_route_policy.hpp>
+#include <onion/fault_frame.h>
 #include <onion/ready.h>
 
 #define MSG_NOSIGNAL 0x20000 /* do not generate SIGPIPE on EOF. */
@@ -210,12 +211,13 @@ int launchApp(const char *titleId) {
 
 void sig_handler(int signo) {
     if(!is_handler_enabled){
-        LOG_WARN("Signal handler is disabled, ignoring signal %d", signo);
+        onion_log_emergency("signal handler disabled, ignoring signal %d", signo);
         return;
     }
+    onion_log_emergency("signal %d received; main OnionHEN has crashed", signo);
+    onion_print_backtrace(onion_log_emergency);
     onion_notify(true, "notify.crash.main");
-    LOG_ERROR("main OnionHEN has crashed ...");
-    exit(1);
+    _exit(128 + signo);
 }
 
 bool is_800 = false;
@@ -225,6 +227,7 @@ int main() {
   (void)syscall(SYS_thr_set_name, -1, "onion_daemon.elf");
 
   onion_log_configure("OnionHEN", "/data/OnionHEN/OnionHEN.log");
+  onion_log_configure_crash("/data/OnionHEN/OnionHEN_crash.log");
   /* Real linked kernel export (not a dlsym function-pointer variable). */
   onion_notify_set_send(reinterpret_cast<onion_notify_send_fn>(
       sceKernelSendNotificationRequest));
@@ -248,8 +251,6 @@ int main() {
           sys_ver.version);
 
   install_crash_handlers();
-
-  unlink("/data/OnionHEN/OnionHEN_crash.log");
 
   payload_args_t* args = payload_get_args();
   kernel_base = args->kdata_base_addr;

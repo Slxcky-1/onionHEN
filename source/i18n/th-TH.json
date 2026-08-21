@@ -278,7 +278,7 @@
     "notify.mount.system_ex": "เมานต์ /system_ex ไม่สำเร็จ\nถ้าเห็นข้อความนี้ให้รีบูต",
     "notify.mount.system": "เมานต์ /system ไม่สำเร็จ\nถ้าเห็นข้อความนี้ให้รีบูต",
     "notify.crash.resolved": "ข้อผิดพลาดร้ายแรงได้รับการแก้ไขสำเร็จแล้ว\n\nไม่ต้องกังวลอะไร",
-    "notify.crash.main": "OnionHEN ขัดข้อง...\n\nกรุณาส่ง /data/OnionHEN/OnionHEN_crash.log ไปที่ Discord PKG-Zone: https://discord.gg/BduZHudWGj",
+    "notify.crash.main": "OnionHEN ขัดข้อง...\n\nโปรดแนบ /data/OnionHEN/OnionHEN_crash.log ไปกับ Issue บน GitHub: https://github.com/aydencharles/onionHEN/issues",
     "notify.stack.shutdown": "ปิดการทำงานของ OnionHEN (util + ShellUI + daemon; kstuff ยังคงอยู่)",
     "notify.fan.open_failed": "ไม่สามารถเปิดการตั้งค่าพัดลมได้!",
     "notify.fan.set_failed": "ไม่สามารถตั้งความเร็วพัดลมได้!",

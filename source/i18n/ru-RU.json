@@ -278,7 +278,7 @@
     "notify.mount.system_ex": "не удалось смонтировать /system_ex\nесли видите это — перезагрузите консоль",
     "notify.mount.system": "не удалось смонтировать /system\nесли видите это — перезагрузите консоль",
     "notify.crash.resolved": "Фатальная ошибка устранена\n\nбеспокоиться не о чем",
-    "notify.crash.main": "OnionHEN аварийно завершился…\n\nОтправьте /data/OnionHEN/OnionHEN_crash.log в Discord PKG-Zone: https://discord.gg/BduZHudWGj",
+    "notify.crash.main": "OnionHEN аварийно завершился…\n\nПриложите /data/OnionHEN/OnionHEN_crash.log к обращению на GitHub: https://github.com/aydencharles/onionHEN/issues",
     "notify.stack.shutdown": "Стек OnionHEN остановлен (util + ShellUI + daemon; Kstuff продолжает работать)",
     "notify.fan.open_failed": "Не удалось открыть настройки вентилятора.",
     "notify.fan.set_failed": "Не удалось задать скорость вентилятора.",

@@ -278,7 +278,7 @@
     "notify.mount.system_ex": "échec du montage de /system_ex\nsi ce message apparaît, redémarrez la console",
     "notify.mount.system": "échec du montage de /system\nsi ce message apparaît, redémarrez la console",
     "notify.crash.resolved": "L’erreur fatale a bien été rétablie\n\nvous n’avez rien à craindre",
-    "notify.crash.main": "OnionHEN a planté…\n\nMerci d’envoyer /data/OnionHEN/OnionHEN_crash.log sur le Discord PKG-Zone : https://discord.gg/BduZHudWGj",
+    "notify.crash.main": "OnionHEN a planté…\n\nJoignez /data/OnionHEN/OnionHEN_crash.log à un ticket GitHub : https://github.com/aydencharles/onionHEN/issues",
     "notify.stack.shutdown": "Arrêt de la pile OnionHEN (util + ShellUI + daemon ; Kstuff reste actif)",
     "notify.fan.open_failed": "Impossible d’ouvrir les réglages du ventilateur !",
     "notify.fan.set_failed": "Impossible de régler la vitesse du ventilateur !",

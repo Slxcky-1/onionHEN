@@ -278,7 +278,7 @@
     "notify.mount.system_ex": "failed to mount /system_ex\nif you see this reboot",
     "notify.mount.system": "failed to mount /system\nif you see this reboot",
     "notify.crash.resolved": "The Fatal error has been successfully resolved\n\nyou have nothing to worry about",
-    "notify.crash.main": "OnionHEN has crashed ...\n\nPlease send /data/OnionHEN/OnionHEN_crash.log to the PKG-Zone discord: https://discord.gg/BduZHudWGj",
+    "notify.crash.main": "OnionHEN has crashed ...\n\nPlease attach /data/OnionHEN/OnionHEN_crash.log to a GitHub issue: https://github.com/aydencharles/onionHEN/issues",
     "notify.stack.shutdown": "OnionHEN stack shutdown (util + ShellUI + daemon; kstuff remains)",
     "notify.fan.open_failed": "Unable to Open Fan Settings!",
     "notify.fan.set_failed": "Unable to Set Fan Speed!",

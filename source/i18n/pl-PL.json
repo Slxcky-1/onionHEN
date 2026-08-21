@@ -278,7 +278,7 @@
     "notify.mount.system_ex": "nie udało się zamontować /system_ex\njeśli to widzisz, uruchom konsolę ponownie",
     "notify.mount.system": "nie udało się zamontować /system\njeśli to widzisz, uruchom konsolę ponownie",
     "notify.crash.resolved": "Błąd krytyczny został naprawiony\n\nnie ma powodu do niepokoju",
-    "notify.crash.main": "OnionHEN uległ awarii…\n\nWyślij /data/OnionHEN/OnionHEN_crash.log na Discord PKG-Zone: https://discord.gg/BduZHudWGj",
+    "notify.crash.main": "OnionHEN uległ awarii…\n\nDołącz /data/OnionHEN/OnionHEN_crash.log do zgłoszenia GitHub: https://github.com/aydencharles/onionHEN/issues",
     "notify.stack.shutdown": "Stos OnionHEN zatrzymany (util + ShellUI + daemon; Kstuff działa dalej)",
     "notify.fan.open_failed": "Nie udało się otworzyć ustawień wentylatora.",
     "notify.fan.set_failed": "Nie udało się ustawić prędkości wentylatora.",

@@ -278,7 +278,7 @@
     "notify.mount.system_ex": "montaggio di /system_ex non riuscito\nse vedi questo messaggio, riavvia la console",
     "notify.mount.system": "montaggio di /system non riuscito\nse vedi questo messaggio, riavvia la console",
     "notify.crash.resolved": "L’errore fatale è stato risolto\n\nnon c’è nulla di cui preoccuparsi",
-    "notify.crash.main": "OnionHEN si è interrotto…\n\nInviare /data/OnionHEN/OnionHEN_crash.log al Discord PKG-Zone: https://discord.gg/BduZHudWGj",
+    "notify.crash.main": "OnionHEN si è interrotto…\n\nAllega /data/OnionHEN/OnionHEN_crash.log a una segnalazione GitHub: https://github.com/aydencharles/onionHEN/issues",
     "notify.stack.shutdown": "Stack OnionHEN arrestato (util + ShellUI + daemon; Kstuff resta attivo)",
     "notify.fan.open_failed": "Impossibile aprire le impostazioni della ventola.",
     "notify.fan.set_failed": "Impossibile impostare la velocità della ventola.",

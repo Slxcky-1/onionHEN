@@ -278,7 +278,7 @@
     "notify.mount.system_ex": "掛載 /system_ex 失敗\n若看到此訊息，請重新啟動主機",
     "notify.mount.system": "掛載 /system 失敗\n若看到此訊息，請重新啟動主機",
     "notify.crash.resolved": "嚴重錯誤已成功復原\n\n無需擔心",
-    "notify.crash.main": "OnionHEN 已當機……\n\n請將 /data/OnionHEN/OnionHEN_crash.log 傳送到 PKG-Zone Discord：https://discord.gg/BduZHudWGj",
+    "notify.crash.main": "OnionHEN 已當機……\n\n請將 /data/OnionHEN/OnionHEN_crash.log 附加到 GitHub Issue：https://github.com/aydencharles/onionHEN/issues",
     "notify.stack.shutdown": "OnionHEN 元件已關閉（util + ShellUI + daemon；Kstuff 保持執行）",
     "notify.fan.open_failed": "無法開啟風扇設定！",
     "notify.fan.set_failed": "無法設定風扇轉速！",

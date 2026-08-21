@@ -36,6 +36,10 @@ REQUIRED_TOKENS = {
         "notify.kstuff.load_failed": ("Kstuff",),
         "notify.kstuff.load_elfldr_failed": ("Kstuff",),
         "notify.kstuff.deleted": ("Kstuff",),
+        "notify.crash.main": (
+            "OnionHEN_crash.log",
+            "https://github.com/aydencharles/onionHEN/issues",
+        ),
         "notify.shadowmount.enabled": ("ShadowMount+",),
         "notify.shadowmount.disabled": ("ShadowMount+",),
         "notify.shadowmount.toggle_failed": ("ShadowMount+",),

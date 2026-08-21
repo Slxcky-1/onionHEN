@@ -45,6 +45,11 @@ static int test_default_zh(void) {
   TEST_ASSERT_TRUE(
       std::strcmp(onion_notify_tr("notify.remote_play.pairing_cancelled"),
                   "远程游玩配对已中止。") == 0);
+  TEST_ASSERT_TRUE(
+      std::strcmp(onion_notify_tr("notify.crash.main"),
+                  "OnionHEN 已崩溃……\n\n请将 /data/OnionHEN/"
+                  "OnionHEN_crash.log 附加到 GitHub Issue：https://github.com/"
+                  "aydencharles/onionHEN/issues") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "为 %s 启用/禁用 %s") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.game_menu"),
@@ -99,6 +104,11 @@ static int test_en(void) {
   TEST_ASSERT_TRUE(
       std::strcmp(onion_notify_tr("notify.remote_play.pairing_cancelled"),
                   "Remote Play pairing cancelled.") == 0);
+  TEST_ASSERT_TRUE(
+      std::strcmp(onion_notify_tr("notify.crash.main"),
+                  "OnionHEN has crashed ...\n\nPlease attach /data/OnionHEN/"
+                  "OnionHEN_crash.log to a GitHub issue: https://github.com/"
+                  "aydencharles/onionHEN/issues") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("cheats.enable_fmt"),
                                "Enable/disable %s for %s") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("payload.start_stop_fmt"),
