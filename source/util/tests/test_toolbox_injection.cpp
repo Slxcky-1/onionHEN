@@ -81,6 +81,32 @@ int test_new_pid_replaces_stale_marker() {
   return 0;
 }
 
+int test_expected_pid_overrides_resolver() {
+  reset_toolbox_marker();
+  ToolboxInject injector;
+  constexpr pid_t kExpectedPid = 4351;
+  int resolved = 0;
+  int injected_pid = 0;
+
+  const auto outcome = injector.inject(
+      [&]() -> pid_t {
+        ++resolved;
+        return resolved == 1 ? 0 : kExpectedPid;
+      },
+      [&](pid_t pid) -> bool {
+        injected_pid = static_cast<int>(pid);
+        return onion_ready_signal_pid(ONION_READY_TOOLBOX, pid);
+      },
+      100, 50, kExpectedPid);
+
+  TEST_ASSERT_TRUE(outcome.result == ToolboxInjectionResult::Injected);
+  TEST_ASSERT_EQ_INT((int)kExpectedPid, injected_pid);
+  TEST_ASSERT_EQ_INT((int)kExpectedPid, (int)outcome.pid);
+  TEST_ASSERT_EQ_INT(2, resolved);
+  reset_toolbox_marker();
+  return 0;
+}
+
 int test_failed_or_timed_out_injection_does_not_stick() {
   reset_toolbox_marker();
   ToolboxInject injector;
@@ -141,6 +167,8 @@ extern "C" int test_toolbox_injection_suite(void) {
                              test_same_pid_skips_duplicate_injection);
   failures += onion_test_run("toolbox_injection.new_pid",
                              test_new_pid_replaces_stale_marker);
+  failures += onion_test_run("toolbox_injection.expected_pid",
+                             test_expected_pid_overrides_resolver);
   failures += onion_test_run("toolbox_injection.failure_cleanup",
                              test_failed_or_timed_out_injection_does_not_stick);
   failures += onion_test_run("toolbox_injection.serialized",

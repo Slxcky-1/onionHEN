@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <atomic>
 #include <cstring>
@@ -40,6 +41,14 @@ void *IPC_loop(void *args) {
   return onion::ipc_server_loop(&g_crit_ipc_opts);
 }
 
+void restart_crit_ipc_server() {
+  onion::ipc_server_restart(&g_crit_ipc_opts);
+}
+
+bool crit_ipc_is_listening() {
+  return g_crit_ipc_server_fd.load(std::memory_order_acquire) >= 0;
+}
+
 /**
  * PC control: TCP :9048
  * Frame (little-endian):
@@ -51,10 +60,12 @@ void *IPC_loop(void *args) {
  * resume, or restart_crit_tcp requested), the port is re-bound.
  */
 static std::atomic<int> g_ctrl_fd{-1};
+static std::atomic<int> g_ctrl_client_fd{-1};
 
 /** Re-bind the TCP :9048 listener (called after a standby resume). */
 void control_tcp_restart() {
   LOG_DEBUG("rest: control_tcp_restart fd=%d", g_ctrl_fd.load());
+  onion::ipc_release_fd(&g_ctrl_client_fd);
   onion::ipc_release_listen_fd(&g_ctrl_fd);
 }
 
@@ -108,6 +119,12 @@ void *control_tcp_loop(void *args) {
         break;  // listener shut down for a restart, or a transient error
       }
 
+      g_ctrl_client_fd.store(client, std::memory_order_release);
+      struct timeval recv_timeout{};
+      recv_timeout.tv_sec = 2;
+      (void)setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &recv_timeout,
+                       sizeof(recv_timeout));
+
       uint32_t frame[2] = {0, 0};
       ssize_t n = recv(client, frame, sizeof(frame), MSG_WAITALL);
       if (n == static_cast<ssize_t>(sizeof(frame)) &&
@@ -115,7 +132,7 @@ void *control_tcp_loop(void *args) {
           frame[1] == ONION_CTRL_TCP_CMD_SHUTDOWN) {
         const uint8_t ok = 0;
         (void)send(client, &ok, 1, MSG_NOSIGNAL);
-        close(client);
+        onion::ipc_release_fd(&g_ctrl_client_fd);
         onion::ipc_release_listen_fd(&g_ctrl_fd);
         LOG_INFO("control_tcp: SHUTDOWN from LAN client");
         usleep(100 * 1000);
@@ -125,7 +142,7 @@ void *control_tcp_loop(void *args) {
 
       const uint8_t err = 1;
       (void)send(client, &err, 1, MSG_NOSIGNAL);
-      close(client);
+      onion::ipc_release_fd(&g_ctrl_client_fd);
     }
 
     onion::ipc_release_listen_fd(&g_ctrl_fd);

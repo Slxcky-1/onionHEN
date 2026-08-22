@@ -320,7 +320,7 @@ void ipc_server_stop(IpcServerOptions *opts) {
   ipc_server_restart(opts);
 }
 
-void ipc_release_listen_fd(std::atomic<int> *fd) {
+void ipc_release_fd(std::atomic<int> *fd) {
   if (!fd)
     return;
   const int s = fd->exchange(-1);
@@ -330,6 +330,8 @@ void ipc_release_listen_fd(std::atomic<int> *fd) {
     ipc_network_close(s);
   }
 }
+
+void ipc_release_listen_fd(std::atomic<int> *fd) { ipc_release_fd(fd); }
 
 void ipc_server_restart(IpcServerOptions *opts) {
   if (!opts)

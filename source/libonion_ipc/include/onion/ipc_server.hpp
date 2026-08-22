@@ -114,6 +114,9 @@ void *ipc_server_loop(void *options_ptr);
 /** Request a permanent shutdown: clear *running and shut the listener down. */
 void ipc_server_stop(IpcServerOptions *opts);
 
+/** Take ownership of *fd (store -1), then shutdown+close it. */
+void ipc_release_fd(std::atomic<int> *fd);
+
 /**
  * Take ownership of *fd (store -1), then shutdown+close it. Safe to call
  * concurrently with the accept loop: only one side closes the descriptor.

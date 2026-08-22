@@ -73,14 +73,20 @@ bool toolbox_inject(ToolboxInjectStrategy strategy, pid_t exec_pid = 0);
 bool cmd_enable_toolbox();
 /** Rest strategy on a worker: identified SceShellUI EXEC. */
 void toolbox_on_new_shellui(pid_t pid);
+/** Reconcile the current ShellUI after the WORKING power-state transition. */
+void toolbox_on_resume();
 
 void *IPC_loop(void *args);
 /** LAN TCP :9048 — PC can trigger BREW_SHUTDOWN_STACK without Unix socket. */
 void *control_tcp_loop(void *args);
-/** Re-bind the TCP :9048 listener after accept fails (ps5-payload-manager). */
+/** Re-bind the TCP :9048 listener after resume or accept failure. */
 void control_tcp_restart();
 /** True while the :9048 accept loop holds a live listen fd. */
 bool control_tcp_is_listening();
+/** Re-bind the crit Unix IPC listener after resume or accept failure. */
+void restart_crit_ipc_server();
+/** True while the crit Unix IPC accept loop holds a live listen fd. */
+bool crit_ipc_is_listening();
 void handleIPC(clientArgs *client, std::string &inputStr, DaemonCommands command);
 
 /* ---- shared helpers (daemon_utils.cpp) ---- */
@@ -94,3 +100,4 @@ bool Open_Utility_Elf(const char *path, uint8_t **buffer);
 void app_jailbreak_set_enabled(bool enabled);
 void *fifo_and_dumper_thread(void *args) noexcept; // daemon_jailbreak.cpp
 void *runtime_supervisor_thread(void *args) noexcept;
+void *resume_recovery_thread(void *args) noexcept;

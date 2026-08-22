@@ -39,10 +39,18 @@ public:
 
   template <typename ResolvePid, typename InjectFn>
   ToolboxInjectionOutcome inject(ResolvePid resolve_pid, InjectFn inject_fn,
-                                 int timeout_ms, int poll_ms) {
+                                 int timeout_ms, int poll_ms,
+                                 pid_t expected_pid = 0) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    const pid_t pid = resolve_pid();
+    const pid_t resolved_before = resolve_pid();
+    if (expected_pid > 1) {
+      /* An event PID is authoritative; reject only an observed replacement. */
+      if (resolved_before > 1 && resolved_before != expected_pid) {
+        return {ToolboxInjectionResult::TargetChanged, expected_pid};
+      }
+    }
+    const pid_t pid = expected_pid > 1 ? expected_pid : resolved_before;
     if (pid <= 0) {
       return {ToolboxInjectionResult::TargetNotFound, pid};
     }
@@ -61,7 +69,8 @@ public:
       return {ToolboxInjectionResult::ReadyTimeout, pid};
     }
 
-    if (resolve_pid() != pid) {
+    const pid_t resolved_after = resolve_pid();
+    if (resolved_after > 1 && resolved_after != pid) {
       onion_ready_clear(ONION_READY_TOOLBOX);
       return {ToolboxInjectionResult::TargetChanged, pid};
     }

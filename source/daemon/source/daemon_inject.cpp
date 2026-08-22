@@ -5,6 +5,7 @@
  */
 
 #include "daemon_ops.hpp"
+#include "daemon_power_state.hpp"
 #include "toolbox_injection.hpp"
 #include <onion/platform.h>
 #include <onion/proc_query.h>
@@ -59,6 +60,13 @@ constexpr const char *kShellUiReadySprx[] = {
 };
 constexpr useconds_t kSprxPollUs = 500 * 1000;
 constexpr int kSprxPollMax = 60;
+constexpr int kRestRetryMax = 4;
+constexpr useconds_t kRestRetryDelayUs[] = {
+    500 * 1000,
+    1000 * 1000,
+    2000 * 1000,
+    4000 * 1000,
+};
 
 bool toolbox_sprx_loaded(pid_t pid, const char *name) {
   uint32_t handle = static_cast<uint32_t>(-1);
@@ -152,8 +160,8 @@ void toolbox_notify_outcome(const onion::ToolboxInjectionOutcome &outcome) {
   }
 }
 
-bool toolbox_inject_immediate() {
-  const pid_t observed_pid = toolbox_live_pid();
+bool toolbox_inject_immediate(pid_t expected_pid = 0) {
+  const pid_t observed_pid = expected_pid > 1 ? expected_pid : toolbox_live_pid();
   LOG_DEBUG("rest: cmd_enable_toolbox shellui_pid=%d",
             static_cast<int>(observed_pid));
   if (toolbox_already_ready(observed_pid)) {
@@ -177,7 +185,7 @@ bool toolbox_inject_immediate() {
                   static_cast<int>(pid));
         return Inject_Toolbox(static_cast<int>(pid), shellui_elf_start);
       },
-      /*timeout_ms=*/45 * 1000, /*poll_ms=*/250);
+      /*timeout_ms=*/45 * 1000, /*poll_ms=*/250, expected_pid);
 
   toolbox_remember_pid(outcome.pid);
   toolbox_notify_outcome(outcome);
@@ -188,32 +196,71 @@ bool toolbox_inject_rest(pid_t exec_pid, pid_t previous_pid, uint32_t gen) {
   LOG_DEBUG("rest: SysCore EXEC shellui pid=%d previous=%d gen=%u",
             static_cast<int>(exec_pid), static_cast<int>(previous_pid), gen);
   const bool replacement = previous_pid > 1 && previous_pid != exec_pid;
+  LOG_DEBUG("rest: shellui pid %d -> %d, wait trophy sprx",
+            static_cast<int>(previous_pid), static_cast<int>(exec_pid));
+  if (!toolbox_wait_shellui_sprx(exec_pid, gen)) {
+    LOG_DEBUG("rest: skip inject, pid=%d not ready for ELF load",
+              static_cast<int>(exec_pid));
+    return false;
+  }
+  if (g_rest_gen.load(std::memory_order_acquire) != gen) {
+    LOG_DEBUG("rest: inject superseded after sprx wait gen=%u pid=%d", gen,
+              static_cast<int>(exec_pid));
+    return false;
+  }
   if (replacement) {
-    LOG_DEBUG("rest: shellui pid %d -> %d, wait trophy sprx",
-              static_cast<int>(previous_pid), static_cast<int>(exec_pid));
-    if (!toolbox_wait_shellui_sprx(exec_pid, gen)) {
-      LOG_DEBUG("rest: skip inject, pid=%d not ready for ELF load",
-                static_cast<int>(exec_pid));
-      return false;
-    }
     onion_notify(true, "notify.rest.reactivating");
   }
-  return toolbox_inject_immediate();
+  return toolbox_inject_immediate(exec_pid);
 }
 
 void *toolbox_rest_worker(void *arg) {
   RestInjectJob job = *static_cast<RestInjectJob *>(arg);
   delete static_cast<RestInjectJob *>(arg);
-  (void)toolbox_inject_rest(job.exec_pid, job.previous_pid, job.gen);
+  for (int attempt = 0; attempt < kRestRetryMax; ++attempt) {
+    if (g_rest_gen.load(std::memory_order_acquire) != job.gen) {
+      LOG_DEBUG("rest: inject retry superseded gen=%u", job.gen);
+      break;
+    }
+    pid_t target = job.exec_pid;
+    if (target <= 1) {
+      for (int resolve_try = 0; resolve_try < 30 && target <= 1;
+           ++resolve_try) {
+        target = toolbox_live_pid();
+        if (target <= 1) {
+          usleep(1000 * 1000);
+        }
+      }
+    }
+    if (target > 1 && toolbox_inject_rest(target, job.previous_pid, job.gen)) {
+      toolbox_remember_pid(target);
+      return nullptr;
+    }
+    if (attempt + 1 < kRestRetryMax) {
+      LOG_DEBUG("rest: inject retry=%d/%d target=%d", attempt + 1,
+                kRestRetryMax - 1, static_cast<int>(target));
+      usleep(kRestRetryDelayUs[attempt]);
+    }
+  }
+  LOG_WARN("rest: toolbox recovery exhausted gen=%u requested_pid=%d", job.gen,
+           static_cast<int>(job.exec_pid));
   return nullptr;
 }
 
 void start_rest_inject(pid_t exec_pid) {
-  if (exec_pid <= 1) {
+  if (exec_pid > 1 && daemon_power_state_is_sleeping()) {
+    toolbox_remember_pid(exec_pid);
+    LOG_INFO("rest: defer ShellUI injection during standby pid=%d",
+             static_cast<int>(exec_pid));
     return;
   }
-  const pid_t previous =
-      g_last_shellui.exchange(exec_pid, std::memory_order_acq_rel);
+  if (exec_pid <= 1 && toolbox_live_pid() <= 1) {
+    LOG_DEBUG("rest: no SceShellUI pid yet; compensation worker will retry");
+  }
+  const pid_t previous = exec_pid > 1
+                             ? g_last_shellui.exchange(exec_pid,
+                                                       std::memory_order_acq_rel)
+                             : g_last_shellui.load(std::memory_order_acquire);
   const uint32_t gen =
       g_rest_gen.fetch_add(1, std::memory_order_acq_rel) + 1;
   auto *job = new RestInjectJob{exec_pid, previous, gen};
@@ -236,7 +283,8 @@ bool toolbox_inject(ToolboxInjectStrategy strategy, pid_t exec_pid) {
     return toolbox_inject_immediate();
   case ToolboxInjectStrategy::RestResume:
     if (exec_pid <= 1) {
-      return toolbox_inject_immediate();
+      toolbox_on_resume();
+      return true;
     }
     start_rest_inject(exec_pid);
     return true;
@@ -245,6 +293,35 @@ bool toolbox_inject(ToolboxInjectStrategy strategy, pid_t exec_pid) {
 }
 
 void toolbox_on_new_shellui(pid_t pid) {
+  /* NOTE_EXEC denotes a new image, even when the kernel reuses the PID. */
+  onion_ready_clear(ONION_READY_TOOLBOX);
+  if (daemon_power_state_is_sleeping()) {
+    toolbox_remember_pid(pid);
+    LOG_INFO("rest: NOTE_EXEC during standby; defer ShellUI injection pid=%d",
+             static_cast<int>(pid));
+    return;
+  }
+  start_rest_inject(pid);
+}
+
+void toolbox_on_resume() {
+  if (daemon_power_state_is_sleeping()) {
+    LOG_DEBUG("rest: resume compensation still in standby; defer");
+    return;
+  }
+  const pid_t pid = toolbox_live_pid();
+  if (pid <= 1) {
+    start_rest_inject(0);
+    return;
+  }
+  if (toolbox_already_ready(pid)) {
+    toolbox_remember_pid(pid);
+    LOG_DEBUG("rest: resume compensation sees ready toolbox pid=%d",
+              static_cast<int>(pid));
+    return;
+  }
+  LOG_INFO("rest: resume compensation scheduling ShellUI pid=%d",
+           static_cast<int>(pid));
   start_rest_inject(pid);
 }
 
