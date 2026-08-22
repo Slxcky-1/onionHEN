@@ -1,6 +1,6 @@
 # util 守护进程架构
 
-`util.elf` 是 OnionHEN 的 **Utility 守护进程**：与 `daemon.elf`（critical）分离，承载网络 IO、PKG 安装、金手指、Toolbox 相关修补等较重业务。
+`util.elf` 是 OnionHEN 的 **Utility 守护进程**：与 `daemon.elf`（critical）分离，承载网络 IO、FTP、金手指和 Toolbox 相关服务。
 
 | 项 | 值 |
 |----|-----|
@@ -45,18 +45,19 @@
 ```text
 main()
  │
- ├─ 1. sceNetCtlInit / sceUserServiceInitialize
- ├─ 2. setjmp 故障恢复锚点
- ├─ 3. fault_handler_init(cleanup)          # faulthandler.c
+ ├─ 1. 设置稳定线程名 onion_util.elf
+ ├─ 2. sceNetCtlInit / sceUserServiceInitialize / 日志与通知初始化
+ ├─ 3. setjmp + fault_handler_init(cleanup)
  ├─ 4. payload_get_args() → kernel_base
- ├─ 5. set_proc_authid(self, DEBUG_AUTHID) # 提权本进程
- ├─ 6. 默认 global_conf
- ├─ 7. unlink 旧 util 日志
- ├─ 8. LoadSettings()                      # /data/OnionHEN/config.ini
- ├─ 9. start_ip_thread()                   # cpp_service：后台刷本机 IP
- ├─10. pthread_create(IPC_loop)            # msg.cpp：常驻 Unix 监听
+ ├─ 5. 刷新系统语言并进入 PTRACE_AUTHID
+ ├─ 6. 清理 util crash 日志
+ ├─ 7. LoadSettings()                      # 配置及 FTP autoload
+ ├─ 8. start_ip_thread()                   # 后台刷新本机 IP
+ ├─ 9. pthread_create(IPC_loop)            # 常驻 Unix 监听
+ ├─10. 发布 util ready/runtime 标记
+ ├─11. CheatService::ensureDir()
  │
- └─11. for(;;) sleep(1)
+ └─12. for(;;) sleep(1)
 ```
 
 要点：
@@ -73,44 +74,49 @@ main()
 source/util/
 ├── source/
 │   ├── main.cpp                 # 生命周期编排
-│   ├── msg.cpp                  # Unix IPC 服务端 + handleIPC 分发
-│   ├── common_utils.c           # OnionHEN_log / notify / ptrace attach / 通用工具
+│   ├── msg.cpp                  # Unix IPC 服务端传输
+│   ├── ipc_handle.cpp           # BREW_UTIL_* 命令分发
+│   ├── service_facade.cpp       # 进程内 FTP 生命周期与端口切换
+│   ├── common_utils.c           # 通知 / ptrace attach / 通用工具
 │   ├── faulthandler.c           # 信号与崩溃落盘
-│   ├── http.c                   # curl 下载、zip 解压、cheats commit 检查
 │   ├── cpp_service.cpp          # IP 线程
 │   ├── util_platform.c          # 共享平台：固件/版本/模块/读文件
+│   ├── util_language.c          # 系统与 Toolbox 语言解析
+│   ├── util_toolbox.cpp         # Toolbox 重注入请求
 │   └── cheats/                  # 金手指领域（C++ 编排 + 解析 + C 适配）
 │       ├── CheatService / Repository / Applier
 │       ├── ICheatParser + Factory (json/shn/mc4)
 │       ├── ShnExt adapter + C crypto/utils/flatten
-│       └── （第三方实现已集中到仓库根目录 third_party/cheat_support）
+│       └── sync/ Catalog + Mirror + HTTPS + ZIP 安装
 ├── include/
 │   ├── common_utils.h / ipc.hpp / pt.h / sfo.hpp / ...
 │   ├── util_platform.h
 │   └── cheats/                  # 金手指公共/内部头
-└── （keystone 已集中到仓库根目录 third_party/keystone）
+└── CMakeLists.txt                # util.elf 与 ftpsrv 源码模块构建
 ```
 
 | 模块 | 文件 | 依赖方向（被谁用） |
 |------|------|-------------------|
 | Lifecycle | `main.cpp` | 无（顶层） |
-| IPC | `msg.cpp` | main 线程创建 |
+| IPC transport | `msg.cpp` | main 线程创建 |
+| IPC commands | `ipc_handle.cpp` | IPC client 线程调用 |
 | Logging / notify | `common_utils.c` | 几乎全部 |
 | Platform | `util_platform.c` | cheats、可被其它业务复用 |
-| HTTP | `http.c` | msg（下载 cheats/kstuff） |
+| FTP | `service_facade.cpp` + `third_party/ftpsrv` | main / IPC |
+| Cheat sync | `cheats/sync/*` | IPC 后台任务 |
 | IP poll | `cpp_service.cpp` | main 启动 |
 | Toolbox reinject | `util_toolbox.cpp` | util 崩溃重启路径 |
 | Cheats | `cheats/*` | msg IPC |
 
-**依赖原则（目标态）**：
+**依赖方向**：
 
 ```text
-main ──► msg / cheats(init) / ip_thread
-msg  ──► CheatService / http / common_utils
+main ──► IPC / FTP / cheats(init) / ip_thread
+ipc_handle ──► CheatService / CheatSyncService / FtpServiceFacade
 CheatService ──► Repository / ParserFactory / Applier ──► util_platform + pt/mdbg/kernel
 ```
 
-金手指 **不再**内嵌第二套进程/固件/读文件栈；平台能力集中在 `util_platform`。
+金手指的进程、固件和文件能力统一由 `util_platform` 提供。
 
 ---
 
@@ -122,6 +128,8 @@ CheatService ──► Repository / ParserFactory / Applier ──► util_platf
 | IPC accept | `IPC_loop` | 常驻 | accept Unix 连接 |
 | IPC client | `ipc_client`（每连接一个，detach） | 连接级 | 读 `IPCMessage` → `handleIPC` |
 | IP poll | `start_ip_thread` | 常驻 | 刷新本机 IP 字符串 |
+| FTP listener | `FtpServiceFacade::start` | 配置启用期间 | 运行 `ftp_serve` 并管理监听端口 |
+| Cheat sync | `CheatSyncService::start` | 单次任务 | HTTPS 下载、解压与安装 catalog |
 
 故障：`faulthandler` 触发 `cleanup` → cleanup → `exit`。
 
@@ -148,20 +156,26 @@ struct IPCMessage {
 
 | 命令 | 作用 | 内部去向 |
 |------|------|----------|
-| `UNUSED_SHELLUI_ON_STANDBY` | 已移除（休息恢复在 daemon SysCore `NOTE_EXEC`，参考 kstuff-lite） | 序号保留 |
+| `TEST_CONNECTION` | util 可用性探测 | IPC reply |
 | `DAEMON_PID` | 返回 util pid | `getpid` |
+| `TOGGLE_FTP` | 启停进程内 FTP | `FtpServiceFacade` |
+| `FTP_STATUS` | 返回 FTP 运行状态 | `FtpServiceFacade` |
 | `GET_GAME_VER` | 游戏版本字符串 | param.json / param.sfo（msg 内实现） |
 | `GET_GAME_CHEAT` | 导出金手指列表 JSON 文件路径 | `CheatService::exportList` |
 | `TOGGLE_CHEAT` | 开关某条金手指 | `CheatService::toggle` |
 | `DOWNLOAD_CHEATS` | 后台 HTTPS ZIP 下载 → 定向解压 → flatten | `CheatSyncService` + 现有 flatten |
 | `CHEAT_SYNC_STATUS` | 上次/正在进行的同步快照 | `CheatSyncService::status` |
-| `RELOAD_CHEATS` | **已移除**（枚举占位 `UNUSED_RELOAD_CHEATS`） | 列表/开关靠文件签名热重载，无索引重建 |
-| `DOWNLOAD_KSTUFF` | 下载 kstuff.elf | `http` |
+| `CANCEL_CHEAT_SYNC` | 请求取消指定同步任务 | `CheatSyncService::cancel` |
 | `LAUNCH_PAYLOAD` | 加载 payload `.elf` | `load_payload` → `onion_payload_load`（仅私有 9020，必须返回精确 PID；失败不回退 9021） |
-| `UNUSED_LEGACY_CMD_SERVER` | 已移除（原 TCP 9028） | 固定失败 |
-| `LAUNCH_ELFLDR` | 已移除 | 固定失败 |
-| `UNUSED_FTP` / `UNUSED_KLOG` | 已移除 | 固定失败 |
-| `BREW_KILL_DAEMON` / `BREW_RELOAD_SETTINGS` | 杀进程 / 重载 ini | main 侧状态 |
+| `BREW_KILL_DAEMON` / `BREW_RELOAD_SETTINGS` | 结束 util / 重载 ini | main 侧状态 |
+
+以下稳定 ABI 命令返回错误且不产生副作用：
+
+- `UNUSED_KLOG`、`UNUSED_DPI`、`UNUSED_SHELLUI_ON_STANDBY`
+- `UNUSED_RELOAD_CHEATS`、`UNUSED_DOWNLOAD_KSTUFF`
+- `UNUSED_LEGACY_CMD_SERVER`
+- `UNUSED_LEGACY_SERVICE_SCAN`、`UNUSED_LEGACY_SERVICE_TOGGLE`
+- `LAUNCH_ELFLDR`
 
 ### 5.3 金手指 IPC 时序（ShellUI → 游戏）
 
@@ -202,7 +216,7 @@ cheat_engine_runtime
 - **`pt_attach_proc` / `pt_detach_proc`**：提权 authid 后 `ptrace`（code cave mmap 用）。
 - 其它：HTTP 初始化封装声明、`download` 相关声明等。
 
-全模块日志统一走 `OnionHEN_log`，金手指不再单独 logger。
+全模块日志统一走 `OnionHEN_log`。
 
 ### 6.2 `util_platform`（共享平台）
 
@@ -285,9 +299,11 @@ cheat_engine_runtime
 | libhijacker | 内核原语、偏移（shellcore / 注入路径） |
 | libonion_elfldr | ptrace / mmap 注入原语；内置 9020 loader 复用其 spawn/read 实现 |
 | keystone | ShnExt 汇编（`third_party/keystone/`）；C++ runtime 由 PS5 SDK 提供 |
-| cJSON | IPC 与 GitHub 响应 JSON 解析 |
+| cJSON | IPC 与配置载荷 JSON 解析 |
 | AES/base64 third_party | MC4 / ShnExt 解密 |
 | miniz / sha256 | ShnExt 解压与密钥派生 |
+| ftpsrv | 编译进 util 的 FTP 服务源码模块 |
+| libcurl / OpenSSL | 金手指 catalog HTTPS 下载与证书校验 |
 
 ---
 
@@ -303,7 +319,7 @@ cheat_engine_runtime
 | `/data/OnionHEN/kstuff.elf` | 下载的 kstuff |
 | `ONION_FLAG_UTIL_BOOTED` | util 是否已完成过冷启动（typed ready flag） |
 
-`LoadSettings` 读取统一 `config.ini` schema（`onion::Settings`）；旧键如 `Rest_Mode_Delay_Seconds` / `Util_rest_kill` 已移除。
+`LoadSettings` 读取统一的 `config.ini` schema（`onion::Settings`），缺失键使用默认值。
 
 ---
 
@@ -318,7 +334,7 @@ cheat_engine_runtime
 | 写内存策略 | `i_memory_backend.hpp` / `memory_backends.cpp` |
 | 版本/模块/固件 | `util_platform.c` |
 | IP 线程 | `cpp_service.cpp` |
-| 下载/zip | `http.c` |
+| 下载/zip | `cheats/sync/http_transport_ps5.cpp` / `zip_archive.cpp` |
 | 日志 | `common_utils.c` → `OnionHEN_log` |
 
 ---

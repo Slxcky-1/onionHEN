@@ -129,9 +129,8 @@ PS5 FTP 服务器位于 **工具箱 → 插件 → FTP 服务器**。一个开�
 只支持普通 `.elf`。可在工具箱里打开自动启动；OnionHEN 会在 ELF 旁边写一个
 同名的 `.auto_start` 文件记住这个选择。
 
-`kstuff`、`ftpsrv` 和 `ftpsrv-ps5` 是内置服务身份，但同名文件仍然是合法的
-用户 Payload。它们会正常显示在 Payload 页，也可以通过共享加载器或自动启动
-运行，加载器不会按文件名拒绝它们。若用户 FTP Payload 与内置 FTP 模块使用
+所有 `.elf` 文件名都使用相同的 Payload 页面、加载器和自动启动流程，包括
+`kstuff`、`ftpsrv` 和 `ftpsrv-ps5`。若用户 FTP Payload 与内置 FTP 模块使用
 相同 TCP 端口，则遵循正常的套接字占用规则，只有一个服务能够绑定成功。
 
 ### 金手指
@@ -165,8 +164,8 @@ PS5 FTP 服务器位于 **工具箱 → 插件 → FTP 服务器**。一个开�
 | `lzma` 或 `xz` | 压缩 bootstrapper |
 | Git 与 `curl` 或 `wget` | 初始化 submodule 并获取外部 payload 输入 |
 
-构建会将固定的 [`drakmor/ftpsrv`](https://github.com/drakmor/ftpsrv)
-`nexgen` 源码直接编译进 util，不再下载或嵌入独立 FTP ELF。
+固定版本的 [`drakmor/ftpsrv`](https://github.com/drakmor/ftpsrv) `nexgen`
+源码作为 FTP 模块编译进 `util.elf`。
 
 ### 完整构建
 
@@ -270,7 +269,7 @@ OnionHEN 在下面两处读写同一份配置：
 | `/data/OnionHEN/payloads/` | 用户 payload ELF |
 | `/data/OnionHEN/cheats/` | 金手指文件 |
 | `/data/OnionHEN/cheats_tmp/` | HTTPS ZIP 与解压临时文件（同步后清理） |
-| `/data/OnionHEN/kstuff.elf` | 可选，用来替换内嵌的 `kstuff` |
+| `/data/OnionHEN/kstuff.elf` | 可选的运行时覆盖文件，优先于内嵌 `kstuff` |
 | `ftpsrv` | util 内置 FTP 源码模块，默认端口 `1337` |
 | `/data/OnionHEN/OnionHEN.log` | 主运行日志 |
 | `/data/OnionHEN/OnionHEN_crash.log` | 保留的 daemon 崩溃信号与回溯日志 |

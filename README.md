@@ -137,11 +137,10 @@ Place standalone payloads in:
 Only plain `.elf` files are supported. Auto-start can be turned on in the Toolbox;
 OnionHEN remembers that choice with a matching `.auto_start` file next to the ELF.
 
-The built-in service identities `kstuff`, `ftpsrv`, and `ftpsrv-ps5` are also
-valid user Payload names. They remain visible to the Payload page and can be
-started or auto-started through the normal loader. The loader does not reject
-them by filename. If a user FTP Payload and the built-in FTP module use the
-same TCP port, normal socket ownership applies and only one can bind it.
+All `.elf` filenames use the same Payload page, loader, and auto-start flow,
+including `kstuff`, `ftpsrv`, and `ftpsrv-ps5`. If a user FTP Payload and the
+built-in FTP module use the same TCP port, normal socket ownership applies and
+only one can bind it.
 
 ### Cheats
 
@@ -174,9 +173,8 @@ Cheats load from disk. If a file changes, OnionHEN reloads it without restarting
 | `lzma` or `xz` | Compress the bootstrapper |
 | Git and `curl` or `wget` | Initialize submodules and fetch external payload inputs |
 
-The build compiles the pinned [`drakmor/ftpsrv`](https://github.com/drakmor/ftpsrv)
-`nexgen` source directly into the util ELF. No standalone FTP ELF is
-downloaded or embedded.
+The pinned [`drakmor/ftpsrv`](https://github.com/drakmor/ftpsrv) `nexgen`
+sources are compiled into `util.elf` as its FTP module.
 
 ### Full build
 
@@ -282,8 +280,8 @@ default from [`config.ini.example`](config.ini.example).
 | --- | --- |
 | `/data/OnionHEN/payloads/` | User payload ELFs |
 | `/data/OnionHEN/cheats/` | Cheat files |
-| `/data/OnionHEN/cheats_tmp/` | Temporary HTTPS ZIP and extraction files (removed after sync) |
-| `/data/OnionHEN/kstuff.elf` | Optional replacement for the embedded `kstuff` |
+| `/data/OnionHEN/cheats_tmp/` | Temporary HTTPS ZIP and extraction files, cleaned after sync |
+| `/data/OnionHEN/kstuff.elf` | Optional runtime override with priority over the embedded `kstuff` |
 | `ftpsrv` | In-process FTP source module; default port `1337` |
 | `/data/OnionHEN/OnionHEN.log` | Main runtime log |
 | `/data/OnionHEN/OnionHEN_crash.log` | Preserved daemon signal and backtrace log |

@@ -21,25 +21,14 @@ Source-built or downloaded fallback dependency blobs are cached in
 stages the required bootstrapper input from that cache; generated blobs do not
 belong in `source/`.
 
-`ftpsrv` comes from the pinned `nexgen` source revision and is compiled into
-util; it is not staged as a runtime ELF. Its module adapter adds an explicit
-stop latch so the util facade can restart the listener when the user changes
-the port or disables the service.
+`ftpsrv` uses a pinned `nexgen` source revision and is compiled as a module in
+`util.elf`. Its adapter exposes a stop latch so the util facade can restart the
+listener when the user changes the port or disables the service.
 
 ## Runtime-only external dependency
 
-[ps5-payload-dev/elfldr](https://github.com/ps5-payload-dev/elfldr) on port 9021 is required at runtime. Its source and binary are not vendored or packaged by OnionHEN.
-
-## Removed from OnionHEN
-
-| Former dependency | Reason |
-|-------------------|--------|
-| Vendored `elfldr.elf` | The port 9021 service is supplied externally at runtime |
-| ps5debug / ps5debug-NG | Optional debugger; not embedded |
-| ps5-app-dumper | Optional dump payload; not embedded |
-| Byepervisor / hen.bin | 1.xx–2.xx HV path; not bundled |
-| Discord RPC | Optional util service; removed |
-| libSelfDecryptor | Optional alt decrypt; not used |
+[ps5-payload-dev/elfldr](https://github.com/ps5-payload-dev/elfldr) on port 9021
+is supplied by the runtime environment for the initial bootstrap.
 
 ```bash
 git submodule update --init --recursive
