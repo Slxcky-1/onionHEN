@@ -14,6 +14,7 @@ void onion_test_elfldr_reset(void);
 void onion_test_elfldr_configure(bool available, pid_t launch_pid);
 int onion_test_elfldr_launch_calls(void);
 uint16_t onion_test_elfldr_last_port(void);
+void onion_test_live_pid(pid_t pid);
 
 static int test_is_elf(void) {
   const unsigned char elf[8] = {0x7F, 'E', 'L', 'F', 2, 1, 1, 0};
@@ -160,6 +161,33 @@ static int test_payload_running_without_live_pid(void) {
   return 0;
 }
 
+static int test_load_preserves_running_instance(void) {
+  char path[256];
+  char pid_path[256];
+  char key[64];
+  const unsigned char elf[8] = {0x7F, 'E', 'L', 'F', 2, 1, 1, 0};
+
+  TEST_ASSERT_EQ_INT(0, onion_test_write_temp_file(
+                            ".elf", elf, sizeof(elf), path, sizeof(path)));
+  const char *base = strrchr(path, '/');
+  base = base ? base + 1 : path;
+  TEST_ASSERT_TRUE(onion_payload_elf_key_from_name(base, key, sizeof(key)));
+  onion_payload_pid_path(pid_path, sizeof(pid_path), key);
+  onion_payload_write_pid_file(pid_path, 6262);
+
+  onion_test_elfldr_reset();
+  onion_test_live_pid(6262);
+  onion_test_elfldr_configure(true, 7373);
+  TEST_ASSERT_TRUE(onion_payload_load(path, NULL));
+  TEST_ASSERT_EQ_INT(0, onion_test_elfldr_launch_calls());
+  TEST_ASSERT_EQ_INT(6262, (int)onion_payload_read_pid_file(pid_path));
+
+  onion_test_elfldr_reset();
+  onion_test_remove_file(pid_path);
+  onion_test_remove_file(path);
+  return 0;
+}
+
 static int test_builtin_identity_payloads_allowed(void) {
   char path[256];
   const unsigned char elf[8] = {0x7F, 'E', 'L', 'F', 2, 1, 1, 0};
@@ -201,6 +229,8 @@ int test_payload_suite(void) {
                              test_load_requires_real_pid);
   failures += onion_test_run("payload.running_without_live_pid",
                              test_payload_running_without_live_pid);
+  failures += onion_test_run("payload.load_preserves_running_instance",
+                             test_load_preserves_running_instance);
   failures += onion_test_run("payload.builtin_identity_payloads_allowed",
                              test_builtin_identity_payloads_allowed);
   return failures;

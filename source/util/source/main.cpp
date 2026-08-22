@@ -154,7 +154,7 @@ int main(void) {
     start_ip_thread();
     pthread_create(&ipc_server, NULL, IPC_loop, NULL);
     /* IPC thread is up — publish ready for bootstrapper/daemon consumers */
-    onion_ready_signal(ONION_READY_UTIL);
+    onion_ready_signal_pid(ONION_READY_UTIL, getpid());
 
     if (onion_ready_is_set(ONION_FLAG_UTIL_BOOTED)) {
         /* onion_util.elf restarted mid-session (crash recover / re-launch) — not rest. */

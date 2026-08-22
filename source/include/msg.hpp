@@ -78,7 +78,7 @@ enum DaemonCommands : unsigned int {
 
   //KILL MAIN DAEMOM
   BREW_KILL_DAEMON = 0xDEAD0001u,
-  /** Crit: kill onion_util.elf → SceShellUI → exit daemon (PC TCP :9048 also). */
+  /** Crit: stop owned util/loader → restart SceShellUI → exit daemon. */
   BREW_SHUTDOWN_STACK = 0xDEAD0002u,
   BREW_FORCE_KILL_PID = 0xDEADCAFEu,
 };

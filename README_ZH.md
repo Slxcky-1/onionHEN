@@ -130,8 +130,9 @@ PS5 FTP 服务器位于 **工具箱 → 插件 → FTP 服务器**。一个开�
 同名的 `.auto_start` 文件记住这个选择。
 
 所有 `.elf` 文件名都使用相同的 Payload 页面、加载器和自动启动流程，包括
-`kstuff`、`ftpsrv` 和 `ftpsrv-ps5`。若用户 FTP Payload 与内置 FTP 模块使用
-相同 TCP 端口，则遵循正常的套接字占用规则，只有一个服务能够绑定成功。
+`kstuff`、`ftpsrv` 和 `ftpsrv-ps5`。已有有效 PID 记录的用户 Payload 会保持运行，
+后续启动和自动启动请求直接跳过。内置服务只管理自身运行时，不会停止同名用户
+Payload。若两个 FTP 服务使用相同 TCP 端口，只有一个服务能够绑定成功。
 
 ### 金手指
 

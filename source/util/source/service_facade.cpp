@@ -8,7 +8,6 @@
 #include "service_facade.hpp"
 
 #include <onion/builtin_services.h>
-#include <onion/payload.h>
 #include <onion/platform.h>
 
 #include "srv.h"
@@ -59,12 +58,6 @@ bool FtpServiceFacade::start(uint16_t port) {
   }
 
   stop();
-
-  /* Starting the built-in service is an explicit request to take the FTP
-   * listener. Stop a recorded same-name Payload first; those names remain
-   * valid in the user Payload loader. The module itself writes no PID marker. */
-  onion_payload_stop_by_title("ftpsrv");
-  onion_payload_stop_by_title("ftpsrv-ps5");
 
   pthread_mutex_lock(&g_runtime.mutex);
   g_runtime.port = port;

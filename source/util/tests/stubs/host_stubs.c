@@ -22,12 +22,14 @@ static bool g_test_onion_available = false;
 static pid_t g_test_onion_launch_pid = -1;
 static int g_test_onion_launch_calls = 0;
 static uint16_t g_test_onion_last_port = 0;
+static pid_t g_test_live_pid = -1;
 
 void onion_test_elfldr_reset(void) {
   g_test_onion_available = false;
   g_test_onion_launch_pid = -1;
   g_test_onion_launch_calls = 0;
   g_test_onion_last_port = 0;
+  g_test_live_pid = -1;
 }
 
 void onion_test_elfldr_configure(bool available, pid_t launch_pid) {
@@ -37,6 +39,7 @@ void onion_test_elfldr_configure(bool available, pid_t launch_pid) {
 
 int onion_test_elfldr_launch_calls(void) { return g_test_onion_launch_calls; }
 uint16_t onion_test_elfldr_last_port(void) { return g_test_onion_last_port; }
+void onion_test_live_pid(pid_t pid) { g_test_live_pid = pid; }
 
 bool elfldr_remote_available_on(uint16_t port) {
   (void)port;
@@ -97,8 +100,7 @@ pid_t onion_find_pid_substr(const char *substr) {
 }
 
 bool onion_proc_is_alive(pid_t pid) {
-  (void)pid;
-  return false;
+  return pid > 1 && pid == g_test_live_pid;
 }
 
 int sceKernelGetProcessName(int pid, char *name) {

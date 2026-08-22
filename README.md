@@ -138,9 +138,10 @@ Only plain `.elf` files are supported. Auto-start can be turned on in the Toolbo
 OnionHEN remembers that choice with a matching `.auto_start` file next to the ELF.
 
 All `.elf` filenames use the same Payload page, loader, and auto-start flow,
-including `kstuff`, `ftpsrv`, and `ftpsrv-ps5`. If a user FTP Payload and the
-built-in FTP module use the same TCP port, normal socket ownership applies and
-only one can bind it.
+including `kstuff`, `ftpsrv`, and `ftpsrv-ps5`. A recorded running instance is
+left running by later launch and auto-start requests. Built-in services manage
+only their own runtime; they do not stop same-name user Payloads. If two FTP
+services use the same TCP port, only one can bind it.
 
 ### Cheats
 

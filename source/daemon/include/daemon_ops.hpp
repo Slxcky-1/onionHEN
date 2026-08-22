@@ -92,4 +92,8 @@ bool Open_Utility_Elf(const char *path, uint8_t **buffer);
 void app_jailbreak_set_enabled(bool enabled);
 void *fifo_and_dumper_thread(void *args) noexcept; // daemon_jailbreak.cpp
 void *runtime_supervisor_thread(void *args) noexcept;
+/** PID owned by the current util readiness marker, or -1. */
+pid_t runtime_owned_util_pid();
+/** PID owned by the private-loader state marker, or -1. */
+pid_t runtime_owned_private_loader_pid();
 void *resume_recovery_thread(void *args) noexcept;

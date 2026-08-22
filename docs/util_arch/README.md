@@ -166,7 +166,7 @@ struct IPCMessage {
 | `DOWNLOAD_CHEATS` | 后台 HTTPS ZIP 下载 → 定向解压 → flatten | `CheatSyncService` + 现有 flatten |
 | `CHEAT_SYNC_STATUS` | 上次/正在进行的同步快照 | `CheatSyncService::status` |
 | `CANCEL_CHEAT_SYNC` | 请求取消指定同步任务 | `CheatSyncService::cancel` |
-| `LAUNCH_PAYLOAD` | 加载 payload `.elf` | `load_payload` → `onion_payload_load`（仅私有 9020，必须返回精确 PID；失败不回退 9021） |
+| `LAUNCH_PAYLOAD` | 加载 payload `.elf` | `load_payload` → `onion_payload_load`（有效 PID 已存在时保持现有实例；新实例仅使用私有 9020 并要求精确 PID） |
 | `BREW_KILL_DAEMON` / `BREW_RELOAD_SETTINGS` | 结束 util / 重载 ini | main 侧状态 |
 
 以下稳定 ABI 命令返回错误且不产生副作用：

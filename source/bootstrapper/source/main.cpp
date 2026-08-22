@@ -598,13 +598,29 @@ void free_payload_files(char **plugin_files) {
  * 2) load_autostart_payloads — payloads .elf with .auto_start (skip *elfldr*)
  */
 
-static void kill_by_name(const char *a, const char *b) {
-  int p = -1;
-  while ((a && (p = onion_find_pid_substr(a)) > 0) ||
-         (b && (p = onion_find_pid_substr(b)) > 0)) {
-    kill(p, SIGKILL);
-    sleep(1);
+static void stop_owned_service(const char *ready_name,
+                               const char *expected_process_name) {
+  pid_t pid = -1;
+  if (!onion_ready_read_pid(ready_name, &pid) || pid <= 1) {
+    onion_ready_clear(ready_name);
+    return;
   }
+
+  char process_name[32] = {};
+  if (!onion_proc_is_alive(pid) ||
+      sceKernelGetProcessName(pid, process_name) != 0 ||
+      strcmp(process_name, expected_process_name) != 0) {
+    LOG_WARN("Ignoring stale %s ownership marker pid=%d", ready_name,
+             static_cast<int>(pid));
+    onion_ready_clear(ready_name);
+    return;
+  }
+
+  LOG_INFO("Stopping owned %s pid=%d", ready_name, static_cast<int>(pid));
+  if (kill(pid, SIGKILL) != 0 && errno != ESRCH)
+    LOG_ERROR("Failed to stop owned %s pid=%d: %s", ready_name,
+              static_cast<int>(pid), strerror(errno));
+  onion_ready_clear(ready_name);
 }
 
 static uint16_t g_payload_loader_port = ELFLDR_REMOTE_PORT;
@@ -701,11 +717,9 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
    * (daemon injects toolbox; kstuff must patch ShellUI first)
    */
   LOG_DEBUG("Starting util via %u ...", g_payload_loader_port);
-  kill_by_name("onion_util.elf", "util.elf");
-  kill_by_name("OnionHEN Utility", nullptr);
-  onion_ready_clear(ONION_READY_UTIL);
+  stop_owned_service(ONION_READY_DAEMON, "onion_daemon.elf");
+  stop_owned_service(ONION_READY_UTIL, "onion_util.elf");
   onion_ready_clear(ONION_READY_KSTUFF);
-  onion_ready_clear(ONION_READY_DAEMON);
   /*
    * Keep Toolbox's PID marker across a daemon/re-HEN restart.  A stale marker
    * is harmless: daemon compares it with the current SceShellUI PID before
@@ -775,9 +789,6 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
 
   LOG_DEBUG("Starting daemon via %u (toolbox inject) ...",
               g_payload_loader_port);
-  kill_by_name("onion_daemon.elf", "daemon.elf");
-  kill_by_name("OnionHEN Critical", nullptr);
-  onion_ready_clear(ONION_READY_DAEMON);
   if (!launch_blob(daemon_start, daemon_size, "daemon", "onion_daemon.elf")) {
     notify("notify.elfldr.launch_daemon");
     return -2;

@@ -16,7 +16,6 @@
 #include <unistd.h>
 
 extern "C" {
-int sceKernelMprotect(void *addr, size_t len, int prot);
 bool Inject_Toolbox(int pid, uint8_t *elf);
 extern uint8_t shellui_elf_start[];
 }
@@ -105,21 +104,9 @@ bool toolbox_wait_shellui_sprx(pid_t pid, uint32_t gen) {
 }
 
 void toolbox_wait_kstuff() {
-  char buz[100] = {0};
-  if (find_pid("kstuff.elf") <= 0 && find_pid("kstuff") <= 0) {
-    return;
-  }
-  LOG_DEBUG("kstuff present — waiting for mprotect before toolbox inject");
-  int waited = 0;
-  for (; waited < 20; waited++) {
-    if (sceKernelMprotect(&buz[0], 100, 0x7) == 0) {
-      break;
-    }
+  if (!onion_ready_wait(ONION_READY_KSTUFF, /*timeout_ms=*/5000,
+                        /*poll_ms=*/200))
     sleep(1);
-  }
-  LOG_DEBUG("rest: kstuff mprotect wait=%d ok=%d", waited,
-            sceKernelMprotect(&buz[0], 100, 0x7) == 0 ? 1 : 0);
-  sleep(2);
 }
 
 void toolbox_notify_outcome(const onion::ToolboxInjectionOutcome &outcome) {
@@ -170,10 +157,6 @@ bool toolbox_inject_immediate(pid_t expected_pid = 0) {
 
   toolbox_wait_kstuff();
   LOG_INFO("Activating toolbox...");
-  if (!onion_ready_wait(ONION_READY_KSTUFF, /*timeout_ms=*/5000,
-                        /*poll_ms=*/200)) {
-    sleep(1);
-  }
 
   const onion::ToolboxInjectionOutcome outcome = g_toolbox_inject.inject(
       []() -> pid_t { return toolbox_live_pid(); },

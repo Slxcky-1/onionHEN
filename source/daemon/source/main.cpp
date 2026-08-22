@@ -281,7 +281,7 @@ int main() {
 
   (void)onion_net_get_ip_address(&buz[0], sizeof(buz));
   start_worker_threads(&fifo_thr, &msg_thr);
-  onion_ready_signal(ONION_READY_DAEMON);
+  onion_ready_signal_pid(ONION_READY_DAEMON, getpid());
 
   LOG_DEBUG("is toolbox only: %s | ver: %x", toolbox_only ? "Yes" : "No",
             sys_ver.version);

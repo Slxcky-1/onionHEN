@@ -134,7 +134,7 @@ OnionHEN/
 2. 启动内置 `onion_elfldr.elf`，并通过握手确认 `127.0.0.1:9020`
 3. 顺序发送内部 ELF 字节：util → kstuff → daemon；9020 是正常路径，9021 仅承担引导/恢复职责
 4. 各子 ELF 启动后把主线程名设为稳定进程名（`onion_util.elf` / `kstuff.elf` / `onion_daemon.elf`）
-5. 仅在 9020 健康时加载 `/data/OnionHEN/payloads/` 下带 `.auto_start` 的 `.elf`；必须取得精确 PID，否则该 Payload 直接失败
+5. 仅在 9020 健康时加载 `/data/OnionHEN/payloads/` 下带 `.auto_start` 的 `.elf`；已有有效 PID 记录时保持现有实例，否则必须取得精确 PID
 
 可用 Toolbox「启动时自动加载 Kstuff」（默认开启）关闭，或放 `/mnt/usb0/no_kstuff` 跳过 kstuff。
 
@@ -247,9 +247,9 @@ RAM 与 IP。采样实现参考 [PHU Games Tools](https://github.com/ArkSama)（
 
 | 标记名 | 发布方 | 等待方 / 用途 |
 |--------|--------|----------------|
-| `util` | util 在 IPC 线程启动后 | bootstrapper 启动 util 之后 |
+| `util` | util 在 IPC 线程启动后，内容为自身 PID | bootstrapper、runtime supervisor 与关栈流程识别内置 util 实例 |
 | `kstuff` | bootstrapper 在 mprotect 成功后 | daemon 注入 toolbox 前 |
-| `daemon` | daemon 在 IPC 线程启动后 | bootstrapper 启动 daemon 之后 |
+| `daemon` | daemon 在 IPC 线程启动后，内容为自身 PID | bootstrapper 识别内置 daemon 实例 |
 | `toolbox` | shellui 注入完成后，内容为自身 PID | daemon 按当前 SceShellUI PID 判断跳过或重注入 |
 | `fps_overlay` | 启动时 clear | ABI 占位标记；实时 FPS 状态发布在 `/system_tmp/onionhen/fps_sample` |
 | `util_booted` | util 冷启动完成后 | util 崩溃/重拉后向 daemon 请求再注入 Toolbox |
@@ -400,8 +400,10 @@ struct IPCMessage {
 - **Remote Play**：ShellUI 调用 PS5 原生 Remote Play API 完成 PIN 生成和客户端注册确认
 
 所有 `.elf` 文件名都使用相同的 Payload 页面、自动启动扫描和共享加载器，包括
-`kstuff`、`ftpsrv` 与 `ftpsrv-ps5`。启动内置 FTP 时会停止记录在这些 FTP 名称
-下的用户 Payload PID；相同端口的最终所有者由 socket bind 结果决定。
+`kstuff`、`ftpsrv` 与 `ftpsrv-ps5`。内置服务只管理自身进程或线程，不停止同名
+用户 Payload；用户 Payload 仅由 Payload 页的明确停止操作终止。已有有效 PID
+记录时，后续启动和自动启动请求保持现有实例。相同端口的服务由 socket bind
+结果决定唯一端口所有者。
 
 ### 4.4 扩展
 
