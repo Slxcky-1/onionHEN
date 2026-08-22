@@ -122,6 +122,10 @@ void handleIPC(clientArgs *client, std::string &inputStr,
           onion::services::ftpService().running() ? "1" : "0");
     break;
   }
+  case BREW_UTIL_RECOVER_FTP: {
+    reply(sender_app, !onion::services::ftpService().recover());
+    break;
+  }
   case BREW_UTIL_UNUSED_LEGACY_SERVICE_SCAN:
   case BREW_UTIL_UNUSED_LEGACY_SERVICE_TOGGLE:
   case BREW_UTIL_UNUSED_KLOG:

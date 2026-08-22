@@ -12,20 +12,33 @@
 
 #include "srv.h"
 
+#include <stddef.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <unistd.h>
 
 namespace {
 
 struct FtpRuntime {
   pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+  pthread_mutex_t operation_mutex = PTHREAD_MUTEX_INITIALIZER;
   pthread_t thread = {};
   bool running = false;
   bool thread_created = false;
+  bool desired_enabled = false;
+  bool listener_ready = false;
   uint16_t port = ONION_FTPSRV_PORT;
 };
 
 FtpRuntime g_runtime;
+
+constexpr int kListenerReadyWaitMs = 2000;
+constexpr useconds_t kRecoveryRetryDelayUs[] = {
+    250 * 1000,
+    500 * 1000,
+    1000 * 1000,
+    2000 * 1000,
+};
 
 void *ftp_thread_main(void *arg) {
   const uint16_t port = *static_cast<const uint16_t *>(arg);
@@ -33,6 +46,7 @@ void *ftp_thread_main(void *arg) {
 
   pthread_mutex_lock(&g_runtime.mutex);
   g_runtime.running = false;
+  g_runtime.listener_ready = false;
   pthread_mutex_unlock(&g_runtime.mutex);
 
   if (result == FTP_SERVE_BIND_FAILED) {
@@ -47,21 +61,61 @@ void *ftp_thread_main(void *arg) {
 
 bool valid_port(uint16_t port) { return port != 0; }
 
-} // namespace
+void stop_thread() {
+  pthread_t thread = {};
+  bool join = false;
 
-namespace onion::services {
+  pthread_mutex_lock(&g_runtime.mutex);
+  if (g_runtime.thread_created) {
+    ftp_server_stop();
+    thread = g_runtime.thread;
+    join = true;
+  }
+  pthread_mutex_unlock(&g_runtime.mutex);
 
-bool FtpServiceFacade::start(uint16_t port) {
-  if (!valid_port(port)) {
-    LOG_ERROR("Refusing invalid FTP port %u", static_cast<unsigned>(port));
-    return false;
+  if (!join) {
+    return;
   }
 
-  stop();
+  pthread_join(thread, nullptr);
+  pthread_mutex_lock(&g_runtime.mutex);
+  g_runtime.running = false;
+  g_runtime.listener_ready = false;
+  g_runtime.thread_created = false;
+  pthread_mutex_unlock(&g_runtime.mutex);
+}
 
+bool wait_for_listener_ready() {
+  for (int waited = 0; waited < kListenerReadyWaitMs; waited += 50) {
+    if (ftp_server_is_listening()) {
+      pthread_mutex_lock(&g_runtime.mutex);
+      g_runtime.listener_ready = true;
+      pthread_mutex_unlock(&g_runtime.mutex);
+      return true;
+    }
+
+    pthread_mutex_lock(&g_runtime.mutex);
+    const bool active = g_runtime.running;
+    pthread_mutex_unlock(&g_runtime.mutex);
+    if (!active) {
+      return false;
+    }
+    usleep(50 * 1000);
+  }
+  const bool ready = ftp_server_is_listening() != 0;
+  if (ready) {
+    pthread_mutex_lock(&g_runtime.mutex);
+    g_runtime.listener_ready = true;
+    pthread_mutex_unlock(&g_runtime.mutex);
+  }
+  return ready;
+}
+
+bool start_thread(uint16_t port) {
   pthread_mutex_lock(&g_runtime.mutex);
   g_runtime.port = port;
   g_runtime.running = true;
+  g_runtime.listener_ready = false;
   ftp_server_prepare();
   const int rc = pthread_create(&g_runtime.thread, nullptr, ftp_thread_main,
                                 &g_runtime.port);
@@ -76,63 +130,124 @@ bool FtpServiceFacade::start(uint16_t port) {
     LOG_ERROR("Failed to create ftpsrv thread: %d", rc);
     return false;
   }
+  return wait_for_listener_ready();
+}
+
+} // namespace
+
+namespace onion::services {
+
+bool FtpServiceFacade::start(uint16_t port) {
+  if (!valid_port(port)) {
+    LOG_ERROR("Refusing invalid FTP port %u", static_cast<unsigned>(port));
+    return false;
+  }
+
+  pthread_mutex_lock(&g_runtime.operation_mutex);
+  g_runtime.desired_enabled = true;
+  stop_thread();
+
+  const bool ok = start_thread(port);
+  if (!ok) {
+    stop_thread();
+  }
+  pthread_mutex_unlock(&g_runtime.operation_mutex);
+
+  if (!ok) {
+    LOG_ERROR("Failed to start ftpsrv on TCP %u",
+              static_cast<unsigned>(port));
+    return false;
+  }
 
   LOG_INFO("ftpsrv started on TCP %u", static_cast<unsigned>(port));
   return true;
 }
 
 void FtpServiceFacade::stop() {
-  pthread_t thread = {};
-  bool join = false;
-
-  pthread_mutex_lock(&g_runtime.mutex);
-  if (g_runtime.thread_created) {
-    ftp_server_stop();
-    thread = g_runtime.thread;
-    join = true;
-  }
-  pthread_mutex_unlock(&g_runtime.mutex);
-
-  if (join) {
-    pthread_join(thread, nullptr);
-    pthread_mutex_lock(&g_runtime.mutex);
-    g_runtime.running = false;
-    g_runtime.thread_created = false;
-    pthread_mutex_unlock(&g_runtime.mutex);
-  }
+  pthread_mutex_lock(&g_runtime.operation_mutex);
+  g_runtime.desired_enabled = false;
+  stop_thread();
+  pthread_mutex_unlock(&g_runtime.operation_mutex);
 }
 
 bool FtpServiceFacade::reconfigure(uint16_t port) {
   if (!valid_port(port)) {
     return false;
   }
-  if (!running()) {
+
+  pthread_mutex_lock(&g_runtime.operation_mutex);
+  pthread_mutex_lock(&g_runtime.mutex);
+  const bool desired = g_runtime.desired_enabled;
+  const uint16_t previous_port = g_runtime.port;
+  pthread_mutex_unlock(&g_runtime.mutex);
+
+  if (!desired) {
     pthread_mutex_lock(&g_runtime.mutex);
     g_runtime.port = port;
     pthread_mutex_unlock(&g_runtime.mutex);
+    pthread_mutex_unlock(&g_runtime.operation_mutex);
     return true;
   }
 
-  const uint16_t previous_port = this->port();
-  stop();
-  if (start(port)) {
-    return true;
+  stop_thread();
+  bool ok = start_thread(port);
+  if (!ok) {
+    stop_thread();
+    if (previous_port != port) {
+      ok = start_thread(previous_port);
+      if (!ok) {
+        stop_thread();
+      }
+    }
   }
+  pthread_mutex_unlock(&g_runtime.operation_mutex);
 
-  /* Keep a working listener if the requested port is occupied.  The desired
-   * value remains in Settings and can be retried after the conflicting
-   * service is removed; the in-process service itself is never left half
-   * stopped by a failed reconfigure. */
-  if (previous_port != port && !start(previous_port)) {
+  if (!ok) {
     LOG_ERROR("ftpsrv failed to restore TCP %u after reconfigure failure",
               static_cast<unsigned>(previous_port));
   }
+  return ok;
+}
+
+bool FtpServiceFacade::recover() {
+  pthread_mutex_lock(&g_runtime.operation_mutex);
+  pthread_mutex_lock(&g_runtime.mutex);
+  const bool desired = g_runtime.desired_enabled;
+  const uint16_t port = g_runtime.port;
+  pthread_mutex_unlock(&g_runtime.mutex);
+
+  if (!desired) {
+    pthread_mutex_unlock(&g_runtime.operation_mutex);
+    LOG_DEBUG("ftpsrv recovery skipped; service is disabled");
+    return true;
+  }
+
+  stop_thread();
+  constexpr size_t kRetryCount =
+      sizeof(kRecoveryRetryDelayUs) / sizeof(kRecoveryRetryDelayUs[0]);
+  for (size_t attempt = 0; attempt <= kRetryCount; ++attempt) {
+    if (start_thread(port)) {
+      pthread_mutex_unlock(&g_runtime.operation_mutex);
+      LOG_INFO("ftpsrv recovered on TCP %u (attempt %zu)",
+               static_cast<unsigned>(port), attempt + 1);
+      return true;
+    }
+
+    stop_thread();
+    if (attempt < kRetryCount) {
+      usleep(kRecoveryRetryDelayUs[attempt]);
+    }
+  }
+
+  pthread_mutex_unlock(&g_runtime.operation_mutex);
+  LOG_ERROR("ftpsrv recovery exhausted on TCP %u",
+            static_cast<unsigned>(port));
   return false;
 }
 
 bool FtpServiceFacade::running() const {
   pthread_mutex_lock(&g_runtime.mutex);
-  const bool value = g_runtime.running;
+  const bool value = g_runtime.listener_ready;
   pthread_mutex_unlock(&g_runtime.mutex);
   return value;
 }

@@ -592,6 +592,11 @@ ftp_server_stop(void) {
   }
 }
 
+int
+ftp_server_is_listening(void) {
+  return atomic_load_explicit(&ftp_server_fd, memory_order_acquire) >= 0;
+}
+
 
 /*
   Local Variables:

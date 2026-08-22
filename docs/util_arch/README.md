@@ -160,6 +160,7 @@ struct IPCMessage {
 | `DAEMON_PID` | 返回 util pid | `getpid` |
 | `TOGGLE_FTP` | 启停进程内 FTP | `FtpServiceFacade` |
 | `FTP_STATUS` | 返回 FTP 运行状态 | `FtpServiceFacade` |
+| `RECOVER_FTP` | 待机恢复后重绑已启用的 FTP 监听 | `FtpServiceFacade` |
 | `GET_GAME_VER` | 游戏版本字符串 | param.json / param.sfo（msg 内实现） |
 | `GET_GAME_CHEAT` | 导出金手指列表 JSON 文件路径 | `CheatService::exportList` |
 | `TOGGLE_CHEAT` | 开关某条金手指 | `CheatService::toggle` |

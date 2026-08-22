@@ -69,6 +69,7 @@ enum DaemonCommands : unsigned int {
   // New command uses an explicit value so adding it cannot shift the legacy
   // sequential command block above.
   BREW_UTIL_FTP_STATUS = 0x8000014u,
+  BREW_UTIL_RECOVER_FTP = 0x8000015u,
 
   // Legacy: manual elfldr launch removed (embedded 9020 is bootstrapper-managed)
   BREW_UTIL_LAUNCH_ELFLDR = 0xE1F1D8u,

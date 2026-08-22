@@ -310,6 +310,15 @@ bool IPC_Client::FtpStatus() {
   return ipc_msg == "1" || ipc_msg == "true";
 }
 
+bool IPC_Client::RecoverFtp() {
+  std::string ipc_msg;
+  if (!IPCSendCommand(BREW_UTIL_RECOVER_FTP, ipc_msg)) {
+    LOG_ERROR("Failed to recover FTP service");
+    return false;
+  }
+  return true;
+}
+
 void IPC_Client::KillDaemon() {
   std::string ipc_msg;
   IPCSendCommand(BREW_KILL_DAEMON, ipc_msg);

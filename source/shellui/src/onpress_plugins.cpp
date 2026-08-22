@@ -14,7 +14,9 @@ OnPressResult toggle_plugin_now(OnPressContext &ctx, DaemonCommands cmd,
                                 const char *on_notify, const char *off_notify) {
   ctx.dirty = false;
   const bool enabled = value_as_int(ctx);
-  if (enabled == IPC_Client::getInstance(true).FtpStatus())
+  /* Stop is idempotent and must clear util's desired state even when a
+   * listener failed before the UI could observe it as running. */
+  if (enabled && IPC_Client::getInstance(true).FtpStatus())
     return OnPressResult::EarlyReturn;
 
   if (IPC_Client::getInstance(true).ToggleSetting(cmd, enabled) !=

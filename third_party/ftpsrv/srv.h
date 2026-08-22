@@ -33,6 +33,9 @@ void ftp_server_prepare(void);
  * serving thread and must join it after requesting the stop. */
 void ftp_server_stop(void);
 
+/* True after ftp_serve has completed bind/listen on its control port. */
+int ftp_server_is_listening(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -166,7 +166,7 @@ OnionHEN/
 |------|-------------|------|
 | Cheats | IPC | flat-file cheat engine（flat `TITLE_VERSION.ext` + mdbg/kdirect）；详见 [util_arch](util_arch/) |
 | Toolbox 请求 | IPC | util 崩溃重拉后向 crit 请求 `BREW_ENABLE_TOOLBOX`；休息恢复在 daemon |
-| FTP | TCP `ftp.port`（默认 1337） | util 内部 `ftpsrv` 源码模块；插件页提供启停、自启和端口修改 |
+| FTP | TCP `ftp.port`（默认 1337） | util 内部 `ftpsrv` 源码模块；插件页提供启停、自启和端口修改；待机恢复时由 util 重绑已启用监听 |
 
 `ps5/klog.h` 的 `klog_printf` / `klog_puts` 用于写入内核日志，不提供 TCP 网络服务。
 

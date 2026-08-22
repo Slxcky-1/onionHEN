@@ -7,6 +7,7 @@
 
 #include "daemon_ops.hpp"
 #include "daemon_power_state.hpp"
+#include <onion/ipc_client.hpp>
 #include <onion/platform.h>
 #include <atomic>
 #include <unistd.h>
@@ -48,6 +49,13 @@ void *resume_recovery_thread(void *args) noexcept {
                ready ? "ready" : "pending",
                control_tcp_is_listening() ? 1 : 0,
                crit_ipc_is_listening() ? 1 : 0);
+
+      /* FTP owns its socket inside util; ask it to restore only when the
+       * service was enabled before standby.  Recovery itself is bounded in
+       * FtpServiceFacade and remains a best-effort compensation. */
+      const bool ftp_recovered = IPC_Client::getInstance(true).RecoverFtp();
+      LOG_INFO("rest: FTP listener recovery %s",
+               ftp_recovered ? "ready" : "pending");
 
       /* NOTE_EXEC remains authoritative; this is only compensation. */
       toolbox_on_resume();

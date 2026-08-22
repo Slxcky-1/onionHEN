@@ -102,8 +102,7 @@ bool LoadSettings() {
                 static_cast<uint16_t>(s.ftp_port))) {
             LOG_WARN("FTP autoload failed on TCP %d", s.ftp_port);
         }
-    } else if (previous.ftp_port != s.ftp_port &&
-               onion::services::ftpService().running()) {
+    } else if (previous.ftp_port != s.ftp_port) {
         if (!onion::services::ftpService().reconfigure(
                 static_cast<uint16_t>(s.ftp_port))) {
             LOG_WARN("FTP port reconfigure failed on TCP %d", s.ftp_port);
