@@ -48,8 +48,10 @@ bool set_fan_threshold(int temp);
 bool restore_automatic_fan();
 /** Periodic /dev/icc_fan rewrite while manual threshold is enabled. */
 void *fan_maintenance_thread(void *args) noexcept;
-/** Skip-hook FPS sampler: ioctl + DMAP, publishes /system_tmp/onionhen/fps_sample. */
+/** Render/skip-hook FPS sampler: DMAP counters, publishes the FPS sample. */
 void *fps_sampler_thread(void *args) noexcept;
+/** V-sync FPS sampler: feeds the FPS sampler when render counters are invalid. */
+void *vsync_fps_sampler_thread(void *args) noexcept;
 
 /**
  * Tear down OnionHEN userland (does not return). Caller should reply to IPC first.

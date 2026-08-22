@@ -11,7 +11,9 @@ double hz_from_delta(uint64_t dcount, double dt_sec) {
   if (dcount == 0 || dt_sec <= 0.0)
     return 0.0;
   const double hz = static_cast<double>(dcount) / dt_sec;
-  if (hz < static_cast<double>(kFpsMin) || hz > static_cast<double>(kFpsMax))
+  /* Keep uncapped rates for PHU-style calibration. The final published FPS
+   * still uses kFpsMax; rejecting them here loses the only multi-pass signal. */
+  if (hz < static_cast<double>(kFpsMin) || hz > static_cast<double>(kRawFpsMax))
     return 0.0;
   return hz;
 }
@@ -29,7 +31,8 @@ HybridOut compose(const HybridIn &in) {
   HybridOut out;
   out.dead_ticks = in.dead_ticks;
 
-  const bool scanout = in.scanout_ok && in.scanout >= kFpsMin;
+  const bool scanout = in.scanout_ok && in.scanout >= kFpsMin &&
+                       in.scanout <= kFpsMax;
   const bool ring = in.ring_ok && in.ring >= kFpsMin;
   const bool global = in.global_ok && in.global >= kFpsMin;
   if (!scanout && !ring && !global) {
@@ -38,14 +41,11 @@ HybridOut compose(const HybridIn &in) {
   }
   out.dead_ticks = 0;
 
-  const float calibrated = ring ? in.ring : (global ? in.global : 0.f);
-  float denom = 0.f;
-  if (ring)
-    denom = in.ring;
-  else if (scanout)
-    denom = in.scanout;
-  const float cal_ratio =
-      (global && denom >= kFpsMin) ? (in.global / denom) : 1.f;
+  /* PHU's Tier 1E ring is the primary render rate. Tier 1F is only used when
+   * the ring is unavailable; never take max(ring, global), as that mixes two
+   * counters with different semantics. */
+  const bool render = ring || global;
+  const float render_fps = ring ? in.ring : (global ? in.global : 0.f);
 
   float main = 0.f;
   uint8_t src = 0;
@@ -56,18 +56,18 @@ HybridOut compose(const HybridIn &in) {
   if (global)
     src |= ONION_FPS_SRC_GLOBAL;
 
-  if (cal_ratio > kMultiPassRatio && global && in.global < kFpsMax && scanout) {
+  if (in.calibration_ready && in.multipass && scanout && render) {
     main = in.scanout;
     src |= ONION_FPS_SRC_MULTIPASS;
   } else {
-    main = in.scanout;
-    if (calibrated > main)
-      main = calibrated;
-    if (scanout && calibrated > 0.f)
+    main = render ? render_fps : (scanout ? in.scanout : 0.f);
+    if (scanout && render)
       src |= ONION_FPS_SRC_HYBRID;
   }
 
-  if (main < kFpsMin) {
+  /* Render counters may be uncapped. They remain useful for calibration but
+   * are not displayable until a scanout fallback is available. */
+  if (main < kFpsMin || main > kFpsMax) {
     out.dead_ticks = in.dead_ticks + 1;
     return out;
   }

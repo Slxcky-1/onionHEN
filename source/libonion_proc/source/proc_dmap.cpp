@@ -119,3 +119,35 @@ extern "C" int onion_proc_copyin(pid_t pid, uint64_t va, const void *src,
     return -1;
   return copy_via_dmap(pid, va, const_cast<void *>(src), n, true);
 }
+
+extern "C" int onion_proc_dmap_init(pid_t pid, onion_proc_dmap_ctx *ctx) {
+  if (!ctx || pid <= 0)
+    return -1;
+  ctx->pid = 0;
+  ctx->cr3 = 0;
+  ctx->dmap = 0;
+  if (get_proc_cr3(pid, &ctx->cr3, &ctx->dmap) < 0)
+    return -1;
+  ctx->pid = pid;
+  return 0;
+}
+
+extern "C" int onion_proc_translate(const onion_proc_dmap_ctx *ctx,
+                                     uint64_t va, uint64_t *phys,
+                                     uint64_t *phys_limit) {
+  if (!ctx || !phys || ctx->pid <= 0 || ctx->cr3 == 0 || ctx->dmap == 0)
+    return -1;
+  const uint64_t value =
+      virt2phys(static_cast<uintptr_t>(va), ctx->dmap, ctx->cr3, phys_limit);
+  if (value == static_cast<uint64_t>(-1))
+    return -1;
+  *phys = value;
+  return 0;
+}
+
+extern "C" int onion_proc_copyout_phys(const onion_proc_dmap_ctx *ctx,
+                                        uint64_t phys, void *dst, size_t n) {
+  if (!ctx || ctx->pid <= 0 || ctx->dmap == 0 || !dst || n == 0)
+    return -1;
+  return kernel_copyout(static_cast<intptr_t>(ctx->dmap + phys), dst, n);
+}

@@ -9,7 +9,7 @@ static int test_hz_from_delta(void) {
   TEST_ASSERT_TRUE(onion::fps::hz_from_delta(2, 0.0) == 0.0);
   const double hz = onion::fps::hz_from_delta(2, 1.0 / 30.0);
   TEST_ASSERT_TRUE(hz > 59.0 && hz < 61.0);
-  TEST_ASSERT_TRUE(onion::fps::hz_from_delta(1, 0.001) == 0.0); /* 1000 Hz */
+  TEST_ASSERT_TRUE(onion::fps::hz_from_delta(1, 0.001) > 999.0); /* raw uncapped rate */
   return 0;
 }
 
@@ -39,6 +39,8 @@ static int test_compose_hybrid_and_multipass(void) {
   in.ring_ok = false;
   in.global_ok = true;
   in.global = 180.f; /* 3x scanout → multi-pass */
+  in.calibration_ready = true;
+  in.multipass = true;
   out = onion::fps::compose(in);
   TEST_ASSERT_TRUE(out.valid);
   TEST_ASSERT_TRUE(out.fps >= 59.f && out.fps <= 61.f);

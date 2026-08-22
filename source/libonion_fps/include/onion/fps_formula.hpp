@@ -11,6 +11,8 @@ namespace fps {
 
 inline constexpr int kWindow = 5;
 inline constexpr int kDeadTicks = 99;
+/* PHU keeps uncapped render rates for calibration; display output is capped. */
+inline constexpr float kRawFpsMax = 10000.0f;
 inline constexpr float kMultiPassRatio = 2.5f;
 inline constexpr float kFpsMin = 1.0f;
 inline constexpr float kFpsMax = 240.0f;
@@ -28,6 +30,9 @@ struct HybridIn {
   float ring = 0.f;
   bool global_ok = false;
   float global = 0.f;
+  /* PHU decides multi-pass from a 100-sample render/scanout average. */
+  bool calibration_ready = false;
+  bool multipass = false;
   int dead_ticks = 0;
 };
 
@@ -39,8 +44,9 @@ struct HybridOut {
 };
 
 /**
- * Main overlay value: multi-pass uses scanout; otherwise max(scanout, render).
- * No live source for kDeadTicks consecutive ticks → valid=false.
+ * Main overlay value: ring is the render source, global is its fallback.
+ * Once calibration identifies multi-pass, scanout is preferred. No live source
+ * for kDeadTicks consecutive ticks -> valid=false.
  */
 HybridOut compose(const HybridIn &in);
 

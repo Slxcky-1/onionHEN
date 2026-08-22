@@ -214,7 +214,7 @@ HomeUI 顶部导航和 Settings Debug Settings 入口按固件 profile 覆盖 2.
 | **libNidResolver** | PS5 模块 NID 解析（SHA1 等） |
 | **libonion_ipc** | **客户端**（injectee 双单例）+ **服务端传输环**（`ipc_server`：listen/accept/loop/reply；`accept` 失败重绑参考 ps5-payload-manager）；daemon/util/shellui 共用 |
 | **libonion_settings** | 统一 `config.ini` schema；各进程以 `onion::Settings g_settings` 为真相源 |
-| **libonion_fps** | skip-hook FPS 采样（公式 / `/dev/dce` / AgcDriver DMAP / seqlock 发布）；实现来自 [PHU Games Tools](https://github.com/ArkSama) |
+| **libonion_fps** | skip-hook FPS 采样（PHU Tier 1A/1E/1F 公式、100 样本 multi-pass 校准、缓存 DMAP 物理地址、`/dev/dce` / AgcDriver / seqlock 发布）；实现来自 [PHU Games Tools](https://github.com/ArkSama) |
 | **libonion_detour** | 共享 Detour + hde64 钩子栈 |
 | **libonion_proc** | 共享 proc/ucred（allproc 遍历、dynlib、authid）+ **sysctl 进程查询**（`find_pid` / `onion_find_pid_ex` / `isProcessAlive`）；daemon / util / shellui / bootstrapper 共用 |
 | **libonion_platform** | 平台叶子：`if_exists` / `touch_file` / `rmtree`、`OnionHEN_log`（可配置 tag/路径）、`onion_notify`；修一处全树受益 |
@@ -231,7 +231,7 @@ HomeUI 顶部导航和 Settings Debug Settings 入口按固件 profile 覆盖 2.
 | **daemon_inject.cpp** | Toolbox 注入：冷启动/IPC 立即注入；休息恢复参考 kstuff-lite（SysCore EXEC + trophy sprx） |
 | **daemon_settings.cpp** | LoadSettings + mtime 缓存 |
 | **daemon_fs.cpp** | remount / chmod / test_sb / reply / fan / ForceKill / pid 查找 |
-| **daemon_fps.cpp** | skip-hook FPS 采样线程；发布 `/system_tmp/onionhen/fps_sample` |
+| **daemon_fps.cpp** | render/skip-hook FPS 线程 + 独立 V-sync 采样线程；原始值无效时由 V-sync 线程兜底；仅 render 线程发布 `/system_tmp/onionhen/fps_sample` |
 
 #### ShellUI 模块（加深后）
 
