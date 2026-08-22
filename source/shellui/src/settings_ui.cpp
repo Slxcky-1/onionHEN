@@ -11,7 +11,6 @@
 #include "ipc.hpp" // shellui_log + IPC_Client
 #include <onion/settings.hpp>
 
-#include <atomic>
 #include <cmath>
 
 namespace {
@@ -19,17 +18,6 @@ namespace {
 bool valid_dimension(float value) {
   return std::isfinite(value) && value > 1.0f;
 }
-
-/*
- * Inject worker must not call ReactApplicationSceneManager.ReloadApp.
- * After hooks are ready, OnRender (UI thread) drains this one-shot flag.
- *
- * This is intentionally NOT timed by wall-clock/frames and NOT gated on
- * onion_ready(ONION_READY_TOOLBOX): that marker is a cross-process "toolbox
- * online" handshake for the daemon.  Local readiness is shellui_hooks_are_ready()
- * (already required before OnRender polls), plus "we are on the UI thread".
- */
-std::atomic<bool> g_display_tids_reload_pending{false};
 
 } // namespace
 
@@ -53,6 +41,7 @@ void apply_overlay_layout() {
   constexpr float w_gpu = 190.0f;
   constexpr float w_ram = 170.0f;
   constexpr float w_ip = 200.0f;
+  constexpr float w_fps = 130.0f;
   constexpr float kGap = 28.0f; /* roomy group gap (not packed) */
   constexpr float kOffscreen = -4096.0f;
 
@@ -70,6 +59,8 @@ void apply_overlay_layout() {
     g_overlay_layout.overlay_ram_y = 0.0f;
     g_overlay_layout.overlay_ip_x = kOffscreen;
     g_overlay_layout.overlay_ip_y = 0.0f;
+    g_overlay_layout.overlay_fps_x = kOffscreen;
+    g_overlay_layout.overlay_fps_y = 0.0f;
     return;
   }
 
@@ -78,6 +69,7 @@ void apply_overlay_layout() {
   const bool show_gpu = g_settings.overlay_enabled && g_settings.overlay_gpu;
   const bool show_ram = g_settings.overlay_enabled && g_settings.overlay_ram;
   const bool show_ip = g_settings.overlay_enabled && g_settings.overlay_ip;
+  const bool show_fps = g_settings.overlay_enabled && g_settings.overlay_fps;
   const float w_cpu = g_settings.all_cpu_usage ? w_cpu_all : w_cpu_avg;
 
   float content_w = 0.0f;
@@ -89,6 +81,7 @@ void apply_overlay_layout() {
       content_w += kGap;
     content_w += w;
   };
+  acc(show_fps, w_fps);
   acc(show_cpu, w_cpu);
   acc(show_gpu, w_gpu);
   acc(show_ram, w_ram);
@@ -122,6 +115,8 @@ void apply_overlay_layout() {
     x += w + kGap;
   };
 
+  place(g_overlay_layout.overlay_fps_x, g_overlay_layout.overlay_fps_y,
+        show_fps, w_fps);
   place(g_overlay_layout.overlay_cpu_x, g_overlay_layout.overlay_cpu_y,
         show_cpu, w_cpu);
   place(g_overlay_layout.overlay_gpu_x, g_overlay_layout.overlay_gpu_y,
@@ -191,25 +186,4 @@ void settings_commit(bool reload_main, bool reload_util)
   /* Apply last so failures while persisting/propagating remain visible even
      when the newly selected level is off or more restrictive. */
   (void)onion::apply_log_settings(g_settings);
-}
-
-void shellui_request_display_tids_home_reload(void) {
-  if (!g_settings.display_tids) {
-    return;
-  }
-  g_display_tids_reload_pending.store(true, std::memory_order_release);
-  LOG_DEBUG("home_screen.show_title_ids: queued NPXS40002 home reload");
-}
-
-void shellui_poll_display_tids_home_reload(void) {
-  /* Caller must already be on UI thread after shellui_hooks_are_ready(). */
-  if (!g_display_tids_reload_pending.exchange(false, std::memory_order_acq_rel)) {
-    return;
-  }
-  if (!g_settings.display_tids) {
-    LOG_WARN("home_screen.show_title_ids: skip home reload (setting off)");
-    return;
-  }
-  LOG_DEBUG("home_screen.show_title_ids: applying home reload on UI thread");
-  ReloadRNPSApp("NPXS40002");
 }

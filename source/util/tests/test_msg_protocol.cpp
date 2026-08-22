@@ -58,6 +58,10 @@ static int test_util_command_base(void) {
                      static_cast<unsigned>(BREW_UTIL_CHEAT_SYNC_STATUS));
   TEST_ASSERT_EQ_U64(0x8000011u,
                      static_cast<unsigned>(BREW_UTIL_CANCEL_CHEAT_SYNC));
+  TEST_ASSERT_EQ_U64(0x8000014u,
+                     static_cast<unsigned>(BREW_UTIL_FTP_STATUS));
+  TEST_ASSERT_EQ_U64(0x8000015u,
+                     static_cast<unsigned>(BREW_UTIL_RECOVER_FTP));
   return 0;
 }
 

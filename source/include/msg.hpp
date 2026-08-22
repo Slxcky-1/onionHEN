@@ -52,7 +52,7 @@ enum DaemonCommands : unsigned int {
   BREW_UTIL_UNUSED_KLOG, // was BREW_UTIL_TOGGLE_KLOG (service removed)
   BREW_UTIL_UNUSED_DPI, // was TOGGLE_DPI (DirectPKGInstaller removed)
   BREW_UTIL_LAUNCH_PAYLOAD,
-  BREW_UTIL_SHELLUI_ON_STANDBY,
+  BREW_UTIL_UNUSED_SHELLUI_ON_STANDBY, // was SHELLUI_ON_STANDBY; toolbox follows SceSysCore EXEC
   BREW_UTIL_GET_GAME_VER,
   BREW_UTIL_GET_GAME_CHEAT,
   BREW_UTIL_TOGGLE_CHEAT,
@@ -62,7 +62,14 @@ enum DaemonCommands : unsigned int {
   BREW_UTIL_UNUSED_LEGACY_CMD_SERVER, // was TOGGLE_LEGACY_CMD_SERVER (TCP 9028 removed)
   BREW_UTIL_CHEAT_SYNC_STATUS, // last git cheat-sync snapshot
   BREW_UTIL_CANCEL_CHEAT_SYNC, // cooperatively stop the active catalog sync
-  BREW_UTIL_LAUNCH_SHADOWMOUNT,
+  // Retain the two released ordinals; the former built-in service is gone.
+  BREW_UTIL_UNUSED_LEGACY_SERVICE_SCAN,
+  BREW_UTIL_UNUSED_LEGACY_SERVICE_TOGGLE,
+
+  // New command uses an explicit value so adding it cannot shift the legacy
+  // sequential command block above.
+  BREW_UTIL_FTP_STATUS = 0x8000014u,
+  BREW_UTIL_RECOVER_FTP = 0x8000015u,
 
   // Legacy: manual elfldr launch removed (embedded 9020 is bootstrapper-managed)
   BREW_UTIL_LAUNCH_ELFLDR = 0xE1F1D8u,
@@ -72,7 +79,7 @@ enum DaemonCommands : unsigned int {
 
   //KILL MAIN DAEMOM
   BREW_KILL_DAEMON = 0xDEAD0001u,
-  /** Crit: kill onion_util.elf → SceShellUI → exit daemon (PC TCP :9048 also). */
+  /** Crit: stop owned util/loader → restart SceShellUI → exit daemon. */
   BREW_SHUTDOWN_STACK = 0xDEAD0002u,
   BREW_FORCE_KILL_PID = 0xDEADCAFEu,
 };

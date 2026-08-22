@@ -2,5 +2,6 @@
 
 #pragma once
 
-/* Toolbox re-injection entry point (util -> crit daemon). */
-void toolbox_reinject(bool rest_resume);
+/** Ask crit daemon to inject Toolbox (util crash / re-launch). Rest resume
+ *  is handled in daemon (SceSysCore NOTE_EXEC + sprx wait). */
+bool toolbox_reinject();

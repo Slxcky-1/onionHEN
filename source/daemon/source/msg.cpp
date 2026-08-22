@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <atomic>
 #include <cstring>
@@ -40,8 +41,13 @@ void *IPC_loop(void *args) {
   return onion::ipc_server_loop(&g_crit_ipc_opts);
 }
 
-/** Re-create the crit Unix IPC listener (called after a standby resume). */
-void restart_crit_ipc_server() { onion::ipc_server_restart(&g_crit_ipc_opts); }
+void restart_crit_ipc_server() {
+  onion::ipc_server_restart(&g_crit_ipc_opts);
+}
+
+bool crit_ipc_is_listening() {
+  return g_crit_ipc_server_fd.load(std::memory_order_acquire) >= 0;
+}
 
 /**
  * PC control: TCP :9048
@@ -54,13 +60,16 @@ void restart_crit_ipc_server() { onion::ipc_server_restart(&g_crit_ipc_opts); }
  * resume, or restart_crit_tcp requested), the port is re-bound.
  */
 static std::atomic<int> g_ctrl_fd{-1};
+static std::atomic<int> g_ctrl_client_fd{-1};
 
 /** Re-bind the TCP :9048 listener (called after a standby resume). */
 void control_tcp_restart() {
-  const int fd = g_ctrl_fd.load();
-  if (fd >= 0)
-    shutdown(fd, SHUT_RDWR);
+  LOG_DEBUG("rest: control_tcp_restart fd=%d", g_ctrl_fd.load());
+  onion::ipc_release_fd(&g_ctrl_client_fd);
+  onion::ipc_release_listen_fd(&g_ctrl_fd);
 }
+
+bool control_tcp_is_listening() { return g_ctrl_fd.load() >= 0; }
 
 void *control_tcp_loop(void *args) {
   (void)args;
@@ -68,7 +77,10 @@ void *control_tcp_loop(void *args) {
     int s = socket(AF_INET, SOCK_STREAM, 0);
     if (s < 0) {
       LOG_ERROR("control_tcp: socket failed: %s", strerror(errno));
-      break;
+      if (!is_handler_enabled)
+        break;
+      usleep(500000);
+      continue;
     }
     int yes = 1;
     (void)setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
@@ -80,13 +92,20 @@ void *control_tcp_loop(void *args) {
     if (bind(s, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
       LOG_ERROR("control_tcp: bind :%d failed: %s", ONION_CTRL_TCP_PORT,
                strerror(errno));
+      LOG_DEBUG("rest: control_tcp bind failed errno=%d, retry", errno);
       close(s);
-      break;
+      if (!is_handler_enabled)
+        break;
+      usleep(500000);
+      continue;
     }
     if (listen(s, 2) < 0) {
       LOG_ERROR("control_tcp: listen failed: %s", strerror(errno));
       close(s);
-      break;
+      if (!is_handler_enabled)
+        break;
+      usleep(500000);
+      continue;
     }
     g_ctrl_fd.store(s);
     LOG_INFO("control_tcp: listening on 0.0.0.0:%d (PC shutdown)",
@@ -95,8 +114,16 @@ void *control_tcp_loop(void *args) {
     while (is_handler_enabled) {
       int client = accept(s, nullptr, nullptr);
       if (client < 0) {
+        LOG_DEBUG("rest: control_tcp accept failed errno=%d (%s)", errno,
+                  strerror(errno));
         break;  // listener shut down for a restart, or a transient error
       }
+
+      g_ctrl_client_fd.store(client, std::memory_order_release);
+      struct timeval recv_timeout{};
+      recv_timeout.tv_sec = 2;
+      (void)setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &recv_timeout,
+                       sizeof(recv_timeout));
 
       uint32_t frame[2] = {0, 0};
       ssize_t n = recv(client, frame, sizeof(frame), MSG_WAITALL);
@@ -105,8 +132,8 @@ void *control_tcp_loop(void *args) {
           frame[1] == ONION_CTRL_TCP_CMD_SHUTDOWN) {
         const uint8_t ok = 0;
         (void)send(client, &ok, 1, MSG_NOSIGNAL);
-        close(client);
-        close(s);
+        onion::ipc_release_fd(&g_ctrl_client_fd);
+        onion::ipc_release_listen_fd(&g_ctrl_fd);
         LOG_INFO("control_tcp: SHUTDOWN from LAN client");
         usleep(100 * 1000);
         cmd_shutdown_onion_stack();
@@ -115,11 +142,10 @@ void *control_tcp_loop(void *args) {
 
       const uint8_t err = 1;
       (void)send(client, &err, 1, MSG_NOSIGNAL);
-      close(client);
+      onion::ipc_release_fd(&g_ctrl_client_fd);
     }
 
-    close(s);
-    g_ctrl_fd.store(-1);
+    onion::ipc_release_listen_fd(&g_ctrl_fd);
     if (!is_handler_enabled)
       break;
     LOG_WARN("control_tcp: accept failed; re-listening");

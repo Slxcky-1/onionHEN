@@ -50,6 +50,7 @@ inline constexpr const char *kConfigPathShellui = "/user/data/OnionHEN/config.in
 
 // Semantic config schema. This schema starts at version 1.
 inline constexpr int kSettingsSchemaVersion = 1;
+inline constexpr int kFtpPortDefault = 1337;
 
 inline constexpr int kUiLanguageSystem = 0;
 inline constexpr int kUiLanguageZhHans = 1;
@@ -88,7 +89,6 @@ inline constexpr int kLogLevelTrace = 5;
 inline constexpr int kFanThresholdMinCelsius = 0;
 inline constexpr int kFanThresholdMaxCelsius = 100;
 inline constexpr int kFanAutomaticThresholdCelsius = 77;
-
 inline constexpr int clamp_fan_threshold(int celsius) {
   if (celsius < kFanThresholdMinCelsius)
     return kFanThresholdMinCelsius;
@@ -115,9 +115,6 @@ struct Settings {
   // Page to open after OnionHEN finishes loading.
   int startup_open_after_load = kStartupOpenNone;
 
-  // [rest_mode]
-  uint64_t rest_mode_delay_seconds = 10;
-
   // [cheats], [app_jailbreak]
   bool libhijacker_cheats = false;
   int cheats_mirror = kCheatsMirrorAuto;
@@ -141,6 +138,7 @@ struct Settings {
   bool overlay_ram = true;
   bool overlay_cpu = true;
   bool overlay_gpu = true;
+  bool overlay_fps = true;
   bool overlay_ip = false;
   /** Per-core CPU usage mode on the overlay (id_all_cpu_usage). */
   bool all_cpu_usage = false;
@@ -155,12 +153,10 @@ struct Settings {
   bool kstuff_autoload = true;
 
   // [ftp]
-  // Opt in to loading the embedded ftpsrv payload when OnionHEN starts.
+  // Start the built-in FTP server the next time OnionHEN launches.
   bool ftp_autoload = false;
-
-  // [shadowmount]
-  // Opt in to loading ShadowMountPlus when OnionHEN starts.
-  bool shadowmount_autoload = false;
+  // TCP listen port for the built-in FTP server (1..65535).
+  int ftp_port = kFtpPortDefault;
 
   // [toolbox]
   // 0 = system (default), 1 = zh-Hans, 2 = en, 3 = ar, 4 = zh-Hant,

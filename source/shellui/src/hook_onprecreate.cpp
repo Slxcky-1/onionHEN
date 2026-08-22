@@ -9,6 +9,7 @@
 #include "ipc.hpp"
 #include "onpress_policy.hpp"
 #include "progress_dialog.hpp"
+#include "remote_play.hpp"
 #include "toolbox_values.hpp"
 
 #include "shellui_state.hpp"
@@ -86,6 +87,9 @@ int OnPreCreate_Hook(MonoObject *Instance, MonoObject *element) {
     cheat_progress_bind_page(Instance);
     return call_original(Instance, element);
   }
+
+  if (g_ui.active_page == toolbox::Page::RemotePlay)
+    remote_play_bind_page(Instance);
 
   if (!ensure_set_value_method())
     return -1;

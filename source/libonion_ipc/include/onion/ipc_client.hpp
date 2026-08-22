@@ -72,13 +72,16 @@ public:
   // High-level commands
   int GetDaemonPid();
   IPC_Ret ToggleSetting(DaemonCommands cmd, bool turn_on);
+  /** Query the in-process FTP module without inspecting a PID marker. */
+  bool FtpStatus();
+  /** Ask util to rebind an enabled FTP listener after network resume. */
+  bool RecoverFtp();
   void KillDaemon();
   /** Crit Unix IPC: util → restart ShellUI → daemon exit (BREW_SHUTDOWN_STACK). */
   void ShutdownStack();
   void ForceKillPID(int pid);
   IPC_Ret CopyFile(std::string src, std::string dest);
   IPC_Ret LaunchPayload(std::string payload_path, std::string tid);
-  bool LaunchShadowMount();
   bool GameVerFromTid(std::string tid, std::string &out_ver);
   bool Remount(const char *src, const char *dest);
   bool GetGameCheats(const std::string &tid, const std::string &ver,
@@ -90,7 +93,6 @@ public:
                       std::string &out);
   bool CheatSyncStatus(std::string &out);
   bool CancelCheatSync(uint32_t task_id, std::string &out);
-  void SendRestModeAction();
   void Reload_Daemon_Settings();
   bool Launch_Elfldr();
   bool Set_Fan_Threshold(int temp, bool enabled);

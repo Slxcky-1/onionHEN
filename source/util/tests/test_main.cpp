@@ -25,9 +25,7 @@ extern "C" int test_msg_protocol_suite(void);
 extern "C" int test_app_jailbreak_policy_suite(void);
 extern "C" int test_debug_settings_route_policy_suite(void);
 extern "C" int test_ipc_harden_suite(void);
-extern "C" int test_toolbox_timing_suite(void);
 extern "C" int test_toolbox_injection_suite(void);
-extern "C" int test_rest_mode_recovery_suite(void);
 extern "C" int test_trampoline_arena_suite(void);
 extern "C" int test_hook_lifecycle_suite(void);
 extern "C" int test_hijack_retry_suite(void);
@@ -37,6 +35,7 @@ extern "C" int test_onpress_policy_suite(void);
 extern "C" int test_toolbox_helpers_suite(void);
 extern "C" int test_toolbox_i18n_suite(void);
 extern "C" int test_overlay_text_metrics_suite(void);
+extern "C" int test_fps_formula_suite(void);
 
 int main() {
   int failures = 0;
@@ -66,9 +65,7 @@ int main() {
   failures += test_app_jailbreak_policy_suite();
   failures += test_debug_settings_route_policy_suite();
   failures += test_ipc_harden_suite();
-  failures += test_toolbox_timing_suite();
   failures += test_toolbox_injection_suite();
-  failures += test_rest_mode_recovery_suite();
   failures += test_trampoline_arena_suite();
   failures += test_hook_lifecycle_suite();
   failures += test_hijack_retry_suite();
@@ -78,6 +75,7 @@ int main() {
   failures += test_toolbox_helpers_suite();
   failures += test_toolbox_i18n_suite();
   failures += test_overlay_text_metrics_suite();
+  failures += test_fps_formula_suite();
 
   if (failures == 0) {
     std::fprintf(stderr, "All util host tests passed.\n");

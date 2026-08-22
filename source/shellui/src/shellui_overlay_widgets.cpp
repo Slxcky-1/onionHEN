@@ -85,6 +85,8 @@ constexpr float kGpuR = 179.0f / 255.0f, kGpuG = 102.0f / 255.0f, kGpuB = 1.0f;
 constexpr float kMemR = 1.0f, kMemG = 179.0f / 255.0f, kMemB = 77.0f / 255.0f;
 /* color_net  = 80B3FFFF — blue */
 constexpr float kNetR = 128.0f / 255.0f, kNetG = 179.0f / 255.0f, kNetB = 1.0f;
+/* color_perf = FFE600FF — yellow (FPS) */
+constexpr float kFpsR = 1.0f, kFpsG = 230.0f / 255.0f, kFpsB = 0.0f;
 /* color_value = FFFFFFFF */
 constexpr float kValR = 1.0f, kValG = 1.0f, kValB = 1.0f;
 /* Separator pipe — soft white so it does not compete with values. */
@@ -107,6 +109,14 @@ void push_label(std::vector<WidgetConfig> &out, const char *id, float x, float y
 void append_sep(std::vector<WidgetConfig> &out, const char *id, float x,
                 float y) {
   push_label(out, id, x, y, "|", kSepR, kSepG, kSepB);
+}
+
+void append_fps(std::vector<WidgetConfig> &out) {
+  const float x = g_overlay_layout.overlay_fps_x;
+  const float y = g_overlay_layout.overlay_fps_y;
+  push_label(out, "id_fps_label", x + kLbl, y, "FPS", kFpsR, kFpsG, kFpsB);
+  push_label(out, "id_fps_value", x + kVal0, y, "--", kValR, kValG, kValB);
+  append_sep(out, "id_fps_sep", x + kVal0 + 56.0f, y);
 }
 
 void append_cpu(std::vector<WidgetConfig> &out) {
@@ -146,6 +156,7 @@ void append_ip(std::vector<WidgetConfig> &out) {
 
 const std::vector<const char *> kAllOverlayNames = {
     kBgPanelName,
+    "id_fps_label",      "id_fps_value",       "id_fps_sep",
     "id_gpu_temp_value", "id_gpu_usage_value", "id_gpu_label", "id_gpu_sep",
     "id_cpu_label",      "id_cpu_temp_value",  "id_cpu_usage_value",
     "id_cpu_sep",
@@ -222,7 +233,8 @@ void ensure_bg_panel(MonoObject *root) {
   const bool any =
       g_settings.overlay_enabled && g_settings.overlay_background &&
       (g_settings.overlay_cpu || g_settings.all_cpu_usage ||
-       g_settings.overlay_gpu || g_settings.overlay_ram || g_settings.overlay_ip);
+       g_settings.overlay_gpu || g_settings.overlay_ram ||
+       g_settings.overlay_ip || g_settings.overlay_fps);
   if (!any)
     return;
 
@@ -295,6 +307,9 @@ void RemoveGameWidget(RemoveWidget widget) {
   case REMOVE_IP_OVERLAY:
     removeWidgets({"id_ip_label", "id_ip_value", "id_ip_sep"});
     break;
+  case REMOVE_FPS_OVERLAY:
+    removeWidgets({"id_fps_label", "id_fps_value", "id_fps_sep"});
+    break;
   case REMOVE_ALL_OVERLAYS:
     removeWidgets(kAllOverlayNames);
     break;
@@ -332,7 +347,11 @@ bool CreateGameWidget(CreateWidget widget) {
   case CREATE_IP_OVERLAY:
     append_ip(configs);
     break;
+  case CREATE_FPS_OVERLAY:
+    append_fps(configs);
+    break;
   case CREATE_ALL_OVERLAYS:
+    append_fps(configs);
     append_cpu(configs);
     append_gpu(configs);
     append_ram(configs);

@@ -9,6 +9,7 @@
 #include "defs.h"
 #include "external_symbols.hpp"
 #include "ipc.hpp"
+#include "plugins_registry.hpp"
 #include "ps5_settings_ui.hpp"
 #include "toolbox_i18n.hpp"
 #include "toolbox_values.hpp"
@@ -39,6 +40,9 @@ void escapeXML(std::string& input) {
 
 namespace {
 
+/* Defined with the other dynamic control helpers below. */
+std::string toolbox_val(const char* id, const char* fallback);
+
 /** Payload .elf only (OnionHEN no longer supports .plugin packages). */
 template <typename G>
 void append_payload_entry(G& page, const std::string& directory, const char* filename,
@@ -52,7 +56,6 @@ void append_payload_entry(G& page, const std::string& directory, const char* fil
     LOG_ERROR("Skipping invalid payload name: %s", filename);
     return;
   }
-
   /* Confirm file is readable (ELF magic checked at launch). */
   const int fd = open(path.c_str(), O_RDONLY, 0);
   if (fd < 0) {
@@ -270,6 +273,59 @@ void generate_payload_xml(std::string& xml_buffer, bool list_page) {
   xml_buffer = page.build();
 }
 
+void generate_plugins_xml(std::string& xml_buffer) {
+  using namespace onion::plugins;
+
+  ps5ui::Page page("id_plugins", toolbox_i18n::tr("plugins.title"));
+
+  /* Each built-in plugin is a <link> entry; X navigates natively to that
+   * plugin's own config page (file="<plugin>.xml"). */
+  for (const auto &d : kRegistry)
+    page.link(d.toggle_id, toolbox_i18n::tr(d.title_key), d.config_xml,
+              toolbox_i18n::tr(d.sub_key));
+
+  xml_buffer = page.build();
+}
+
+void generate_kstuff_config_xml(std::string &xml_buffer) {
+  using namespace onion::plugins;
+  const Descriptor *d = find_by_key("kstuff");
+  ps5ui::Page page("id_plugin_config", toolbox_i18n::tr(d->title_key));
+  page.toggle("id_plugin_kstuff_autoload", toolbox_i18n::tr("kstuff.autoload"),
+              /*on=*/false, toolbox_i18n::tr("kstuff.autoload.sub"))
+      .button("id_plugin_delete_kstuff", toolbox_i18n::tr("kstuff.delete"),
+              std::nullopt, toolbox_i18n::tr("kstuff.delete.desc"));
+  xml_buffer = page.build();
+}
+
+void generate_ftpsrv_config_xml(std::string &xml_buffer) {
+  using namespace onion::plugins;
+  const Descriptor *d = find_by_key("ftpsrv");
+  ps5ui::Page page("id_plugin_config", toolbox_i18n::tr(d->title_key));
+  page.toggle("id_plugin_ftpsrv_run", toolbox_i18n::tr("ftp.run"), /*on=*/false,
+              toolbox_i18n::tr("ftp.run.sub"))
+      .toggle("id_plugin_ftpsrv_autoload", toolbox_i18n::tr("ftp.autoload"),
+              /*on=*/false, toolbox_i18n::tr("ftp.autoload.sub"))
+      .text_field("id_plugin_ftpsrv_port", toolbox_i18n::tr("ftp.port"),
+                  toolbox_i18n::tr("ftp.port.sub"), "number", "1", "5",
+                  std::nullopt, std::nullopt, std::nullopt,
+                  toolbox_val("id_plugin_ftpsrv_port", "1337"));
+  xml_buffer = page.build();
+}
+
+void generate_plugin_config_xml(std::string &xml_buffer) {
+  using namespace onion::plugins;
+
+  const Descriptor *d = find_by_key(g_ui.active_plugin);
+  if (!d)
+    d = &kRegistry[0];
+
+  if (std::string_view(d->key) == "kstuff")
+    generate_kstuff_config_xml(xml_buffer);
+  else
+    generate_ftpsrv_config_xml(xml_buffer);
+}
+
 void generate_cheats_xml(std::string& new_xml, std::string& not_open_tid,
                          bool running_as_debug_settings, bool show_while_not_open) {
   const std::string list_id =
@@ -406,18 +462,12 @@ constexpr const char* kIconAccount =
     "/user/data/OnionHEN/assets/icon_xml_account.png";
 constexpr const char* kIconSettings =
     "/user/data/OnionHEN/assets/icon_xml_settings.png";
-constexpr const char* kIconNetwork =
-  "/user/data/OnionHEN/assets/icon_xml_network.png";
 constexpr const char* kIconShortcuts =
     "/user/data/OnionHEN/assets/icon_xml_shortcuts.png";
 constexpr const char* kIconDebug =
     "/user/data/OnionHEN/assets/icon_xml_debug.png";
 constexpr const char* kIconAbout =
     "/user/data/OnionHEN/assets/icon_xml_about.png";
-constexpr const char* kIconKstuff =
-    "/user/data/OnionHEN/assets/icon_xml_kstuff.png";
-constexpr const char* kIconDrakmor =
-    "/user/data/OnionHEN/assets/icon_xml_drakmor.png";
 constexpr const char* kIconOverlay =
     "/user/data/OnionHEN/assets/icon_xml_overlay.png";
 constexpr const char* kIconTitleId =
@@ -426,8 +476,6 @@ constexpr const char* kIconMenuOption =
     "/user/data/OnionHEN/assets/icon_xml_menu_option.png";
 constexpr const char* kIconFan =
     "/user/data/OnionHEN/assets/icon_xml_fan.png";
-constexpr const char* kIconRestMode =
-    "/user/data/OnionHEN/assets/icon_xml_restmode.png";
 constexpr const char* kIconHardDrive =
     "/user/data/OnionHEN/assets/icon_xml_hardrive.png";
 constexpr const char* kIconDiscLicense =
@@ -470,17 +518,8 @@ void append_toolbox_payloads_group(ps5ui::Group& g) {
          toolbox_i18n::tr("payloads.link.sub"), kIconPlugins)
       .link("id_auto_payloads", toolbox_i18n::tr("payload.auto.link"),
             "auto_payloads.xml", toolbox_i18n::tr("payload.auto.sub"), kIconPlugins)
-      .group(
-          "id_kstuff_opts", toolbox_i18n::tr("kstuff.group"),
-          [](ps5ui::Group& k) {
-            k.toggle("id_kstuff_autoload", toolbox_i18n::tr("kstuff.autoload"),
-                     toolbox_on("id_kstuff_autoload"),
-                     toolbox_i18n::tr("kstuff.autoload.sub"))
-                .button("id_delete_kstuff", toolbox_i18n::tr("kstuff.delete"),
-                        std::nullopt, toolbox_i18n::tr("kstuff.delete.desc"));
-          },
-          toolbox_i18n::tr("kstuff.group.sub"), kIconKstuff,
-          "id_kstuff_autoload");
+      .link("id_plugins", toolbox_i18n::tr("plugins.link"), "plugins.xml",
+            toolbox_i18n::tr("plugins.link.sub"), kIconPlugins);
 }
 
 void append_toolbox_game_group(ps5ui::Group& g) {
@@ -490,38 +529,33 @@ void append_toolbox_game_group(ps5ui::Group& g) {
               toolbox_i18n::tr("cheats.repo.download.desc"), std::nullopt,
               kIconDownload, ps5ui::Style::None,
               toolbox_i18n::tr("cheats.repo.download.confirm"),
-              toolbox_i18n::tr("cheats.repo.download.confirm_phrase"))
-      .group(
-          "id_shadowmount_opts", toolbox_i18n::tr("shadowmount.group"),
-          [](ps5ui::Group& shadowmount) {
-            shadowmount
-                .button("id_shadowmount_scan",
-                        toolbox_i18n::tr("shadowmount.scan"), std::nullopt,
-                        toolbox_i18n::tr("shadowmount.scan.sub"))
-                .toggle("id_shadowmount_autoload",
-                        toolbox_i18n::tr("shadowmount.autoload"),
-                        toolbox_on("id_shadowmount_autoload"),
-                        toolbox_i18n::tr("shadowmount.autoload.sub"))
-                .button("id_shadowmount_remove_external",
-                        toolbox_i18n::tr("shadowmount.remove_external"),
-                        std::nullopt,
-                        toolbox_i18n::tr("shadowmount.remove_external.desc"));
-          },
-          toolbox_i18n::tr("shadowmount.group.sub"), kIconDrakmor,
-          "id_shadowmount_scan");
+              toolbox_i18n::tr("cheats.repo.download.confirm_phrase"));
 }
 
 void append_toolbox_network_group(ps5ui::Group& g) {
-  g.group(
-       "id_ftp_opts", toolbox_i18n::tr("ftp.group"),
-       [](ps5ui::Group& ftp) {
-         ftp.toggle("id_ftp_autoload", toolbox_i18n::tr("ftp.autoload"),
-                    toolbox_on("id_ftp_autoload"),
-                    toolbox_i18n::tr("ftp.autoload.sub"));
-       },
-       toolbox_i18n::tr("ftp.group.sub"), kIconNetwork, "id_ftp_autoload")
-      .link("id_remote_play", toolbox_i18n::tr("remote_play.title"),
-            "remote_play.xml", toolbox_i18n::tr("remote_play.sub"));
+  Activator activator(true);
+  std::optional<std::string> remote_play_alert;
+  if (!activator.Valid()) {
+    remote_play_alert = toolbox_i18n::tr("account.error.read");
+  } else if (activator.IsNotActivated()) {
+    remote_play_alert =
+        std::string(toolbox_i18n::tr("account.status.not_activated")) + "\n" +
+        toolbox_i18n::tr("group.network") + " > " +
+        toolbox_i18n::tr("account.link") + "\n" +
+        toolbox_i18n::tr("account.link.sub");
+  }
+
+  if (remote_play_alert) {
+    // Legacy Settings only drives its confirm Alert flow for button elements.
+    // The handler consumes this non-navigating entry after confirmation.
+    g.button("id_remote_play", toolbox_i18n::tr("remote_play.title"),
+             toolbox_i18n::tr("remote_play.sub"), std::nullopt, std::nullopt,
+             ps5ui::Style::None, std::move(remote_play_alert),
+             toolbox_i18n::tr("account.activate.confirm_phrase"));
+  } else {
+    g.link("id_remote_play", toolbox_i18n::tr("remote_play.title"),
+           "remote_play.xml", toolbox_i18n::tr("remote_play.sub"));
+  }
 }
 
 void append_toolbox_display_group(ps5ui::Group& g) {
@@ -547,6 +581,9 @@ void append_toolbox_display_group(ps5ui::Group& g) {
              .toggle("id_overlay_gpu", toolbox_i18n::tr("overlay.gpu"),
                      toolbox_on("id_overlay_gpu"), std::nullopt,
                      toolbox_i18n::tr("overlay.gpu.desc"))
+             .toggle("id_overlay_fps", toolbox_i18n::tr("overlay.fps"),
+                     toolbox_on("id_overlay_fps"), std::nullopt,
+                     toolbox_i18n::tr("overlay.fps.desc"))
              .toggle("id_overlay_cpu", toolbox_i18n::tr("overlay.cpu"),
                      toolbox_on("id_overlay_cpu"), std::nullopt,
                      toolbox_i18n::tr("overlay.cpu.desc"))
@@ -573,7 +610,7 @@ void append_toolbox_display_group(ps5ui::Group& g) {
 
 void append_toolbox_account_group(ps5ui::Group& g) {
   g.link("id_account_activation", toolbox_i18n::tr("account.link"),
-         "account.xml", toolbox_i18n::tr("account.link.sub"), kIconAccount);
+         "account.xml", toolbox_i18n::tr("account.link.sub"));
 }
 
 void append_toolbox_system_group(ps5ui::Group& g) {
@@ -589,15 +626,6 @@ void append_toolbox_system_group(ps5ui::Group& g) {
                          toolbox_val("id_fan_speed", ""));
        },
        toolbox_i18n::tr("fan.group.sub"), kIconFan, "id_enable_fan_speed")
-      .group(
-          "id_rest_mode", toolbox_i18n::tr("rest.group"),
-          [](ps5ui::Group& r) {
-            r.text_field("id_rest_1", toolbox_i18n::tr("rest.delay"),
-                         toolbox_i18n::tr("rest.delay.sub"), "number", "1",
-                         "255", std::nullopt, std::nullopt, std::nullopt,
-                         toolbox_val("id_rest_1", ""));
-          },
-          toolbox_i18n::tr("rest.group.sub"), kIconRestMode, "id_rest_1")
       .link("id_external_hdd", toolbox_i18n::tr("hdd.external"),
             "DebugSettings/data/debug_settings_external_hdd.xml",
             toolbox_i18n::tr("hdd.external.sub"), kIconHardDrive)
@@ -636,17 +664,18 @@ void append_toolbox_preferences_group(ps5ui::Group& g) {
                .item("id_ui_lang_th", toolbox_i18n::tr("lang.th"), "14");
          },
          toolbox_i18n::tr("lang.list.sub"), toolbox_val("id_ui_lang", "0"))
-      .list("id_cheats_mirror", toolbox_i18n::tr("cheats.repo.mirror"),
+      .list("id_toolbox_shortcut", toolbox_i18n::tr("sc.toolbox"),
             [](ps5ui::ListBuilder& L) {
-              L.item("id_cheats_mirror_auto",
-                     toolbox_i18n::tr("cheats.repo.mirror.auto"), "0")
-                  .item("id_cheats_mirror_github",
-                        toolbox_i18n::tr("cheats.repo.mirror.github"), "1")
-                  .item("id_cheats_mirror_cnb",
-                        toolbox_i18n::tr("cheats.repo.mirror.cnb"), "2");
+              L.item("id_toolbox_shortcut_0", toolbox_i18n::tr("sc.off"), "0")
+                  .item("id_toolbox_shortcut_1", toolbox_i18n::tr("sc.l2_r3"),
+                        "1")
+                  .item("id_toolbox_shortcut_2",
+                        toolbox_i18n::tr("sc.long_share"), "2")
+                  .item("id_toolbox_shortcut_3", toolbox_i18n::tr("sc.share"),
+                        "3");
             },
-            toolbox_i18n::tr("cheats.repo.mirror.sub"),
-            toolbox_val("id_cheats_mirror"))
+            toolbox_i18n::tr("sc.toolbox.sub"),
+            toolbox_val("id_toolbox_shortcut"))
       .list("id_cheats_shortcut", toolbox_i18n::tr("sc.cheats"),
             [](ps5ui::ListBuilder& L) {
               L.item("id_cheats_shortcut_0", toolbox_i18n::tr("sc.off"), "0")
@@ -662,18 +691,17 @@ void append_toolbox_preferences_group(ps5ui::Group& g) {
                         "5");
             },
             toolbox_i18n::tr("sc.cheats.sub"), toolbox_val("id_cheats_shortcut"))
-      .list("id_toolbox_shortcut", toolbox_i18n::tr("sc.toolbox"),
+      .list("id_cheats_mirror", toolbox_i18n::tr("cheats.repo.mirror"),
             [](ps5ui::ListBuilder& L) {
-              L.item("id_toolbox_shortcut_0", toolbox_i18n::tr("sc.off"), "0")
-                  .item("id_toolbox_shortcut_1", toolbox_i18n::tr("sc.l2_r3"),
-                        "1")
-                  .item("id_toolbox_shortcut_2",
-                        toolbox_i18n::tr("sc.long_share"), "2")
-                  .item("id_toolbox_shortcut_3", toolbox_i18n::tr("sc.share"),
-                        "3");
+              L.item("id_cheats_mirror_auto",
+                     toolbox_i18n::tr("cheats.repo.mirror.auto"), "0")
+                  .item("id_cheats_mirror_github",
+                        toolbox_i18n::tr("cheats.repo.mirror.github"), "1")
+                  .item("id_cheats_mirror_cnb",
+                        toolbox_i18n::tr("cheats.repo.mirror.cnb"), "2");
             },
-            toolbox_i18n::tr("sc.toolbox.sub"),
-            toolbox_val("id_toolbox_shortcut"));
+            toolbox_i18n::tr("cheats.repo.mirror.sub"),
+            toolbox_val("id_cheats_mirror"));
 }
 
 void append_toolbox_debug_group(ps5ui::Group& g) {
@@ -806,11 +834,7 @@ void append_toolbox_about_group(ps5ui::Group& g) {
                   .label("id_project_10",
                     "ftpsrv (drakmor) — "
                     "https://github.com/drakmor/ftpsrv/tree/nexgen",
-                    ps5ui::Style::Center)
-                  .label("id_project_11",
-                      "ShadowMountPlus (Drakmor / VoidWhisper) — "
-                      "https://github.com/drakmor/ShadowMountPlus",
-                      ps5ui::Style::Center);
+                    ps5ui::Style::Center);
           },
           toolbox_i18n::tr("about.projects.sub"), kIconProject);
 }
@@ -836,19 +860,17 @@ void generate_toolbox_xml(std::string& new_xml) {
           toolbox_i18n::tr("group.game.sub"), kIconGame, "id_cheats")
         .group(
           "id_group_network", toolbox_i18n::tr("group.network"),
-          [](ps5ui::Group& g) { append_toolbox_network_group(g); },
-          toolbox_i18n::tr("group.network.sub"), kIconNetwork,
-          "id_ftp_opts")
+          [](ps5ui::Group& g) {
+            append_toolbox_network_group(g);
+            append_toolbox_account_group(g);
+          },
+          toolbox_i18n::tr("group.network.sub"), kIconAccount,
+          "id_remote_play")
       .group(
           "id_group_display", toolbox_i18n::tr("group.display"),
           [](ps5ui::Group& g) { append_toolbox_display_group(g); },
           toolbox_i18n::tr("group.display.sub"), kIconMonitor,
           "id_overlay_opts")
-      .group(
-          "id_group_account", toolbox_i18n::tr("group.account"),
-          [](ps5ui::Group& g) { append_toolbox_account_group(g); },
-          toolbox_i18n::tr("group.account.sub"), kIconAccount,
-          "id_account_activation")
       .group(
           "id_group_system", toolbox_i18n::tr("group.system"),
           [](ps5ui::Group& g) { append_toolbox_system_group(g); },

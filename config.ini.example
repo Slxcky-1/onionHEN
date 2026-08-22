@@ -37,11 +37,6 @@ show_title_ids=false
 # Available values: true, false
 show_onionhen_options=true
 
-[rest_mode]
-# resume_reinject_delay_seconds waits before Toolbox reinjection after resume.
-# Available values: 0 or a positive number of seconds.
-resume_reinject_delay_seconds=10
-
 [cheats]
 # memory_backend selects the cheat memory access implementation.
 # Available values: default, libhijacker
@@ -93,6 +88,9 @@ cpu_usage_mode=average
 # show_gpu displays GPU temperature and usage.
 # Available values: true, false
 show_gpu=true
+# show_fps displays the skip-hook in-game frame rate.
+# Available values: true, false
+show_fps=true
 # show_memory displays memory usage.
 # Available values: true, false
 show_memory=true
@@ -114,11 +112,9 @@ toolbox=off
 autoload=true
 
 [ftp]
-# autoload controls the embedded PS5 FTP server at runtime and on startup.
+# autoload starts the built-in FTP server the next time OnionHEN launches.
 # Available values: true, false
 autoload=false
-
-[shadowmount]
-# autoload controls the embedded ShadowMountPlus payload at runtime and on startup.
-# Available values: true, false
-autoload=false
+# port selects the TCP listen port for the built-in server.
+# Available values: 1 through 65535
+port=1337

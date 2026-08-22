@@ -49,6 +49,9 @@ using IpcCommandHandler = void (*)(IpcClientArgs *client, std::string &msg,
 int ipc_network_listen(const char *soc_path);
 int ipc_network_accept(int socket_fd);
 
+/** Connect to an AF_UNIX socket at @path. Returns fd >= 0, or -1. */
+int ipc_unix_connect(const char *path);
+
 /** Single recv (may be short). Prefer ipc_network_recv_full for frames. */
 int ipc_network_recv(int socket_fd, void *buffer, int32_t size);
 
@@ -110,6 +113,15 @@ void *ipc_server_loop(void *options_ptr);
 
 /** Request a permanent shutdown: clear *running and shut the listener down. */
 void ipc_server_stop(IpcServerOptions *opts);
+
+/** Take ownership of *fd (store -1), then shutdown+close it. */
+void ipc_release_fd(std::atomic<int> *fd);
+
+/**
+ * Take ownership of *fd (store -1), then shutdown+close it. Safe to call
+ * concurrently with the accept loop: only one side closes the descriptor.
+ */
+void ipc_release_listen_fd(std::atomic<int> *fd);
 
 /**
  * Re-create the listening socket (restore service). Shuts the current

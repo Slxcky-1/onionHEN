@@ -56,9 +56,12 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     break;
   }
   case BREW_ENABLE_TOOLBOX: {
+    LOG_DEBUG("rest: IPC BREW_ENABLE_TOOLBOX");
     if(cmd_enable_toolbox()){
+        LOG_DEBUG("rest: BREW_ENABLE_TOOLBOX ok");
         reply(sender_app, false);
     } else {
+        LOG_DEBUG("rest: BREW_ENABLE_TOOLBOX failed");
         reply(sender_app, true);
     }
     break;

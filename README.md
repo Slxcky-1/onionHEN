@@ -64,13 +64,12 @@ OnionHEN is a practical homebrew stack for jailbroken PS5 consoles.
 - **ShellUI Toolbox** — a settings page injected into the PS5 ShellUI
 - **System preparation** — raise privileges, remount filesystems, and block the update partition
 - **fSELF / fPKG** — bundled kstuff for homebrew SELF / PKG; loads by default, can be turned off in the Toolbox
-- **PS5 FTP server** — embedded `ftpsrv` from the `nexgen` branch; presented as a built-in Network service with live control on port `2121`
+- **PS5 FTP server** — built-in source module with configurable port
 - **Remote Play pairing** — enable the native PS5 Remote Play service, generate a pairing PIN, and register a client from the Network section
-- **ShadowMountPlus** — embedded game scanner/mounter under Games & Content, with a one-shot scan action and external ELF override management
 - **User payload manager** — start and stop user-provided `.elf` payloads, with optional auto-start
 - **Game overlay** — an in-game bar for FPS, CPU, GPU, RAM, temperatures, and network info
 - **Cheat engine** — local JSON, SHN, MC4, and ShnExt files that can be toggled at runtime
-- **Console tools** — Rest Mode, account activation, external HDD, Title IDs, fan control, shortcuts, and game options
+- **Console tools** — account activation, external HDD, Title IDs, fan control, shortcuts, and game options
 - **App jailbreak** — allowlisted homebrew can ask the daemon for extra privileges through a sandbox FIFO
 - **Resilient runtime** — the critical daemon and utility daemon run apart; the main daemon can restart the utility
 - **Shared configuration** — the Toolbox and daemons use one versioned `config.ini`
@@ -92,47 +91,40 @@ loader on **9020** for later ELF and user-payload launches.
 
 1. Run the kernel exploit and start the external `elfldr` service.
 2. Send `OnionHEN.elf` through the loader your exploit host provides.
-3. Wait for the utility daemon, `kstuff`, FTP/ShadowMount services, and the main daemon to start, in that order.
+3. Wait for the utility daemon, `kstuff`, and the main daemon to start, in that order.
 4. Open PS5 Settings and enter the OnionHEN Toolbox.
 
 Startup is sequential. After the first hop, OnionHEN uses its own
 `onion_elfldr.elf` on port **9020** and keeps **9021** only as a fallback.
 
 ```text
-OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstuff.elf → ftpsrv.elf → shadowmountplus.elf → daemon.elf → Toolbox
+OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstuff.elf → daemon.elf → Toolbox
 ```
+
+If `ftp.autoload` is enabled, the built-in FTP module starts after `kstuff` and
+before the daemon.
 
 ### FTP server
 
-The embedded PS5 FTP server is available from **Toolbox → Network → FTP
-server** and is managed separately from ELFs placed in the user `payloads/`
-folders. Its toggle starts or stops the service immediately and remembers the
-choice for next boot.
-The server listens on port `2121` and includes the upstream `ftpsrv` commands
-such as `KILL`, `SELF`, `SCHK`, `MTRW`, and `AUTHID` where supported.
+The PS5 FTP server is available from **Toolbox → Plugins → FTP server**. One
+switch starts or stops it in the current session. A separate switch starts it
+the next time OnionHEN launches. The plugin page accepts ports from `1` to
+`65535` and applies a new port by restarting the in-process listener. It
+includes the upstream `ftpsrv` commands such as `KILL`, `SELF`, `SCHK`, `MTRW`,
+and `AUTHID` where supported.
 
 ### Remote Play
 
 Remote Play pairing is available from **Toolbox → Network → Remote Play**.
-On first use, OnionHEN enables the Remote Play registry setting, activates the
-current offline account when needed, and displays the pairing PIN. Enter that
-PIN in the official Remote Play client while the page is open; OnionHEN uses
-the native PS5 Remote Play service to confirm the registered device.
+The current account must already be activated. If it is not, OnionHEN blocks
+the Remote Play page and directs you to **Toolbox → Account → Account
+activation**. Once the account is activated, OnionHEN enables the Remote Play
+registry setting and displays the pairing PIN. Enter that PIN in the official
+Remote Play client while the page is open; OnionHEN uses the native PS5 Remote
+Play service to confirm the registered device.
 
 The feature provides pairing and registration only. Video streaming and client
 transport remain handled by Sony's native Remote Play service.
-
-### ShadowMountPlus
-
-ShadowMountPlus is available as a separate group under **Toolbox → Games &
-Content**. It is presented as a built-in game-source tool and does not appear in
-the user Payload list.
-`Scan games` launches the embedded `shadowmountplus.elf`; an external override is
-used first when present at `/data/OnionHEN/shadowmountplus.elf`.
-`Remove external ShadowMount+` removes that override. ShadowMountPlus is built
-from release tag `1.6beta16` and
-starts its own game scanner/mounter process. OnionHEN only owns launching the
-ELF and does not add another configuration layer.
 
 ### Payloads
 
@@ -144,6 +136,12 @@ Place standalone payloads in:
 
 Only plain `.elf` files are supported. Auto-start can be turned on in the Toolbox;
 OnionHEN remembers that choice with a matching `.auto_start` file next to the ELF.
+
+All `.elf` filenames use the same Payload page, loader, and auto-start flow,
+including `kstuff`, `ftpsrv`, and `ftpsrv-ps5`. A recorded running instance is
+left running by later launch and auto-start requests. Built-in services manage
+only their own runtime; they do not stop same-name user Payloads. If two FTP
+services use the same TCP port, only one can bind it.
 
 ### Cheats
 
@@ -176,11 +174,8 @@ Cheats load from disk. If a file changes, OnionHEN reloads it without restarting
 | `lzma` or `xz` | Compress the bootstrapper |
 | Git and `curl` or `wget` | Initialize submodules and fetch external payload inputs |
 
-The build also initializes the [`drakmor/ftpsrv`](https://github.com/drakmor/ftpsrv)
-release `1.15-ng-stable` first, then falls back to the `nexgen` submodule and
-builds its PS5 payload with `Makefile.ps5`. It also downloads the
-[`ShadowMountPlus 1.6beta16`](https://github.com/drakmor/ShadowMountPlus/releases/tag/1.6beta16)
-ELF first and falls back to the pinned `third_party/ShadowMountPlus` submodule.
+The pinned [`drakmor/ftpsrv`](https://github.com/drakmor/ftpsrv) `nexgen`
+sources are compiled into `util.elf` as its FTP module.
 
 ### Full build
 
@@ -264,9 +259,6 @@ default from [`config.ini.example`](config.ini.example).
 | `startup.open_after_load` | `none` | `none`, `home_menu` |
 | `home_screen.show_title_ids` | `false` | `true`, `false` |
 | `game_menu.show_onionhen_options` | `true` | `true`, `false` |
-| `rest_mode.resume_reinject_delay_seconds` | `0` | seconds |
-| `rest_mode.stop_utility_daemon_on_entry` | `false` | `true`, `false` |
-| `rest_mode.close_running_game_on_entry` | `false` | `true`, `false` |
 | `cheats.memory_backend` | `default` | `default`, `libhijacker` |
 | `cheats.mirror` | `auto` | `auto`, `github`, `cnb` |
 | `app_jailbreak.debug_notifications` | `false` | `true`, `false` |
@@ -275,13 +267,13 @@ default from [`config.ini.example`](config.ini.example).
 | `overlay.enabled` | `true` | `true`, `false` |
 | `overlay.background` | `true` | `true`, `false` |
 | `overlay.edge` | `top` | `top`, `bottom` |
-| `overlay.show_cpu` / `overlay.show_gpu` / `overlay.show_memory` | `true` | `true`, `false` |
+| `overlay.show_cpu` / `overlay.show_gpu` / `overlay.show_memory` / `overlay.show_fps` | `true` | `true`, `false` |
 | `overlay.cpu_usage_mode` | `average` | `average`, `per_core` |
 | `overlay.show_ip_address` | `false` | `true`, `false` |
 | `shortcuts.cheats_menu` | `off` | `off`, `r3_l3`, `l2_triangle`, `long_options`, `long_share`, `share` |
 | `shortcuts.toolbox` | `off` | `off`, `l2_r3`, `long_share`, `share` |
 | `ftp.autoload` | `false` | `true`, `false` |
-| `shadowmount.autoload` | `false` | `true`, `false` |
+| `ftp.port` | `1337` | `1` through `65535` |
 
 ### Runtime data
 
@@ -289,11 +281,11 @@ default from [`config.ini.example`](config.ini.example).
 | --- | --- |
 | `/data/OnionHEN/payloads/` | User payload ELFs |
 | `/data/OnionHEN/cheats/` | Cheat files |
-| `/data/OnionHEN/cheats_tmp/` | Temporary HTTPS ZIP and extraction files (removed after sync) |
-| `/data/OnionHEN/kstuff.elf` | Optional replacement for the embedded `kstuff` |
-| `/data/OnionHEN/shadowmountplus.elf` | Optional external ShadowMountPlus override |
-| `ftpsrv` | Embedded PS5 FTP payload; no user-visible ELF file is created |
+| `/data/OnionHEN/cheats_tmp/` | Temporary HTTPS ZIP and extraction files, cleaned after sync |
+| `/data/OnionHEN/kstuff.elf` | Optional runtime override with priority over the embedded `kstuff` |
+| `ftpsrv` | In-process FTP source module; default port `1337` |
 | `/data/OnionHEN/OnionHEN.log` | Main runtime log |
+| `/data/OnionHEN/OnionHEN_crash.log` | Preserved daemon signal and backtrace log |
 | `/data/OnionHEN/OnionHEN_util_daemon.log` | Utility daemon log |
 
 <br>
@@ -378,16 +370,17 @@ OnionHEN exists because of the PS5 homebrew and reverse-engineering community.
 
 ### Referenced
 
-- [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager) — itsplk; the Rest Mode resume recovery design (restoring services after standby) follows this project
+- [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch, sleirsgoevy, and contributors; Rest Mode Toolbox recovery follows its SceSysCore `NOTE_EXEC` watch for `NPXS40087` and wait for `libSceNpTrophy.sprx` / `libSceNpTrophy2.sprx`
+- [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager) — itsplk; listen-socket rebind after Rest Mode (Unix IPC and TCP accept-fail self-heal) follows this project
 - [HEN-Cheats-Collection](https://github.com/TeeKay87/HEN-Cheats-Collection) — TeeKay87; the community cheat collection downloaded by the built-in cheat sync
+- [PHU Games Tools](https://github.com/ArkSama) — ArkSama; the in-game FPS counter follows PHU Games Tools skip-hook sampling (`/dev/dce` scanout and DMAP reads of `libSceAgcDriver`)
 
 ### Used or embedded
 
 - [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) — Prospero toolchain and headers
 - [elfldr](https://github.com/ps5-payload-dev/elfldr) — first-hop loader on port 9021; not shipped in the payload
 - [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch, sleirsgoevy, and contributors; optional `kstuff.elf`
-- [ftpsrv](https://github.com/drakmor/ftpsrv) — drakmor and upstream contributors; embedded PS5 FTP server from `nexgen`
-- [ShadowMountPlus](https://github.com/drakmor/ShadowMountPlus) — Drakmor; evolved from ShadowMount by VoidWhisper; embedded game scanner/mounter
+- [ftpsrv](https://github.com/drakmor/ftpsrv) — drakmor and upstream contributors; in-process PS5 FTP server from `nexgen`
 - [libhijacker](https://github.com/astrelsky/libhijacker) — astrelsky; process hijack and kernel R/W
 - [NineS](https://github.com/buzzer-re/NineS) — buzzer-re; ShellUI injection
 - [cJSON](https://github.com/DaveGamble/cJSON) — JSON parsing

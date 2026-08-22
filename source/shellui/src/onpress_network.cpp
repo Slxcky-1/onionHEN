@@ -1,9 +1,10 @@
 /* Copyright (C) 2025 OnionHEN / LightningMods — OnPress network domain */
+#include "account_activator.h"
 #include "onpress.hpp"
+#include "remote_play.hpp"
+
 #include <cstdlib>
 #include <fstream>
-
-extern std::string g_remote_play_info;
 
 static OnPressResult id_disp_titleids(OnPressContext &ctx) {
   bool &dis_tids = g_settings.display_tids;
@@ -16,20 +17,16 @@ static OnPressResult id_disp_titleids(OnPressContext &ctx) {
   return OnPressResult::Handled;
 }
 
-static OnPressResult id_ftp_autoload(OnPressContext &ctx) {
-  const bool enabled = atol(ctx.value.c_str()) != 0;
-  if (enabled == g_settings.ftp_autoload)
-    return OnPressResult::EarlyReturn;
-
-  IPC_Client &util_ipc = IPC_Client::getInstance(true);
-  if (util_ipc.ToggleSetting(BREW_UTIL_TOGGLE_FTP, enabled) !=
-      IPC_Ret::NO_ERROR) {
-    notify("notify.ftp.toggle_failed");
-    return OnPressResult::EarlyReturn;
+static OnPressResult id_remote_play(OnPressContext &ctx) {
+  ctx.dirty = false;
+  Activator activator(true);
+  if (!activator.Valid()) {
+    notify("notify.account.invalid");
+    return OnPressResult::Consumed;
   }
-  g_settings.ftp_autoload = enabled;
-  notify(enabled ? "notify.ftp.enabled" : "notify.ftp.disabled");
-  return OnPressResult::Handled;
+  if (activator.IsNotActivated())
+    return OnPressResult::Consumed;
+  return OnPressResult::NotMine;
 }
 
 static OnPressResult id_save_rp_info(OnPressContext &) {
@@ -53,7 +50,7 @@ static OnPressResult id_save_rp_info(OnPressContext &) {
 
 static const OnPressExactEntry kExact[] = {
     {"id_disp_titleids", id_disp_titleids},
-    {"id_ftp_autoload", id_ftp_autoload},
+    {"id_remote_play", id_remote_play},
     {"id_save_rp_info", id_save_rp_info},
 };
 

@@ -63,13 +63,12 @@ OnionHEN 面向已越狱的 PS5，提供一套能日常使用、也方便维护�
 - **ShellUI 工具箱** — 注入 PS5 ShellUI 的设置页
 - **系统准备** — 提权、重新挂载文件系统、阻断系统更新分区
 - **fSELF / fPKG** — 内嵌 kstuff，用来跑自制 SELF / PKG；默认加载，可在工具箱关掉
-- **PS5 FTP 服务器** — 内嵌 `nexgen` 分支的 `ftpsrv`，作为内置网络服务实时启停，端口为 `2121`
+- **PS5 FTP 服务器** — 内置源码模块，端口可配置
 - **远程游玩配对** — 在网络菜单中启用 PS5 原生远程游玩服务、生成配对 PIN 并注册客户端
-- **ShadowMountPlus** — 内嵌游戏扫描/挂载器，位于游戏与内容菜单，可单次扫描并管理外部 ELF 覆盖
 - **用户 Payload 管理** — 启动和停止用户添加的普通 `.elf` payload，可选自动启动
 - **游戏监控条** — 游戏中显示 FPS、CPU、GPU、内存、温度和网络信息
 - **金手指** — 本地 JSON、SHN、MC4、ShnExt 文件，运行中即可开关
-- **主机工具** — 休息模式、账号激活、外接硬盘、Title ID、风扇、快捷键和游戏选项
+- **主机工具** — 账号激活、外接硬盘、Title ID、风扇、快捷键和游戏选项
 - **应用越狱** — 白名单自制软件可通过守护进程沙盒 FIFO 申请提权
 - **可恢复运行时** — 关键守护进程和工具守护进程分开；主进程可以拉起工具进程
 - **统一配置** — 工具箱和守护进程共用一份带版本号的 `config.ini`
@@ -90,41 +89,34 @@ OnionHEN 不内置内核漏洞。第一次引导仍需要外部 **9021** 上的 
 
 1. 运行内核漏洞利用，并启动外部 `elfldr` 服务。
 2. 用漏洞加载端提供的加载器发送 `OnionHEN.elf`。
-3. 按顺序等待工具守护进程、`kstuff`、FTP/ShadowMount 服务和主守护进程启动。
+3. 按顺序等待工具守护进程、`kstuff` 和主守护进程启动。
 4. 打开 PS5 设置，进入 OnionHEN 工具箱。
 
 启动是按固定顺序进行的。第一次引导之后，OnionHEN 使用自己的
 `onion_elfldr.elf`（端口 **9020**），**9021** 只作为兼容回退。
 
 ```text
-OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstuff.elf → ftpsrv.elf → shadowmountplus.elf → daemon.elf → Toolbox
+OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstuff.elf → daemon.elf → Toolbox
 ```
+
+若 `ftp.autoload` 已启用，内置 FTP 模块会在 `kstuff` 之后、daemon 之前启动。
 
 ### FTP 服务器
 
-内嵌的 PS5 FTP 服务器位于 **工具箱 → 网络 → FTP 服务器**，与用户放入
-`payloads/` 目录的 ELF 分开管理。开关会立即启停服务，并记住下次启动时的选择。
-服务器监听 `2121` 端口，并包含上游 `ftpsrv` 的 `KILL`、`SELF`、`SCHK`、
-`MTRW`、`AUTHID` 等命令（具体取决于固件支持）。
+PS5 FTP 服务器位于 **工具箱 → 插件 → FTP 服务器**。一个开关控制本次会话启停，
+另一个开关控制下次 OnionHEN 启动时是否自动运行。插件页支持 `1` 到 `65535` 的端口，
+修改端口时会重启内置监听线程，并包含上游 `ftpsrv` 的 `KILL`、`SELF`、`SCHK`、
+`MTRW`、`AUTHID` 等命令（视固件支持而定）。
 
 ### 远程游玩
 
 远程游玩配对位于 **工具箱 → 网络 → 远程游玩**。
-首次使用时，OnionHEN 会启用远程游玩注册表设置；如有需要，会先激活当前离线账号，
-然后显示配对 PIN。保持页面打开，在官方远程游玩客户端中输入该 PIN；OnionHEN 会调用
-PS5 原生远程游玩服务确认已注册的设备。
+当前账号必须已经激活；未激活时，OnionHEN 会阻止进入远程游玩页面，并提示前往
+**工具箱 → 账号 → 账号激活**。账号激活后，OnionHEN 会启用远程游玩注册表设置并显示
+配对 PIN。保持页面打开，在官方远程游玩客户端中输入该 PIN；OnionHEN 会调用 PS5
+原生远程游玩服务确认已注册的设备。
 
 此功能只负责配对和设备注册。视频串流与客户端传输仍由 Sony 的原生远程游玩服务处理。
-
-### ShadowMountPlus
-
-ShadowMountPlus 位于 **工具箱 → 游戏与内容** 的独立分组中。它作为 OnionHEN
-内置的游戏来源工具展示，不会出现在用户 Payload 列表中。
-`扫描游戏` 会启动内嵌的 `shadowmountplus.elf`；如果存在
-`/data/OnionHEN/shadowmountplus.elf`，
-会优先使用外部 ELF。`删除外部 ShadowMount+` 会删除该覆盖文件。
-ShadowMountPlus 从 `1.6beta16` release tag 构建，并启动自己的游戏扫描/挂载进程。
-OnionHEN 只负责启动 ELF，不增加另一层配置系统。
 
 ### Payload
 
@@ -136,6 +128,11 @@ OnionHEN 只负责启动 ELF，不增加另一层配置系统。
 
 只支持普通 `.elf`。可在工具箱里打开自动启动；OnionHEN 会在 ELF 旁边写一个
 同名的 `.auto_start` 文件记住这个选择。
+
+所有 `.elf` 文件名都使用相同的 Payload 页面、加载器和自动启动流程，包括
+`kstuff`、`ftpsrv` 和 `ftpsrv-ps5`。已有有效 PID 记录的用户 Payload 会保持运行，
+后续启动和自动启动请求直接跳过。内置服务只管理自身运行时，不会停止同名用户
+Payload。若两个 FTP 服务使用相同 TCP 端口，只有一个服务能够绑定成功。
 
 ### 金手指
 
@@ -168,10 +165,8 @@ OnionHEN 只负责启动 ELF，不增加另一层配置系统。
 | `lzma` 或 `xz` | 压缩 bootstrapper |
 | Git 与 `curl` 或 `wget` | 初始化 submodule 并获取外部 payload 输入 |
 
-构建时会优先下载 [`drakmor/ftpsrv`](https://github.com/drakmor/ftpsrv) 的
-`1.15-ng-stable` release；失败时回退到 `nexgen` 子模块并使用 `Makefile.ps5` 构建。
-ShadowMountPlus 会优先使用 [`1.6beta16`](https://github.com/drakmor/ShadowMountPlus/releases/tag/1.6beta16)
-release ELF；失败时回退到固定版本的 `third_party/ShadowMountPlus` 子模块。
+固定版本的 [`drakmor/ftpsrv`](https://github.com/drakmor/ftpsrv) `nexgen`
+源码作为 FTP 模块编译进 `util.elf`。
 
 ### 完整构建
 
@@ -252,9 +247,6 @@ OnionHEN 在下面两处读写同一份配置：
 | `startup.open_after_load` | `none` | `none`, `home_menu` |
 | `home_screen.show_title_ids` | `false` | `true`, `false` |
 | `game_menu.show_onionhen_options` | `true` | `true`, `false` |
-| `rest_mode.resume_reinject_delay_seconds` | `0` | 秒数 |
-| `rest_mode.stop_utility_daemon_on_entry` | `false` | `true`, `false` |
-| `rest_mode.close_running_game_on_entry` | `false` | `true`, `false` |
 | `cheats.memory_backend` | `default` | `default`, `libhijacker` |
 | `cheats.mirror` | `auto` | `auto`, `github`, `cnb` |
 | `app_jailbreak.debug_notifications` | `false` | `true`, `false` |
@@ -263,13 +255,13 @@ OnionHEN 在下面两处读写同一份配置：
 | `overlay.enabled` | `true` | `true`, `false` |
 | `overlay.background` | `true` | `true`, `false` |
 | `overlay.edge` | `top` | `top`, `bottom` |
-| `overlay.show_cpu` / `overlay.show_gpu` / `overlay.show_memory` | `true` | `true`, `false` |
+| `overlay.show_cpu` / `overlay.show_gpu` / `overlay.show_memory` / `overlay.show_fps` | `true` | `true`, `false` |
 | `overlay.cpu_usage_mode` | `average` | `average`, `per_core` |
 | `overlay.show_ip_address` | `false` | `true`, `false` |
 | `shortcuts.cheats_menu` | `off` | `off`, `r3_l3`, `l2_triangle`, `long_options`, `long_share`, `share` |
 | `shortcuts.toolbox` | `off` | `off`, `l2_r3`, `long_share`, `share` |
 | `ftp.autoload` | `false` | `true`, `false` |
-| `shadowmount.autoload` | `false` | `true`, `false` |
+| `ftp.port` | `1337` | `1` 到 `65535` |
 
 ### 运行时数据
 
@@ -278,12 +270,10 @@ OnionHEN 在下面两处读写同一份配置：
 | `/data/OnionHEN/payloads/` | 用户 payload ELF |
 | `/data/OnionHEN/cheats/` | 金手指文件 |
 | `/data/OnionHEN/cheats_tmp/` | HTTPS ZIP 与解压临时文件（同步后清理） |
-| `/data/OnionHEN/kstuff.elf` | 可选，用来替换内嵌的 `kstuff` |
-| `/data/OnionHEN/shadowmountplus.elf` | 可选的外部 ShadowMountPlus 覆盖 ELF |
-| `/user/data/OnionHEN/shadowmountplus.elf` | 备用的外部 ShadowMountPlus 覆盖 ELF |
-| `/data/shadowmount/config.ini` | ShadowMountPlus 运行时配置 |
-| `ftpsrv` | 内嵌的 PS5 FTP payload；不会创建用户可见的 ELF 文件 |
+| `/data/OnionHEN/kstuff.elf` | 可选的运行时覆盖文件，优先于内嵌 `kstuff` |
+| `ftpsrv` | util 内置 FTP 源码模块，默认端口 `1337` |
 | `/data/OnionHEN/OnionHEN.log` | 主运行日志 |
+| `/data/OnionHEN/OnionHEN_crash.log` | 保留的 daemon 崩溃信号与回溯日志 |
 | `/data/OnionHEN/OnionHEN_util_daemon.log` | Utility daemon 日志 |
 
 <br>
@@ -368,16 +358,17 @@ OnionHEN 离不开 PS5 自制软件与逆向工程社区。
 
 ### 参考
 
-- [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager) — itsplk；休息模式唤醒恢复（待机后恢复服务）的设计参考了这个项目
+- [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch、sleirsgoevy 与贡献者；休息模式 Toolbox 恢复沿用其 SceSysCore `NOTE_EXEC` 监视 `NPXS40087`，并等待 `libSceNpTrophy.sprx` / `libSceNpTrophy2.sprx`
+- [ps5-payload-manager](https://github.com/itsplk/ps5-payload-manager) — itsplk；休息后监听套接字重绑定（Unix IPC 与 TCP `accept` 失败自愈）参考了这个项目
 - [HEN-Cheats-Collection](https://github.com/TeeKay87/HEN-Cheats-Collection) — TeeKay87；内置金手指同步下载所用的社区金手指合集
+- [PHU Games Tools](https://github.com/ArkSama) — ArkSama；游戏内 FPS 计数沿用 PHU Games Tools 的 skip-hook 采样（`/dev/dce` scanout 与对 `libSceAgcDriver` 的 DMAP 读取）
 
 ### 实际使用或内嵌
 
 - [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) — Prospero 工具链与头文件
 - [elfldr](https://github.com/ps5-payload-dev/elfldr) — 端口 9021 的首次引导加载器；不打进 payload
 - [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch、sleirsgoevy 与贡献者；可选的 `kstuff.elf`
-- [ftpsrv](https://github.com/drakmor/ftpsrv) — drakmor 与上游贡献者；来自 `nexgen` 的内嵌 PS5 FTP 服务器
-- [ShadowMountPlus](https://github.com/drakmor/ShadowMountPlus) — Drakmor；由 VoidWhisper 的 ShadowMount 演进而来；内嵌游戏扫描/挂载器
+- [ftpsrv](https://github.com/drakmor/ftpsrv) — drakmor 与上游贡献者；来自 `nexgen` 的内置 PS5 FTP 源码模块
 - [libhijacker](https://github.com/astrelsky/libhijacker) — astrelsky；进程劫持与内核读写
 - [NineS](https://github.com/buzzer-re/NineS) — buzzer-re；注入 ShellUI
 - [cJSON](https://github.com/DaveGamble/cJSON) — JSON 解析

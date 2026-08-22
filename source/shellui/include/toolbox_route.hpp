@@ -17,6 +17,8 @@ enum class Page : unsigned char {
   None = 0,           /**< unknown → original stream */
   DebugSettings,      /**< embedded toolbox XML */
   Payloads,
+  Plugins,            /**< built-in plugins (kstuff/ftpsrv) */
+  PluginConfig,       /**< per-plugin configuration page (plugin_config.xml) */
   Cheats,
   AutoPayloads,
   Account,
@@ -43,6 +45,8 @@ struct RouteInput {
 /** Flag snapshot after matching resource. */
 struct RouteFlags {
   bool is_payloads = false;
+  bool is_plugins = false;
+  bool is_plugin_config = false;
   bool is_su_menu = false;
   bool is_debug_settings = false;
   bool is_cheats = false;
@@ -50,6 +54,7 @@ struct RouteFlags {
   bool is_account = false;
   bool is_plapps = false;
   bool is_cheat_progress = false;
+  bool is_remote_play = false;
 };
 
 struct RouteResult {
@@ -61,9 +66,17 @@ struct RouteResult {
 
 RouteResult resolve_resource(const RouteInput &in);
 
+/** Child routes whose page-stack pop should restore the owning parent route. */
+constexpr bool restores_parent_on_pop(Page page) {
+  return page == Page::CheatProgress || page == Page::RemotePlay ||
+         page == Page::PluginConfig;
+}
+
 /** Fixed Legacy resource paths (Sony Settings.Plugins module name is fixed). */
 inline constexpr std::string_view kAutoPayloadsXml =
     "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.auto_payloads.xml";
+inline constexpr std::string_view kPluginsXml =
+    "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.plugins.xml";
 inline constexpr std::string_view kAccountXml =
     "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.account.xml";
 inline constexpr std::string_view kPlappsXml =
@@ -71,7 +84,7 @@ inline constexpr std::string_view kPlappsXml =
 inline constexpr std::string_view kCheatProgressXml =
     "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.cheat_progress.xml";
 inline constexpr std::string_view kRemotePlayXml =
-  "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.remote_play.xml";
+    "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.remote_play.xml";
 inline constexpr std::string_view kSuperuserXml =
     "Sce.Vsh.ShellUI.Legacy.src.Sce.Vsh.ShellUI.Settings.Plugins.superuser.xml";
 inline constexpr std::string_view kOgDebugXml =

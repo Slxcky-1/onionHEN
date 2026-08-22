@@ -22,12 +22,14 @@ static bool g_test_onion_available = false;
 static pid_t g_test_onion_launch_pid = -1;
 static int g_test_onion_launch_calls = 0;
 static uint16_t g_test_onion_last_port = 0;
+static pid_t g_test_live_pid = -1;
 
 void onion_test_elfldr_reset(void) {
   g_test_onion_available = false;
   g_test_onion_launch_pid = -1;
   g_test_onion_launch_calls = 0;
   g_test_onion_last_port = 0;
+  g_test_live_pid = -1;
 }
 
 void onion_test_elfldr_configure(bool available, pid_t launch_pid) {
@@ -37,6 +39,7 @@ void onion_test_elfldr_configure(bool available, pid_t launch_pid) {
 
 int onion_test_elfldr_launch_calls(void) { return g_test_onion_launch_calls; }
 uint16_t onion_test_elfldr_last_port(void) { return g_test_onion_last_port; }
+void onion_test_live_pid(pid_t pid) { g_test_live_pid = pid; }
 
 bool elfldr_remote_available_on(uint16_t port) {
   (void)port;
@@ -66,6 +69,21 @@ pid_t elfldr_remote_onion_write_and_launch_get_pid(const char *abs_path,
   return g_test_onion_launch_pid;
 }
 
+pid_t elfldr_remote_onion_launch_file_get_pid(const char *abs_path,
+                                              const char *args) {
+  (void)abs_path;
+  (void)args;
+  ++g_test_onion_launch_calls;
+  g_test_onion_last_port = ONION_ELFLDR_PORT;
+  return g_test_onion_launch_pid;
+}
+
+pid_t elfldr_remote_onion_write_and_launch_get_pid_with_args(
+    const char *abs_path, const uint8_t *elf, size_t size, const char *args) {
+  (void)args;
+  return elfldr_remote_onion_write_and_launch_get_pid(abs_path, elf, size);
+}
+
 pid_t find_pid(const char *name) {
   (void)name;
   return -1;
@@ -82,8 +100,7 @@ pid_t onion_find_pid_substr(const char *substr) {
 }
 
 bool onion_proc_is_alive(pid_t pid) {
-  (void)pid;
-  return false;
+  return pid > 1 && pid == g_test_live_pid;
 }
 
 int sceKernelGetProcessName(int pid, char *name) {

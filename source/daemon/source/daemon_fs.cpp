@@ -3,6 +3,7 @@
 #include "daemon_ops.hpp"
 #include <onion/platform.h>
 #include <onion/proc_query.h>
+#include <onion/ready.h>
 #include <onion/ipc_server.hpp>
 #include <onion/system_tmp.h>
 #include <msg.hpp>
@@ -278,34 +279,13 @@ void ForceKillProc(int pid) {
   set_proc_authid(getpid(), authid); // Restore original authid
 }
 
-/** Kill every live process whose ki_comm matches any of @names (substring). */
-static void kill_all_by_comm_substr(const char *const *names, size_t nnames) {
-  if (!names || nnames == 0)
+static void shutdown_owned_process(const char *label, pid_t pid) {
+  if (pid <= 1 || pid == getpid())
     return;
-  /* Loop: find+kill until none remain (bootstrapper kill_by_name pattern). */
-  for (int pass = 0; pass < 8; ++pass) {
-    bool any = false;
-    for (size_t i = 0; i < nnames; ++i) {
-      if (!names[i] || !names[i][0])
-        continue;
-      pid_t p = onion_find_pid(names[i]);
-      if (p <= 0)
-        p = onion_find_pid_substr(names[i]);
-      if (p <= 0 || p == getpid())
-        continue;
-      any = true;
-      LOG_INFO("shutdown: killing pid=%d (match \"%s\")", (int)p, names[i]);
-      /* ELF daemons often ignore TerminateProcess — SIGKILL first. */
-      if (kill(p, SIGKILL) != 0) {
-        LOG_ERROR("shutdown: SIGKILL pid=%d failed: %s", (int)p,
-                     strerror(errno));
-        ForceKillProc(static_cast<int>(p));
-      }
-      usleep(200 * 1000);
-    }
-    if (!any)
-      break;
-  }
+  LOG_INFO("shutdown: stopping owned %s pid=%d", label, static_cast<int>(pid));
+  if (kill(pid, SIGKILL) != 0 && errno != ESRCH)
+    ForceKillProc(static_cast<int>(pid));
+  usleep(200 * 1000);
 }
 
 static void shutdown_restart_shellui(void) {
@@ -348,31 +328,12 @@ static void shutdown_restart_shellui(void) {
   /* Let fifo_and_dumper_thread observe the flag before util vanishes. */
   usleep(100 * 1000);
 
-  static const char *const kUtilNames[] = {
-      "onion_util.elf",
-      "util.elf",
-      "OnionHEN Utility",
-      "util",
-  };
-
   LOG_INFO("shutdown[1/4]: stop util");
-  kill_all_by_comm_substr(kUtilNames,
-                          sizeof(kUtilNames) / sizeof(kUtilNames[0]));
-  if (onion_find_pid("onion_util.elf") > 0 ||
-      onion_find_pid_substr("onion_util.elf") > 0 ||
-      onion_find_pid("util.elf") > 0 || onion_find_pid_substr("util.elf") > 0 ||
-      onion_find_pid("OnionHEN Utility") > 0) {
-    LOG_WARN("shutdown: util still alive — retry");
-    kill_all_by_comm_substr(kUtilNames,
-                            sizeof(kUtilNames) / sizeof(kUtilNames[0]));
-  }
+  shutdown_owned_process("util", runtime_owned_util_pid());
+  onion_ready_clear(ONION_READY_UTIL);
 
   LOG_INFO("shutdown[2/4]: stop private elfldr (:9020)");
-  static const char *const kElfldrNames[] = {
-      "onion_elfldr.elf",
-  };
-  kill_all_by_comm_substr(kElfldrNames,
-                          sizeof(kElfldrNames) / sizeof(kElfldrNames[0]));
+  shutdown_owned_process("private elfldr", runtime_owned_private_loader_pid());
   unlink(ONION_SYSTEM_TMP_ELFLDR_STATE);
   unlink(ONION_SYSTEM_TMP_ELFLDR_BUSY);
 

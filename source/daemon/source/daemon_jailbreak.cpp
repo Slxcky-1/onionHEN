@@ -75,6 +75,36 @@ constexpr const char *kJailbreakReqNames[] = {
     "etahen_jailbreak",
     "onionhen_jailbreak",
 };
+constexpr const char *kShellUiTitleId = "NPXS40087";
+constexpr const char *kShellUiProcessName = "SceShellUI";
+
+struct ExecIdentity {
+  char process_name[64] {};
+  int name_rc = -1;
+  app_info_t info {};
+  int app_info_rc = -1;
+  std::string tid;
+};
+
+ExecIdentity read_exec_identity(pid_t pid) {
+  ExecIdentity id;
+  id.name_rc = sceKernelGetProcessName(pid, id.process_name);
+  id.app_info_rc = sceKernelGetAppInfo(pid, &id.info);
+  if (id.app_info_rc == 0) {
+    char title_id[sizeof(id.info.title_id) + 1] = {};
+    memcpy(title_id, id.info.title_id, sizeof(id.info.title_id));
+    id.tid = title_id;
+  }
+  return id;
+}
+
+bool identity_is_shellui(const ExecIdentity &id) {
+  if (id.name_rc == 0 &&
+      std::strcmp(id.process_name, kShellUiProcessName) == 0) {
+    return true;
+  }
+  return id.app_info_rc == 0 && id.tid == kShellUiTitleId;
+}
 
 bool is_whitelisted_app(const std::string &tid,
                         const onion::AppJailbreakAllowlist &allowlist) {
@@ -317,13 +347,9 @@ private:
     active_apps_.clear();
     settings_ = g_settings.snapshot();
 
-    const bool enabled =
+    const bool jb_enabled =
         jb_listener_enabled.load(std::memory_order_acquire) &&
         settings_.app_jailbreak_enabled;
-    if (!enabled) {
-      LOG_DEBUG("[JB] event listener idle (App jailbreak disabled)");
-      return true;
-    }
 
     syscore_pid_ = onion_find_pid("SceSysCore.elf");
     if (syscore_pid_ <= 0) {
@@ -343,8 +369,8 @@ private:
     }
 
     LOG_INFO("[JB] event listener active: SceSysCore pid=%d, "
-             "fflags=NOTE_FORK|NOTE_EXEC|NOTE_TRACK, no polling/fallback",
-             static_cast<int>(syscore_pid_));
+             "fflags=NOTE_FORK|NOTE_EXEC|NOTE_TRACK, jailbreak=%s",
+             static_cast<int>(syscore_pid_), jb_enabled ? "on" : "off");
     return true;
   }
 
@@ -366,7 +392,18 @@ private:
                 static_cast<int>(pid), static_cast<long long>(event.data));
     }
     if (event.fflags & NOTE_EXEC) {
-      inspect_app_process(pid, "exec");
+      const ExecIdentity id = read_exec_identity(pid);
+      if (identity_is_shellui(id)) {
+        LOG_DEBUG("[JB] SysCore EXEC SceShellUI pid=%d name='%s' tid='%s'",
+                  static_cast<int>(pid), id.process_name, id.tid.c_str());
+        toolbox_on_new_shellui(pid);
+      }
+      const bool jb_enabled =
+          jb_listener_enabled.load(std::memory_order_acquire) &&
+          settings_.app_jailbreak_enabled;
+      if (jb_enabled) {
+        inspect_app_process(pid, "exec", id);
+      }
     }
     if (event.fflags & NOTE_EXIT) {
       if (pid == syscore_pid_) {
@@ -378,32 +415,27 @@ private:
     }
   }
 
-  void inspect_app_process(pid_t pid, const char *source) {
+  void inspect_app_process(pid_t pid, const char *source,
+                           const ExecIdentity &id) {
     if (pid <= 1 || pid_to_tid_.find(pid) != pid_to_tid_.end()) {
       return;
     }
 
-    char process_name[64] = {};
-    const int name_rc = sceKernelGetProcessName(pid, process_name);
-    app_info_t info {};
-    const int app_info_rc = sceKernelGetAppInfo(pid, &info);
-    if (app_info_rc != 0) {
+    if (id.app_info_rc != 0) {
       LOG_TRACE("[JB][diag] %s pid=%d name_rc=%d name='%s' "
                 "GetAppInfo rc=%d errno=%d",
-                source, static_cast<int>(pid), name_rc, process_name,
-                app_info_rc, errno);
+                source, static_cast<int>(pid), id.name_rc, id.process_name,
+                id.app_info_rc, errno);
       return;
     }
-    char title_id[sizeof(info.title_id) + 1] = {};
-    memcpy(title_id, info.title_id, sizeof(info.title_id));
-    const std::string tid(title_id);
+    const std::string &tid = id.tid;
     const bool whitelisted =
         !tid.empty() &&
         is_whitelisted_app(tid, settings_.app_jailbreak_allowlist);
     LOG_TRACE("[JB][diag] %s pid=%d name_rc=%d name='%s' appid=%u "
               "tid='%s' whitelist=%s",
-              source, static_cast<int>(pid), name_rc, process_name,
-              info.app_id, tid.c_str(),
+              source, static_cast<int>(pid), id.name_rc, id.process_name,
+              id.info.app_id, tid.c_str(),
               onion::app_jailbreak::whitelist_reason(
                   tid, settings_.app_jailbreak_allowlist));
     if (!whitelisted) {
@@ -421,12 +453,12 @@ private:
 
     TrackedApp &app = active_apps_[tid];
     const bool first_process = app.pids.empty();
-    app.app_id = info.app_id;
+    app.app_id = id.info.app_id;
     app.pids.insert(pid);
     pid_to_tid_[pid] = tid;
 
     LOG_INFO("[JB] allowed App %s pid=%d tid=%s appid=%u whitelist=%s",
-             source, static_cast<int>(pid), tid.c_str(), info.app_id,
+             source, static_cast<int>(pid), tid.c_str(), id.info.app_id,
              onion::app_jailbreak::whitelist_reason(
                  tid, settings_.app_jailbreak_allowlist));
 

@@ -123,6 +123,25 @@ int ipc_network_accept(int socket_fd) {
   return accept(socket_fd, nullptr, nullptr);
 }
 
+int ipc_unix_connect(const char *path) {
+  if (!path || !path[0])
+    return -1;
+
+  const int soc = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (soc < 0)
+    return -1;
+
+  sockaddr_un server{};
+  server.sun_family = AF_UNIX;
+  strncpy(server.sun_path, path, sizeof(server.sun_path) - 1);
+  if (connect(soc, reinterpret_cast<struct sockaddr *>(&server),
+              SUN_LEN(&server)) == -1) {
+    close(soc);
+    return -1;
+  }
+  return soc;
+}
+
 int ipc_network_recv(int socket_fd, void *buffer, int32_t size) {
   int n = recv(socket_fd, buffer, size, 0);
   LOG_DEBUG("got %i bytes", n);
@@ -238,10 +257,17 @@ void *ipc_server_loop(void *options_ptr) {
     int serverSocket = ipc_network_listen(opts->socket_path);
     if (serverSocket < 0) {
       LOG_ERROR("[%s] networkListen error %s", tag, strerror(errno));
-      return nullptr;
+      LOG_DEBUG("rest: [%s] listen failed path=%s errno=%d", tag,
+                opts->socket_path, errno);
+      if (stoppable && !opts->running->load())
+        break;
+      sleep(1);
+      continue;
     }
     if (opts->server_fd)
       opts->server_fd->store(serverSocket);
+    LOG_DEBUG("rest: [%s] listening path=%s fd=%d", tag, opts->socket_path,
+              serverSocket);
 
     int clientSocket;
     while ((clientSocket = ipc_network_accept(serverSocket)) >= 0) {
@@ -269,10 +295,14 @@ void *ipc_server_loop(void *options_ptr) {
 
     // accept() failed: the listener is gone (e.g. after a standby resume the
     // socket may be dead). Re-listen to restore service unless a permanent
-    // stop was requested.
-    ipc_network_close(serverSocket);
+    // stop was requested. ipc_release_listen_fd owns the close so a concurrent
+    // restart cannot double-close.
+    LOG_DEBUG("rest: [%s] accept failed errno=%d (%s); re-listening", tag,
+              errno, strerror(errno));
     if (opts->server_fd)
-      opts->server_fd->store(-1);
+      ipc_release_listen_fd(opts->server_fd);
+    else
+      ipc_network_close(serverSocket);
     if (stoppable && !opts->running->load())
       break;
     LOG_WARN("[%s] networkAccept error %s; re-listening", tag, strerror(errno));
@@ -290,12 +320,25 @@ void ipc_server_stop(IpcServerOptions *opts) {
   ipc_server_restart(opts);
 }
 
-void ipc_server_restart(IpcServerOptions *opts) {
-  if (!opts || !opts->server_fd)
+void ipc_release_fd(std::atomic<int> *fd) {
+  if (!fd)
     return;
-  const int fd = opts->server_fd->load();
-  if (fd >= 0)
-    shutdown(fd, SHUT_RDWR);
+  const int s = fd->exchange(-1);
+  if (s >= 0) {
+    LOG_DEBUG("rest: release listen fd=%d", s);
+    shutdown(s, SHUT_RDWR);
+    ipc_network_close(s);
+  }
+}
+
+void ipc_release_listen_fd(std::atomic<int> *fd) { ipc_release_fd(fd); }
+
+void ipc_server_restart(IpcServerOptions *opts) {
+  if (!opts)
+    return;
+  const char *tag = opts->tag ? opts->tag : "ipc";
+  LOG_DEBUG("rest: [%s] ipc_server_restart", tag);
+  ipc_release_listen_fd(opts->server_fd);
 }
 
 } // namespace onion

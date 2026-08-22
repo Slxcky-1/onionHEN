@@ -5,7 +5,7 @@
 #include <onion/platform.h>
 #include <onion/payload.h>
 #include "ipc.hpp"
-#include "rest_mode.hpp"
+#include "service_facade.hpp"
 #include <msg.hpp>
 #include <onion/settings.hpp>
 #include "common_utils.h"
@@ -35,10 +35,6 @@ extern "C" {
 #include <vector>
 
 extern bool is_handler_enabled;
-extern uint8_t ftpsrv_start[];
-extern const unsigned int ftpsrv_size;
-extern uint8_t shadowmount_start[];
-extern const unsigned int shadowmount_size;
 
 void reply(int sender_socket, bool error, std::string out_var = "Nothing");
 extern "C" {
@@ -48,30 +44,6 @@ std::string GetPS5Version(const std::string &jsonpath);
 std::vector<uint8_t> readFile(std::string filename);
 
 namespace {
-
-bool launch_shadowmount() {
-  constexpr const char *kExternalPath =
-      "/data/OnionHEN/shadowmountplus.elf";
-
-  if (access(kExternalPath, R_OK) == 0) {
-    LOG_INFO("Launching external ShadowMount+ from %s", kExternalPath);
-    const std::vector<uint8_t> external = readFile(kExternalPath);
-    if (onion_payload_is_elf(external.data(), external.size()) &&
-        elfldr_remote_send_bytes_to(ONION_ELFLDR_PORT, external.data(),
-                                    external.size()))
-      return true;
-    LOG_WARN("External ShadowMount+ failed validation or launch: %s",
-             kExternalPath);
-  }
-
-  if (!onion_payload_is_elf(shadowmount_start, shadowmount_size)) {
-    LOG_ERROR("Embedded ShadowMount+ ELF is missing or invalid");
-    return false;
-  }
-
-  return elfldr_remote_send_bytes_to(ONION_ELFLDR_PORT, shadowmount_start,
-                                     shadowmount_size);
-}
 
 std::string make_state_json(const char *state, uint32_t task_id = 0) {
   cJSON *root = cJSON_CreateObject();
@@ -131,36 +103,35 @@ void handleIPC(clientArgs *client, std::string &inputStr,
     reply(sender_app, false, out_var);
     break;
   }
-  case BREW_UTIL_SHELLUI_ON_STANDBY: {
-    LOG_INFO("ShellUI on standby");
-    onion::rest_mode::on_standby();
-    reply(sender_app, false);
-    break;
-  }
   case BREW_UTIL_TOGGLE_FTP: {
     const cJSON *toggle = cJSON_GetObjectItemCaseSensitive(my_json.get(),
                                                             "toggle");
     const bool enabled = toggle && cJSON_IsNumber(toggle) && toggle->valueint;
-    if (enabled) {
-      onion_payload_stop_by_title("ftpsrv");
-      if (!elfldr_remote_send_bytes_to(ONION_ELFLDR_PORT, ftpsrv_start,
-                                       (size_t)ftpsrv_size)) {
-        LOG_ERROR("Failed to start embedded ftpsrv");
-        reply(sender_app, true);
-        break;
-      }
-    } else {
-      onion_payload_stop_by_title("ftpsrv");
-    }
-    reply(sender_app, false);
+    bool ok = true;
+    const onion::Settings settings = g_settings.snapshot();
+    if (enabled)
+      ok = onion::services::ftpService().start(
+          static_cast<uint16_t>(settings.ftp_port));
+    else
+      onion::services::ftpService().stop();
+    reply(sender_app, !ok);
     break;
   }
-  case BREW_UTIL_LAUNCH_SHADOWMOUNT:
-    reply(sender_app, !launch_shadowmount());
+  case BREW_UTIL_FTP_STATUS: {
+    reply(sender_app, false,
+          onion::services::ftpService().running() ? "1" : "0");
     break;
+  }
+  case BREW_UTIL_RECOVER_FTP: {
+    reply(sender_app, !onion::services::ftpService().recover());
+    break;
+  }
+  case BREW_UTIL_UNUSED_LEGACY_SERVICE_SCAN:
+  case BREW_UTIL_UNUSED_LEGACY_SERVICE_TOGGLE:
   case BREW_UTIL_UNUSED_KLOG:
   case BREW_UTIL_UNUSED_DPI:
-    /* Klog (9081) and DirectPKGInstaller remain removed; ordinals stay stable. */
+  case BREW_UTIL_UNUSED_SHELLUI_ON_STANDBY:
+    /* Removed scan-now / Klog / DPI / rest-standby IPC; ordinals stay stable. */
     LOG_WARN("Removed-service toggle: unsupported (cmd=%u)", static_cast<unsigned>(command));
     reply(sender_app, true);
     break;

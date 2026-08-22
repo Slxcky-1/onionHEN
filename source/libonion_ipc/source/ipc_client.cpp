@@ -23,7 +23,6 @@ along with this program; see the file COPYING. If not, see
 #include <errno.h>
 #include <strings.h>
 #include <sys/socket.h>
-#include <sys/un.h>
 #include <unistd.h>
 
 #include "onion_cjson.hpp"
@@ -105,17 +104,8 @@ bool IPC_Client::require_crit(const char *what) const {
 }
 
 int IPC_Client::OpenConnection(const char *path) {
-  sockaddr_un server{};
-  int soc = socket(AF_UNIX, SOCK_STREAM, 0);
-  if (soc == -1) {
-    LOG_ERROR("Failed to create socket: %s", strerror(errno));
-    return -1;
-  }
-  server.sun_family = AF_UNIX;
-  strncpy(server.sun_path, path, sizeof(server.sun_path) - 1);
-  if (connect(soc, reinterpret_cast<struct sockaddr *>(&server),
-              SUN_LEN(&server)) == -1) {
-    close(soc);
+  const int soc = onion::ipc_unix_connect(path);
+  if (soc < 0) {
     LOG_ERROR("Failed to connect to %s: %s", path, strerror(errno));
     return -1;
   }
@@ -311,6 +301,24 @@ IPC_Ret IPC_Client::ToggleSetting(DaemonCommands cmd, bool turn_on) {
   return IPC_Ret::NO_ERROR;
 }
 
+bool IPC_Client::FtpStatus() {
+  std::string ipc_msg;
+  if (!IPCSendCommand(BREW_UTIL_FTP_STATUS, ipc_msg)) {
+    LOG_ERROR("Failed to query FTP service status");
+    return false;
+  }
+  return ipc_msg == "1" || ipc_msg == "true";
+}
+
+bool IPC_Client::RecoverFtp() {
+  std::string ipc_msg;
+  if (!IPCSendCommand(BREW_UTIL_RECOVER_FTP, ipc_msg)) {
+    LOG_ERROR("Failed to recover FTP service");
+    return false;
+  }
+  return true;
+}
+
 void IPC_Client::KillDaemon() {
   std::string ipc_msg;
   IPCSendCommand(BREW_KILL_DAEMON, ipc_msg);
@@ -366,17 +374,6 @@ IPC_Ret IPC_Client::LaunchPayload(std::string payload_path, std::string tid) {
     return IPC_Ret::OPERATION_FAILED;
   }
   return IPC_Ret::NO_ERROR;
-}
-
-bool IPC_Client::LaunchShadowMount() {
-  if (!require_util("LaunchShadowMount"))
-    return false;
-  std::string reply_text;
-  if (!IPCSendCommand(BREW_UTIL_LAUNCH_SHADOWMOUNT, reply_text, "{}")) {
-    LOG_ERROR("Failed to launch ShadowMount+");
-    return false;
-  }
-  return true;
 }
 
 bool IPC_Client::GameVerFromTid(std::string tid, std::string &out_ver) {
@@ -478,17 +475,6 @@ bool IPC_Client::CancelCheatSync(uint32_t task_id, std::string &out) {
     return false;
   }
   return true;
-}
-
-void IPC_Client::SendRestModeAction() {
-  if (!require_util("SendRestModeAction")) {
-    return;
-  }
-  std::string ipc_msg;
-  std::string json;
-  if (!IPCSendCommand(BREW_UTIL_SHELLUI_ON_STANDBY, ipc_msg, json)) {
-    LOG_ERROR("Failed to send rest-mode action");
-  }
 }
 
 void IPC_Client::Reload_Daemon_Settings() {

@@ -16,9 +16,9 @@ along with this program; see the file COPYING. If not, see
 
 #include "ipc.hpp"
 #include "cheats/cheat_service.hpp"
-#include "rest_mode.hpp"
 #include "util_language.h"
 #include "util_toolbox.h"
+#include "service_facade.hpp"
 #include <onion/settings.hpp>
 #include <onion/log_settings.hpp>
 #include <onion/platform.h>
@@ -57,6 +57,7 @@ extern "C" {
 extern bool is_handler_enabled;
 
 onion::SettingsStore g_settings;
+static bool g_services_initialized = false;
 void start_ip_thread(void);
 void* IPC_loop(void* args);
 bool shellui_patch(void);
@@ -75,6 +76,7 @@ void __stack_chk_fail(void) {
 }
 
 bool LoadSettings() {
+    const onion::Settings previous = g_settings.snapshot();
     onion::Settings s{};
     if (!onion::settings_load(&s)) {
         LOG_ERROR("config.ini missing; using defaults (path primary=%s)",
@@ -92,6 +94,20 @@ bool LoadSettings() {
 
     g_settings.store(s);
     util_apply_ui_language(s.ui_lang);
+
+    if (!g_services_initialized) {
+        g_services_initialized = true;
+        if (s.ftp_autoload &&
+            !onion::services::ftpService().start(
+                static_cast<uint16_t>(s.ftp_port))) {
+            LOG_WARN("FTP autoload failed on TCP %d", s.ftp_port);
+        }
+    } else if (previous.ftp_port != s.ftp_port) {
+        if (!onion::services::ftpService().reconfigure(
+                static_cast<uint16_t>(s.ftp_port))) {
+            LOG_WARN("FTP port reconfigure failed on TCP %d", s.ftp_port);
+        }
+    }
     /* Missing file is not an error — defaults were applied. */
     return true;
 }
@@ -137,12 +153,12 @@ int main(void) {
     start_ip_thread();
     pthread_create(&ipc_server, NULL, IPC_loop, NULL);
     /* IPC thread is up — publish ready for bootstrapper/daemon consumers */
-    onion_ready_signal(ONION_READY_UTIL);
+    onion_ready_signal_pid(ONION_READY_UTIL, getpid());
 
     if (onion_ready_is_set(ONION_FLAG_UTIL_BOOTED)) {
         /* onion_util.elf restarted mid-session (crash recover / re-launch) — not rest. */
         LOG_WARN("util already booted once — toolbox reinject (not rest)");
-        toolbox_reinject(/*rest_resume=*/false);
+        toolbox_reinject();
     }
     /* Mark that util completed cold start (typed flag; replaces util_first_boot file). */
     onion_ready_signal(ONION_FLAG_UTIL_BOOTED);
@@ -150,12 +166,7 @@ int main(void) {
     LOG_INFO("Initializing cheat engine...");
     onion::cheats::CheatService::instance().ensureDir();
 
-    /* Rest-mode recovery: SIGCONT resume signal + network-up confirmation.
-     * See rest_mode.hpp / rest_mode.cpp. */
-    onion::rest_mode::install();
-
     for (;;) {
-        onion::rest_mode::poll();
         sleep(1);
     }
 

@@ -40,6 +40,7 @@ enum RemoveWidget {
     REMOVE_CPU_OVERLAY,
     REMOVE_RAM_OVERLAY,
     REMOVE_IP_OVERLAY,
+    REMOVE_FPS_OVERLAY,
     REMOVE_ALL_OVERLAYS,
 };
 
@@ -48,6 +49,7 @@ enum CreateWidget {
     CREATE_CPU_OVERLAY,
     CREATE_RAM_OVERLAY,
     CREATE_IP_OVERLAY,
+    CREATE_FPS_OVERLAY,
     CREATE_ALL_OVERLAYS,
 };
 
@@ -156,5 +158,7 @@ struct OverlayLayout {
     float overlay_ram_y = 12.0f;
     float overlay_ip_x = 740.0f;
     float overlay_ip_y = 12.0f;
+    float overlay_fps_x = 40.0f;
+    float overlay_fps_y = 12.0f;
 };
 extern OverlayLayout g_overlay_layout;

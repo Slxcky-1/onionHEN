@@ -52,7 +52,7 @@ Binary: `source/util/build/host-tests/onion-host-tests`
 | `test_platform_log` | `onion_log_configure` + file sink |
 | `test_platform_notify` | `onion_notify_format` prefix/truncate + send stub |
 | `test_msg_protocol` | IPC paths, magic, command ordinals, `IPC_Ret`, message POD, reply JSON body |
-| `test_app_jailbreak_policy` | configurable app-jailbreak exact/prefix Title ID allowlist, including legacy Itemzflow `ITEM00001` |
+| `test_app_jailbreak_policy` | configurable app-jailbreak exact/prefix Title ID allowlist, including the Itemzflow compatibility ID `ITEM00001` |
 | `test_ps5_settings_ui` | fluent XML builder + escaping |
 | `test_toolbox_route` | resource → page routing + cheat map helpers |
 | `test_onpress_policy` | page-scoped OnPress ownership, stock-page pass-through, unrelated-resource stability |

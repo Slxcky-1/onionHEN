@@ -44,6 +44,8 @@ struct Attrs {
   std::optional<std::string> key;
   std::optional<std::string> initial_focus_to;
   std::optional<std::string> list_size;
+  std::optional<std::string> list_highlight;
+  std::optional<std::string> raw_title;
   std::optional<bool> restorable;
   Style style = Style::None;
 };
@@ -59,6 +61,8 @@ struct Node {
     ListItem,
     TextField,
     UserCustom,
+    Option,
+    OptionItem,
   } kind = Kind::SettingList;
 
   Attrs attrs;
@@ -129,6 +133,15 @@ public:
 
   /** Legacy Settings placeholder whose real Panel is appended during Reset. */
   Derived& user_custom(std::string id);
+
+  /** Options-button context menu container (page level). */
+  Derived& option(std::string id,
+                  const std::function<void(Group&)>& body,
+                  std::optional<std::string> list_highlight = std::nullopt);
+
+  /** Options-button context menu entry. */
+  Derived& option_item(std::string id, std::string title,
+                       std::optional<std::string> raw_title = std::nullopt);
 
   Derived& group(std::string id, std::string title,
                  const std::function<void(Group&)>& body,
@@ -302,6 +315,32 @@ Derived& GroupT<Derived>::user_custom(std::string id) {
   Node n;
   n.kind = Node::Kind::UserCustom;
   n.attrs.id = std::move(id);
+  return add(std::move(n));
+}
+
+template <typename Derived>
+Derived& GroupT<Derived>::option(std::string id,
+                                 const std::function<void(Group&)>& body,
+                                 std::optional<std::string> list_highlight) {
+  Node n;
+  n.kind = Node::Kind::Option;
+  n.attrs.id = std::move(id);
+  n.attrs.list_highlight = std::move(list_highlight);
+  node_->children.push_back(std::move(n));
+  Group sub(&node_->children.back());
+  if (body)
+    body(sub);
+  return self();
+}
+
+template <typename Derived>
+Derived& GroupT<Derived>::option_item(std::string id, std::string title,
+                                      std::optional<std::string> raw_title) {
+  Node n;
+  n.kind = Node::Kind::OptionItem;
+  n.attrs.id = std::move(id);
+  n.attrs.title = std::move(title);
+  n.attrs.raw_title = std::move(raw_title);
   return add(std::move(n));
 }
 
