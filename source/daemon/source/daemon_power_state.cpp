@@ -4,7 +4,6 @@
 #include <onion/platform.h>
 #include <cstdint>
 #include <mutex>
-#include <unistd.h>
 
 extern "C" {
 int sceKernelOpenEventFlag(intptr_t *event_flag, const char *name);
@@ -107,17 +106,4 @@ bool daemon_power_state_is_sleeping(DaemonPowerState state) {
 
 bool daemon_power_state_is_sleeping() {
   return daemon_power_state_is_sleeping(daemon_power_state_get());
-}
-
-bool daemon_power_state_wait_working(uint32_t timeout_ms) {
-  const uint32_t poll_ms = 100;
-  for (uint32_t elapsed = 0; elapsed <= timeout_ms; elapsed += poll_ms) {
-    const DaemonPowerState state = daemon_power_state_get();
-    if (state == DaemonPowerState::Working ||
-        state == DaemonPowerState::Unknown) {
-      return true;
-    }
-    usleep(poll_ms * 1000);
-  }
-  return false;
 }

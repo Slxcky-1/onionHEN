@@ -1,7 +1,6 @@
 /* Copyright (C) 2025 OnionHEN / LightningMods
  *
- * Toolbox inject strategy: Immediate (main/IPC) and RestResume (new ShellUI).
- * Atoms are composed below; callers pick a strategy, they do not inject ELF.
+ * Toolbox injection for explicit commands and SceShellUI lifecycle recovery.
  */
 
 #include "daemon_ops.hpp"
@@ -20,7 +19,6 @@ extern "C" {
 int sceKernelMprotect(void *addr, size_t len, int prot);
 bool Inject_Toolbox(int pid, uint8_t *elf);
 extern uint8_t shellui_elf_start[];
-extern const unsigned int shellui_elf_size;
 }
 
 namespace {
@@ -65,7 +63,6 @@ constexpr useconds_t kRestRetryDelayUs[] = {
     500 * 1000,
     1000 * 1000,
     2000 * 1000,
-    4000 * 1000,
 };
 
 bool toolbox_sprx_loaded(pid_t pid, const char *name) {
@@ -277,21 +274,6 @@ void start_rest_inject(pid_t exec_pid) {
 
 } // namespace
 
-bool toolbox_inject(ToolboxInjectStrategy strategy, pid_t exec_pid) {
-  switch (strategy) {
-  case ToolboxInjectStrategy::Immediate:
-    return toolbox_inject_immediate();
-  case ToolboxInjectStrategy::RestResume:
-    if (exec_pid <= 1) {
-      toolbox_on_resume();
-      return true;
-    }
-    start_rest_inject(exec_pid);
-    return true;
-  }
-  return false;
-}
-
 void toolbox_on_new_shellui(pid_t pid) {
   /* NOTE_EXEC denotes a new image, even when the kernel reuses the PID. */
   onion_ready_clear(ONION_READY_TOOLBOX);
@@ -326,5 +308,5 @@ void toolbox_on_resume() {
 }
 
 bool cmd_enable_toolbox() {
-  return toolbox_inject(ToolboxInjectStrategy::Immediate);
+  return toolbox_inject_immediate();
 }

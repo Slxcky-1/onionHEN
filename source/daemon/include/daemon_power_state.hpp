@@ -18,6 +18,3 @@ bool daemon_power_state_is_sleeping(DaemonPowerState state);
 
 /** True while the console is entering or already in standby suspend. */
 bool daemon_power_state_is_sleeping();
-
-/** Wait for the system to report WORKING; unknown state is treated as ready. */
-bool daemon_power_state_wait_working(uint32_t timeout_ms);

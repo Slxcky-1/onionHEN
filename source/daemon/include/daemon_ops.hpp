@@ -60,18 +60,8 @@ void *fps_sampler_thread(void *args) noexcept;
  */
 [[noreturn]] void cmd_shutdown_onion_stack(void);
 
-/** Immediate (main / IPC) vs rest resume (new ShellUI EXEC). */
-enum class ToolboxInjectStrategy { Immediate, RestResume };
-
-/**
- * Toolbox inject strategy. Immediate runs on the caller thread.
- * RestResume may delay; jailbreak calls toolbox_on_new_shellui() so kevent
- * is not blocked.
- */
-bool toolbox_inject(ToolboxInjectStrategy strategy, pid_t exec_pid = 0);
-
 bool cmd_enable_toolbox();
-/** Rest strategy on a worker: identified SceShellUI EXEC. */
+/** Schedule injection for an identified SceShellUI EXEC without blocking kevent. */
 void toolbox_on_new_shellui(pid_t pid);
 /** Reconcile the current ShellUI after the WORKING power-state transition. */
 void toolbox_on_resume();
