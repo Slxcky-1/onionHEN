@@ -50,6 +50,7 @@ inline constexpr const char *kConfigPathShellui = "/user/data/OnionHEN/config.in
 
 // Semantic config schema. This schema starts at version 1.
 inline constexpr int kSettingsSchemaVersion = 1;
+inline constexpr int kFtpPortDefault = 1337;
 
 inline constexpr int kUiLanguageSystem = 0;
 inline constexpr int kUiLanguageZhHans = 1;
@@ -152,12 +153,10 @@ struct Settings {
   bool kstuff_autoload = true;
 
   // [ftp]
-  // Start the embedded FTP server the next time OnionHEN launches.
+  // Start the built-in FTP server the next time OnionHEN launches.
   bool ftp_autoload = false;
-
-  // [shadowmount]
-  // Start ShadowMountPlus the next time OnionHEN launches.
-  bool shadowmount_autoload = false;
+  // TCP listen port for the built-in FTP server (1..65535).
+  int ftp_port = kFtpPortDefault;
 
   // [toolbox]
   // 0 = system (default), 1 = zh-Hans, 2 = en, 3 = ar, 4 = zh-Hant,

@@ -44,15 +44,6 @@ bool onion_payload_running(const char *title_id);
 pid_t onion_payload_launch_elfldr(const char *title_id, const uint8_t *elf,
                                   size_t elf_sz);
 
-/**
- * Stage a built-in ELF under /data/OnionHEN/.runtime/@runtime_filename, launch
- * it through the private loader with optional @args, unlink the staging file,
- * and record the PID. @runtime_filename is a basename only.
- */
-pid_t onion_payload_launch_runtime(const char *title_id, const uint8_t *elf,
-                                   size_t elf_sz, const char *runtime_filename,
-                                   const char *args);
-
 /** malloc'd file contents; caller free(). NULL on error. */
 uint8_t *onion_payload_read_file(const char *path, size_t *out_size);
 

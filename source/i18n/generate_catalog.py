@@ -26,7 +26,7 @@ DUPLICATED_INTERNAL_SPACE = re.compile(r"\S {2,}\S")
 
 REQUIRED_TOKENS = {
     "toolbox": {
-        "group.payloads.sub": ("Kstuff", "FTP", "ShadowMount+"),
+        "group.payloads.sub": ("Kstuff", "FTP"),
         "ftp.group": ("FTP",),
         "ftp.run": ("FTP",),
         "ftp.autoload": ("FTP",),
@@ -40,11 +40,6 @@ REQUIRED_TOKENS = {
             "OnionHEN_crash.log",
             "https://github.com/aydencharles/onionHEN/issues",
         ),
-        "notify.shadowmount.enabled": ("ShadowMount+",),
-        "notify.shadowmount.disabled": ("ShadowMount+",),
-        "notify.shadowmount.toggle_failed": ("ShadowMount+",),
-        "notify.shadowmount.next_boot_on": ("ShadowMount+",),
-        "notify.shadowmount.next_boot_off": ("ShadowMount+",),
     },
 }
 

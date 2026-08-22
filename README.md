@@ -64,9 +64,8 @@ OnionHEN is a practical homebrew stack for jailbroken PS5 consoles.
 - **ShellUI Toolbox** — a settings page injected into the PS5 ShellUI
 - **System preparation** — raise privileges, remount filesystems, and block the update partition
 - **fSELF / fPKG** — bundled kstuff for homebrew SELF / PKG; loads by default, can be turned off in the Toolbox
-- **PS5 FTP server** — built-in plugin on port `1337`
+- **PS5 FTP server** — built-in source module with configurable port
 - **Remote Play pairing** — enable the native PS5 Remote Play service, generate a pairing PIN, and register a client from the Network section
-- **ShadowMountPlus** — built-in plugin that scans and mounts games
 - **User payload manager** — start and stop user-provided `.elf` payloads, with optional auto-start
 - **Game overlay** — an in-game bar for FPS, CPU, GPU, RAM, temperatures, and network info
 - **Cheat engine** — local JSON, SHN, MC4, and ShnExt files that can be toggled at runtime
@@ -102,16 +101,17 @@ Startup is sequential. After the first hop, OnionHEN uses its own
 OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstuff.elf → daemon.elf → Toolbox
 ```
 
-If `ftp.autoload` or `shadowmount.autoload` is enabled, those payloads start
-after `kstuff` and before the daemon.
+If `ftp.autoload` is enabled, the built-in FTP module starts after `kstuff` and
+before the daemon.
 
 ### FTP server
 
-The embedded PS5 FTP server is available from **Toolbox → Plugins → FTP
-server**. One switch starts or stops it in the current session. A separate
-switch starts it the next time OnionHEN launches. The server listens on port
-`1337` and includes the upstream `ftpsrv` commands such as `KILL`, `SELF`,
-`SCHK`, `MTRW`, and `AUTHID` where supported.
+The PS5 FTP server is available from **Toolbox → Plugins → FTP server**. One
+switch starts or stops it in the current session. A separate switch starts it
+the next time OnionHEN launches. The plugin page accepts ports from `1` to
+`65535` and applies a new port by restarting the in-process listener. It
+includes the upstream `ftpsrv` commands such as `KILL`, `SELF`, `SCHK`, `MTRW`,
+and `AUTHID` where supported.
 
 ### Remote Play
 
@@ -126,15 +126,6 @@ Play service to confirm the registered device.
 The feature provides pairing and registration only. Video streaming and client
 transport remain handled by Sony's native Remote Play service.
 
-### ShadowMountPlus
-
-ShadowMountPlus is available from **Toolbox → Plugins**. One switch starts or
-stops it in the current session. A separate switch starts it the next time
-OnionHEN launches. It scans and mounts game sources while running. The
-embedded payload is the
-[`1.6beta16`](https://github.com/drakmor/ShadowMountPlus/releases/tag/1.6beta16)
-release ELF.
-
 ### Payloads
 
 Place standalone payloads in:
@@ -145,6 +136,12 @@ Place standalone payloads in:
 
 Only plain `.elf` files are supported. Auto-start can be turned on in the Toolbox;
 OnionHEN remembers that choice with a matching `.auto_start` file next to the ELF.
+
+The built-in service identities `kstuff`, `ftpsrv`, and `ftpsrv-ps5` are also
+valid user Payload names. They remain visible to the Payload page and can be
+started or auto-started through the normal loader. The loader does not reject
+them by filename. If a user FTP Payload and the built-in FTP module use the
+same TCP port, normal socket ownership applies and only one can bind it.
 
 ### Cheats
 
@@ -177,10 +174,9 @@ Cheats load from disk. If a file changes, OnionHEN reloads it without restarting
 | `lzma` or `xz` | Compress the bootstrapper |
 | Git and `curl` or `wget` | Initialize submodules and fetch external payload inputs |
 
-The build uses pinned [`drakmor/ftpsrv`](https://github.com/drakmor/ftpsrv)
-`nexgen` source, with the `1.15-ng-stable` release ELF as fallback, and the
-[`ShadowMountPlus 1.6beta16`](https://github.com/drakmor/ShadowMountPlus/releases/tag/1.6beta16)
-release ELF.
+The build compiles the pinned [`drakmor/ftpsrv`](https://github.com/drakmor/ftpsrv)
+`nexgen` source directly into the util ELF. No standalone FTP ELF is
+downloaded or embedded.
 
 ### Full build
 
@@ -278,7 +274,7 @@ default from [`config.ini.example`](config.ini.example).
 | `shortcuts.cheats_menu` | `off` | `off`, `r3_l3`, `l2_triangle`, `long_options`, `long_share`, `share` |
 | `shortcuts.toolbox` | `off` | `off`, `l2_r3`, `long_share`, `share` |
 | `ftp.autoload` | `false` | `true`, `false` |
-| `shadowmount.autoload` | `false` | `true`, `false` |
+| `ftp.port` | `1337` | `1` through `65535` |
 
 ### Runtime data
 
@@ -288,8 +284,7 @@ default from [`config.ini.example`](config.ini.example).
 | `/data/OnionHEN/cheats/` | Cheat files |
 | `/data/OnionHEN/cheats_tmp/` | Temporary HTTPS ZIP and extraction files (removed after sync) |
 | `/data/OnionHEN/kstuff.elf` | Optional replacement for the embedded `kstuff` |
-| `shadowmountplus` | Embedded ShadowMountPlus `1.6beta16` ELF |
-| `ftpsrv` | Embedded FTP payload on port `1337` |
+| `ftpsrv` | In-process FTP source module; default port `1337` |
 | `/data/OnionHEN/OnionHEN.log` | Main runtime log |
 | `/data/OnionHEN/OnionHEN_crash.log` | Preserved daemon signal and backtrace log |
 | `/data/OnionHEN/OnionHEN_util_daemon.log` | Utility daemon log |
@@ -386,8 +381,7 @@ OnionHEN exists because of the PS5 homebrew and reverse-engineering community.
 - [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) — Prospero toolchain and headers
 - [elfldr](https://github.com/ps5-payload-dev/elfldr) — first-hop loader on port 9021; not shipped in the payload
 - [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch, sleirsgoevy, and contributors; optional `kstuff.elf`
-- [ftpsrv](https://github.com/drakmor/ftpsrv) — drakmor and upstream contributors; embedded PS5 FTP server from `nexgen`
-- [ShadowMountPlus](https://github.com/drakmor/ShadowMountPlus) — Drakmor; evolved from ShadowMount by VoidWhisper; embedded game scanner/mounter
+- [ftpsrv](https://github.com/drakmor/ftpsrv) — drakmor and upstream contributors; in-process PS5 FTP server from `nexgen`
 - [libhijacker](https://github.com/astrelsky/libhijacker) — astrelsky; process hijack and kernel R/W
 - [NineS](https://github.com/buzzer-re/NineS) — buzzer-re; ShellUI injection
 - [cJSON](https://github.com/DaveGamble/cJSON) — JSON parsing

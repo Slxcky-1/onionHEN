@@ -77,8 +77,7 @@ const OnPressExactEntry *onpress_plugins_exact(size_t *count);
 OnPressResult onpress_kstuff_autoload(OnPressContext &ctx);
 OnPressResult onpress_ftp_run(OnPressContext &ctx);
 OnPressResult onpress_ftp_autoload(OnPressContext &ctx);
-OnPressResult onpress_shadowmount_run(OnPressContext &ctx);
-OnPressResult onpress_shadowmount_autoload(OnPressContext &ctx);
+OnPressResult onpress_ftp_port(OnPressContext &ctx);
 OnPressResult onpress_delete_kstuff(OnPressContext &ctx);
 
 /** Shared toggle helpers. */

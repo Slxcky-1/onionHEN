@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sync / build external dependencies for OnionHEN.
 #
-# Embedded payload inputs: kstuff.elf, source-built ftpsrv, and the ShadowMountPlus release ELF
+# Embedded payload input: kstuff.elf
 # Also built from source: onion_elfldr.elf (private 9020 runtime loader)
 # Removed: external elfldr.elf (9021 service), ps5debug, ps5-app-dumper, Byepervisor/hen.bin
 #
@@ -19,13 +19,6 @@ FORCE_DOWNLOAD=0
 
 KSTUFF_URL="https://github.com/EchoStretch/kstuff-lite/releases/download/v1.10/kstuff.elf"
 KSTUFF_SOURCE_DIR="${TP}/kstuff-lite"
-FTPSRV_URL="https://github.com/drakmor/ftpsrv/releases/download/1.15-ng-stable/ftpsrv-ps5.elf"
-FTPSRV_SHA256="913a443af847b6861ec11748e2640f62d1fc1027076f576aa0ddccab8507311f"
-FTPSRV_SOURCE_DIR="${TP}/ftpsrv"
-SHADOWMOUNT_URL="https://github.com/drakmor/ShadowMountPlus/releases/download/1.6beta16/shadowmountplus.elf"
-SHADOWMOUNT_SHA256="a35246fb3bb6042b25653b51cdcbc33254b40339342bf1d2dd0d2eceee2ca526"
-SHADOWMOUNT_RELEASE_TAG="1.6beta16"
-FTPSRV_SOURCE_REV="b6c4784f33d6fc8d26f719f7dc9e1cc9bb8d58cd"
 # Real release blob is hundreds of KB+; stubs are tiny markers.
 KSTUFF_MIN_BYTES=65536
 
@@ -40,14 +33,12 @@ Sync OnionHEN external dependencies from open-source upstreams.
 
 Submodules (under third_party/):
   kstuff-lite      https://github.com/EchoStretch/kstuff-lite
-  ftpsrv           pinned nexgen source, fallback release 1.15-ng-stable
+  ftpsrv           compiled from the pinned source directly into util
 
 Runtime-only external dependency:
   elfldr @ 9021    https://github.com/ps5-payload-dev/elfldr
                   Required only for initial bootstrap; OnionHEN starts
                   onion_elfldr.elf @ 9020 for runtime launches.
-
-  ShadowMountPlus   verified upstream release ELF ${SHADOWMOUNT_RELEASE_TAG}
 
 Removed from OnionHEN (not synced):
   external elfldr.elf (9021 service), ps5debug, ps5-app-dumper, Byepervisor/hen.bin
@@ -149,15 +140,6 @@ kstuff_looks_cached() {
   return 0
 }
 
-ftpsrv_looks_cached() {
-  local path="$1"
-  [[ -f "${path}" ]] || return 1
-  local sz
-  sz="$(wc -c < "${path}" | tr -d ' ')"
-  [[ "${sz}" -ge 65536 ]] || return 1
-  ! head -c 16 "${path}" 2>/dev/null | grep -q 'OnionHEN-STUB'
-}
-
 sync_kstuff() {
   local dest="${CACHE}/kstuff.elf"
 
@@ -200,74 +182,6 @@ sync_kstuff() {
   die "kstuff.elf unavailable (prefer release download)"
 }
 
-sync_ftpsrv() {
-  local dest="${CACHE}/ftpsrv-ps5.elf"
-  local source_elf="${FTPSRV_SOURCE_DIR}/ftpsrv-ps5.elf"
-  local stamp="${CACHE}/ftpsrv-ps5.source-rev"
-
-  if [[ "${FORCE_DOWNLOAD}" -eq 0 ]] && ftpsrv_looks_cached "${dest}" &&
-     [[ -f "${stamp}" ]] && [[ "$(<"${stamp}")" == "${FTPSRV_SOURCE_REV}" ]]; then
-    ok "ftpsrv-ps5.elf source build already present ($(wc -c < "${dest}" | tr -d ' ') bytes)"
-    return 0
-  fi
-
-  if [[ -f "${FTPSRV_SOURCE_DIR}/Makefile.ps5" ]]; then
-    need_sdk
-    log "ftpsrv: build pinned third_party/ftpsrv source"
-    make -C "${FTPSRV_SOURCE_DIR}" -f Makefile.ps5 clean
-    make -C "${FTPSRV_SOURCE_DIR}" -f Makefile.ps5 \
-      PS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}"
-    [[ -f "${source_elf}" ]] || die "ftpsrv build did not produce ${source_elf}"
-    place "${source_elf}" "${dest}"
-    printf '%s' "${FTPSRV_SOURCE_REV}" > "${stamp}"
-    return 0
-  fi
-
-  [[ "${FROM_SOURCE}" -eq 0 ]] || die "missing ftpsrv source: ${FTPSRV_SOURCE_DIR}"
-  log "ftpsrv: source unavailable, download release 1.15-ng-stable"
-  if download_verified "${FTPSRV_URL}" "${dest}" "${FTPSRV_SHA256}"; then
-    rm -f "${stamp}"
-    ok "ftpsrv-ps5.elf (1.15-ng-stable fallback)"
-    return 0
-  fi
-  if [[ "${STUB_MISSING}" -eq 1 ]]; then
-    stub "${dest}" "ftpsrv-ps5.elf"
-    return 0
-  fi
-  die "ftpsrv source and release are unavailable"
-}
-
-shadowmount_looks_cached() {
-  local path="$1"
-  [[ -f "${path}" ]] || return 1
-  local sz
-  sz="$(wc -c < "${path}" | tr -d ' ')"
-  [[ "${sz}" -ge 65536 ]] || return 1
-  ! head -c 16 "${path}" 2>/dev/null | grep -q 'OnionHEN-STUB'
-}
-
-sync_shadowmount() {
-  local dest="${CACHE}/shadowmountplus.elf"
-
-  if [[ "${FORCE_DOWNLOAD}" -eq 0 ]] && shadowmount_looks_cached "${dest}" &&
-     [[ "$(file_sha256 "${dest}")" == "${SHADOWMOUNT_SHA256}" ]]; then
-    ok "shadowmountplus.elf already present ($(wc -c < "${dest}" | tr -d ' ') bytes)"
-    return 0
-  fi
-
-  log "shadowmount: download release ${SHADOWMOUNT_RELEASE_TAG}"
-  if download_verified "${SHADOWMOUNT_URL}" "${dest}" "${SHADOWMOUNT_SHA256}"; then
-    rm -f "${CACHE}/shadowmountplus.source-rev"
-    ok "shadowmountplus.elf (${SHADOWMOUNT_RELEASE_TAG})"
-    return 0
-  fi
-  if [[ "${STUB_MISSING}" -eq 1 ]]; then
-    stub "${dest}" "shadowmountplus.elf"
-    return 0
-  fi
-  die "ShadowMountPlus release ${SHADOWMOUNT_RELEASE_TAG} is unavailable"
-}
-
 main() {
   log "OnionHEN dependency sync"
   echo "  third_party = ${TP}"
@@ -279,17 +193,13 @@ main() {
     init_submodules
   elif [[ ! -d "${TP}/kstuff-lite" ]]; then
     warn "submodules not checked out — run: git submodule update --init --recursive"
-    warn "kstuff/ftpsrv/ShadowMountPlus release downloads still work without submodules"
+    warn "kstuff release downloads still work without submodules"
   fi
 
   sync_kstuff
-  sync_ftpsrv
-  sync_shadowmount
 
   log "Dependency sync done"
   ls -lah "${CACHE}/kstuff.elf" 2>/dev/null || true
-  ls -lah "${CACHE}/ftpsrv-ps5.elf" 2>/dev/null || true
-  ls -lah "${CACHE}/shadowmountplus.elf" 2>/dev/null || true
 }
 
 main

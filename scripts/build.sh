@@ -4,7 +4,7 @@
 # Phases:
 #   1) configure (prospero-cmake / PS5 payload SDK)
 #   2) build libs + shellui
-#   3) build/stage dependency payloads (kstuff, ftpsrv, ShadowMountPlus)
+#   3) stage the kstuff dependency; ftpsrv is compiled into util from source
 #   4) build daemon + util
 #   5) build bootstrapper  (-> bin/bootstrapper.elf + .lzma)
 #   6) build unpacker / OnionHEN.elf   (embeds bootstrapper.elf.lzma)
@@ -90,8 +90,7 @@ Third-party (pinned source under third_party/ + release fallbacks):
   See third_party/README.md and scripts/sync_dependencies.sh
 
   kstuff.elf              <- EchoStretch/kstuff-lite
-  ftpsrv-ps5.elf          <- drakmor/ftpsrv (nexgen), staged by sync_dependencies.sh
-  shadowmountplus.elf     <- drakmor/ShadowMountPlus 1.6beta16 release ELF
+  ftpsrv                  <- drakmor/ftpsrv source, compiled into util
 
   External elfldr @ 9021 is required for initial bootstrap but is not vendored.
   OnionHEN embeds its private runtime loader as onion_elfldr.elf @ 9020.
@@ -302,8 +301,6 @@ configure() {
     -G Ninja \
     -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
     -DONIONHEN_KSTUFF_ELF="${CACHE}/kstuff.elf" \
-    -DONIONHEN_FTPSRV_ELF="${CACHE}/ftpsrv-ps5.elf" \
-    -DONIONHEN_SHADOWMOUNT_ELF="${CACHE}/shadowmountplus.elf" \
     -DPS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK}"
   ok "configured -> ${BUILD}"
 }
@@ -360,7 +357,7 @@ main() {
     ok "built ${f}"
   done
 
-  # Phase 3 — bootstrapper (embeds daemon/util + kstuff + ftpsrv + ShadowMountPlus + assets)
+  # Phase 3 — bootstrapper (embeds daemon/util + kstuff + assets)
   log "Phase 3/5: bootstrapper"
   build_targets bootstrapper bootstrapper_packed
 

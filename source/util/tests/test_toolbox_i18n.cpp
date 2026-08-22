@@ -14,8 +14,7 @@ static int test_default_zh(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★OnionHEN 工具箱") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.pkg"), "内容安装与管理") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.payloads.sub"),
-                               "用户与自动启动 Payload；Kstuff、FTP 和 "
-                               "ShadowMount+ 插件") == 0);
+                               "用户与自动启动 Payload；Kstuff、FTP 插件") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.game"), "游戏辅助") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.game.sub"),
                                "管理游戏金手指与下载金手指合集") == 0);
@@ -72,8 +71,7 @@ static int test_en(void) {
   TEST_ASSERT_TRUE(std::strcmp(tr("root.title"), "★OnionHEN Toolbox") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.pkg"), "Content Install & Management") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.payloads.sub"),
-                               "User and auto-start payloads; Kstuff, FTP, "
-                               "and ShadowMount+ plugins") == 0);
+                               "User and auto-start payloads; Kstuff and FTP plugins") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.game"), "Game Tools") == 0);
   TEST_ASSERT_TRUE(std::strcmp(tr("group.game.sub"),
                                "Manage cheats and download the cheat "

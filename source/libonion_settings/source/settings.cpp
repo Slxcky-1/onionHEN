@@ -591,8 +591,8 @@ bool apply_parser(IniParser *parser, Settings *out) {
       parse_bool(ini_get(parser, "kstuff.autoload"), out->kstuff_autoload);
   out->ftp_autoload =
       parse_bool(ini_get(parser, "ftp.autoload"), out->ftp_autoload);
-  out->shadowmount_autoload = parse_bool(
-      ini_get(parser, "shadowmount.autoload"), out->shadowmount_autoload);
+  out->ftp_port = parse_int_range(ini_get(parser, "ftp.port"), out->ftp_port,
+                                  1, 65535);
   return true;
 }
 
@@ -762,13 +762,12 @@ std::string settings_serialize(const Settings &in) {
   b += "# Available values: true, false\n";
   b += "autoload=" + bool_text(in.kstuff_autoload) + "\n";
   b += "\n[ftp]\n";
-  b += "# autoload starts the embedded FTP server the next time OnionHEN launches.\n";
+  b += "# autoload starts the built-in FTP server the next time OnionHEN launches.\n";
   b += "# Available values: true, false\n";
   b += "autoload=" + bool_text(in.ftp_autoload) + "\n";
-  b += "\n[shadowmount]\n";
-  b += "# autoload starts ShadowMountPlus the next time OnionHEN launches.\n";
-  b += "# Available values: true, false\n";
-  b += "autoload=" + bool_text(in.shadowmount_autoload) + "\n";
+  b += "# port selects the TCP listen port for the built-in server.\n";
+  b += "# Available values: 1 through 65535\n";
+  b += "port=" + std::to_string(in.ftp_port) + "\n";
   return b;
 }
 

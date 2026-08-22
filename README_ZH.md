@@ -63,9 +63,8 @@ OnionHEN 面向已越狱的 PS5，提供一套能日常使用、也方便维护�
 - **ShellUI 工具箱** — 注入 PS5 ShellUI 的设置页
 - **系统准备** — 提权、重新挂载文件系统、阻断系统更新分区
 - **fSELF / fPKG** — 内嵌 kstuff，用来跑自制 SELF / PKG；默认加载，可在工具箱关掉
-- **PS5 FTP 服务器** — 内置插件，端口 `1337`
+- **PS5 FTP 服务器** — 内置源码模块，端口可配置
 - **远程游玩配对** — 在网络菜单中启用 PS5 原生远程游玩服务、生成配对 PIN 并注册客户端
-- **ShadowMountPlus** — 内置插件，扫描并挂载游戏
 - **用户 Payload 管理** — 启动和停止用户添加的普通 `.elf` payload，可选自动启动
 - **游戏监控条** — 游戏中显示 FPS、CPU、GPU、内存、温度和网络信息
 - **金手指** — 本地 JSON、SHN、MC4、ShnExt 文件，运行中即可开关
@@ -100,14 +99,14 @@ OnionHEN 不内置内核漏洞。第一次引导仍需要外部 **9021** 上的 
 OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstuff.elf → daemon.elf → Toolbox
 ```
 
-若 `ftp.autoload` 或 `shadowmount.autoload` 已启用，对应 payload 在 `kstuff`
-之后、daemon 之前启动。
+若 `ftp.autoload` 已启用，内置 FTP 模块会在 `kstuff` 之后、daemon 之前启动。
 
 ### FTP 服务器
 
-内嵌的 PS5 FTP 服务器位于 **工具箱 → 插件 → FTP 服务器**。一个开关控制本次会话
-启停，另一个开关控制下次 OnionHEN 启动时是否自动运行。服务器监听 `1337` 端口，
-并包含上游 `ftpsrv` 的 `KILL`、`SELF`、`SCHK`、`MTRW`、`AUTHID` 等命令（视固件支持而定）。
+PS5 FTP 服务器位于 **工具箱 → 插件 → FTP 服务器**。一个开关控制本次会话启停，
+另一个开关控制下次 OnionHEN 启动时是否自动运行。插件页支持 `1` 到 `65535` 的端口，
+修改端口时会重启内置监听线程，并包含上游 `ftpsrv` 的 `KILL`、`SELF`、`SCHK`、
+`MTRW`、`AUTHID` 等命令（视固件支持而定）。
 
 ### 远程游玩
 
@@ -119,14 +118,6 @@ OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstu
 
 此功能只负责配对和设备注册。视频串流与客户端传输仍由 Sony 的原生远程游玩服务处理。
 
-### ShadowMountPlus
-
-ShadowMountPlus 位于 **工具箱 → 插件**。一个开关控制本次会话启停，另一个开关
-控制下次 OnionHEN 启动时是否自动运行。运行期间会扫描并挂载游戏来源。内嵌
-payload 是
-[`1.6beta16`](https://github.com/drakmor/ShadowMountPlus/releases/tag/1.6beta16)
-release ELF。
-
 ### Payload
 
 把独立 payload 放到：
@@ -137,6 +128,11 @@ release ELF。
 
 只支持普通 `.elf`。可在工具箱里打开自动启动；OnionHEN 会在 ELF 旁边写一个
 同名的 `.auto_start` 文件记住这个选择。
+
+`kstuff`、`ftpsrv` 和 `ftpsrv-ps5` 是内置服务身份，但同名文件仍然是合法的
+用户 Payload。它们会正常显示在 Payload 页，也可以通过共享加载器或自动启动
+运行，加载器不会按文件名拒绝它们。若用户 FTP Payload 与内置 FTP 模块使用
+相同 TCP 端口，则遵循正常的套接字占用规则，只有一个服务能够绑定成功。
 
 ### 金手指
 
@@ -169,10 +165,8 @@ release ELF。
 | `lzma` 或 `xz` | 压缩 bootstrapper |
 | Git 与 `curl` 或 `wget` | 初始化 submodule 并获取外部 payload 输入 |
 
-构建使用固定的 [`drakmor/ftpsrv`](https://github.com/drakmor/ftpsrv)
-`nexgen` 源码（不可用时使用 `1.15-ng-stable` release ELF），以及
-[`ShadowMountPlus 1.6beta16`](https://github.com/drakmor/ShadowMountPlus/releases/tag/1.6beta16)
-release ELF。
+构建会将固定的 [`drakmor/ftpsrv`](https://github.com/drakmor/ftpsrv)
+`nexgen` 源码直接编译进 util，不再下载或嵌入独立 FTP ELF。
 
 ### 完整构建
 
@@ -267,7 +261,7 @@ OnionHEN 在下面两处读写同一份配置：
 | `shortcuts.cheats_menu` | `off` | `off`, `r3_l3`, `l2_triangle`, `long_options`, `long_share`, `share` |
 | `shortcuts.toolbox` | `off` | `off`, `l2_r3`, `long_share`, `share` |
 | `ftp.autoload` | `false` | `true`, `false` |
-| `shadowmount.autoload` | `false` | `true`, `false` |
+| `ftp.port` | `1337` | `1` 到 `65535` |
 
 ### 运行时数据
 
@@ -277,9 +271,7 @@ OnionHEN 在下面两处读写同一份配置：
 | `/data/OnionHEN/cheats/` | 金手指文件 |
 | `/data/OnionHEN/cheats_tmp/` | HTTPS ZIP 与解压临时文件（同步后清理） |
 | `/data/OnionHEN/kstuff.elf` | 可选，用来替换内嵌的 `kstuff` |
-| `/data/shadowmount/config.ini` | ShadowMountPlus 运行时配置 |
-| `shadowmountplus` | 内嵌的 ShadowMountPlus `1.6beta16` ELF |
-| `ftpsrv` | 内嵌 FTP payload，端口 `1337` |
+| `ftpsrv` | util 内置 FTP 源码模块，默认端口 `1337` |
 | `/data/OnionHEN/OnionHEN.log` | 主运行日志 |
 | `/data/OnionHEN/OnionHEN_crash.log` | 保留的 daemon 崩溃信号与回溯日志 |
 | `/data/OnionHEN/OnionHEN_util_daemon.log` | Utility daemon 日志 |
@@ -376,8 +368,7 @@ OnionHEN 离不开 PS5 自制软件与逆向工程社区。
 - [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) — Prospero 工具链与头文件
 - [elfldr](https://github.com/ps5-payload-dev/elfldr) — 端口 9021 的首次引导加载器；不打进 payload
 - [kstuff-lite](https://github.com/EchoStretch/kstuff-lite) — EchoStretch、sleirsgoevy 与贡献者；可选的 `kstuff.elf`
-- [ftpsrv](https://github.com/drakmor/ftpsrv) — drakmor 与上游贡献者；来自 `nexgen` 的内嵌 PS5 FTP 服务器
-- [ShadowMountPlus](https://github.com/drakmor/ShadowMountPlus) — Drakmor；由 VoidWhisper 的 ShadowMount 演进而来；内嵌游戏扫描/挂载器
+- [ftpsrv](https://github.com/drakmor/ftpsrv) — drakmor 与上游贡献者；来自 `nexgen` 的内置 PS5 FTP 源码模块
 - [libhijacker](https://github.com/astrelsky/libhijacker) — astrelsky；进程劫持与内核读写
 - [NineS](https://github.com/buzzer-re/NineS) — buzzer-re；注入 ShellUI
 - [cJSON](https://github.com/DaveGamble/cJSON) — JSON 解析

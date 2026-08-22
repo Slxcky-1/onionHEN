@@ -18,6 +18,7 @@ along with this program; see the file COPYING. If not, see
 #include "cheats/cheat_service.hpp"
 #include "util_language.h"
 #include "util_toolbox.h"
+#include "service_facade.hpp"
 #include <onion/settings.hpp>
 #include <onion/log_settings.hpp>
 #include <onion/platform.h>
@@ -56,6 +57,7 @@ extern "C" {
 extern bool is_handler_enabled;
 
 onion::SettingsStore g_settings;
+static bool g_services_initialized = false;
 void start_ip_thread(void);
 void* IPC_loop(void* args);
 bool shellui_patch(void);
@@ -74,6 +76,7 @@ void __stack_chk_fail(void) {
 }
 
 bool LoadSettings() {
+    const onion::Settings previous = g_settings.snapshot();
     onion::Settings s{};
     if (!onion::settings_load(&s)) {
         LOG_ERROR("config.ini missing; using defaults (path primary=%s)",
@@ -91,6 +94,21 @@ bool LoadSettings() {
 
     g_settings.store(s);
     util_apply_ui_language(s.ui_lang);
+
+    if (!g_services_initialized) {
+        g_services_initialized = true;
+        if (s.ftp_autoload &&
+            !onion::services::ftpService().start(
+                static_cast<uint16_t>(s.ftp_port))) {
+            LOG_WARN("FTP autoload failed on TCP %d", s.ftp_port);
+        }
+    } else if (previous.ftp_port != s.ftp_port &&
+               onion::services::ftpService().running()) {
+        if (!onion::services::ftpService().reconfigure(
+                static_cast<uint16_t>(s.ftp_port))) {
+            LOG_WARN("FTP port reconfigure failed on TCP %d", s.ftp_port);
+        }
+    }
     /* Missing file is not an error — defaults were applied. */
     return true;
 }

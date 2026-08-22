@@ -3,7 +3,6 @@
 #include "test_support.h"
 
 #include <onion/payload.h>
-#include <onion/builtin_services.h>
 #include <elfldr_remote.h>
 
 #include <stdio.h>
@@ -155,47 +154,13 @@ static int test_load_requires_real_pid(void) {
   return 0;
 }
 
-static int test_reserved_service_keys(void) {
-  TEST_ASSERT_TRUE(onion_builtin_ftp_key("ftpsrv"));
-  TEST_ASSERT_TRUE(onion_builtin_ftp_key("FTPSRV-PS5"));
-  TEST_ASSERT_TRUE(!onion_builtin_ftp_key("shadowmountplus"));
-  TEST_ASSERT_TRUE(onion_builtin_shadowmount_key("ShadowMountPlus"));
-  TEST_ASSERT_TRUE(onion_builtin_service_key_reserved("ftpsrv"));
-  TEST_ASSERT_TRUE(onion_builtin_service_key_reserved("FTPSRV-PS5"));
-  TEST_ASSERT_TRUE(onion_builtin_service_key_reserved("shadowmountplus"));
-  TEST_ASSERT_TRUE(!onion_builtin_service_key_reserved("my-payload"));
-  TEST_ASSERT_TRUE(!onion_builtin_service_key_reserved("smp"));
-  return 0;
-}
-
 static int test_payload_running_without_live_pid(void) {
   TEST_ASSERT_TRUE(!onion_payload_running(NULL));
   TEST_ASSERT_TRUE(!onion_payload_running("missing-title"));
   return 0;
 }
 
-static int test_launch_runtime_records_pid(void) {
-  const unsigned char elf[8] = {0x7F, 'E', 'L', 'F', 2, 1, 1, 0};
-  char pid_path[256];
-
-  onion_test_elfldr_reset();
-  onion_test_elfldr_configure(true, 5151);
-  TEST_ASSERT_EQ_INT(
-      5151, (int)onion_payload_launch_runtime("ftpsrv", elf, sizeof(elf),
-                                              "ftpsrv.elf", "-p 1337"));
-  onion_payload_pid_path(pid_path, sizeof(pid_path), "ftpsrv");
-  TEST_ASSERT_EQ_INT(5151, (int)onion_payload_read_pid_file(pid_path));
-  TEST_ASSERT_EQ_INT(1, onion_test_elfldr_launch_calls());
-  TEST_ASSERT_EQ_INT(-1, (int)onion_payload_launch_runtime(
-                             "bad/key", elf, sizeof(elf), "ftpsrv.elf", NULL));
-  TEST_ASSERT_EQ_INT(-1, (int)onion_payload_launch_runtime(
-                             "ftpsrv", elf, sizeof(elf), "../escape.elf",
-                             NULL));
-  onion_test_remove_file(pid_path);
-  return 0;
-}
-
-static int test_legacy_user_payloads_still_load(void) {
+static int test_builtin_identity_payloads_allowed(void) {
   char path[256];
   const unsigned char elf[8] = {0x7F, 'E', 'L', 'F', 2, 1, 1, 0};
 
@@ -204,14 +169,19 @@ static int test_legacy_user_payloads_still_load(void) {
 
   onion_test_elfldr_reset();
   onion_test_elfldr_configure(true, 5151);
+  TEST_ASSERT_EQ_INT(5151, (int)onion_payload_launch_elfldr(
+                             "ftpsrv", elf, sizeof(elf)));
   TEST_ASSERT_TRUE(onion_payload_load(path, "ftpsrv.elf"));
-  TEST_ASSERT_TRUE(onion_payload_load(path, "shadowmountplus.elf"));
-  TEST_ASSERT_EQ_INT(2, onion_test_elfldr_launch_calls());
+  TEST_ASSERT_TRUE(onion_payload_load(path, "ftpsrv-ps5.elf"));
+  TEST_ASSERT_TRUE(onion_payload_load(path, "kstuff.elf"));
+  TEST_ASSERT_EQ_INT(4, onion_test_elfldr_launch_calls());
 
   char pid_path[256];
   onion_payload_pid_path(pid_path, sizeof(pid_path), "ftpsrv");
   onion_test_remove_file(pid_path);
-  onion_payload_pid_path(pid_path, sizeof(pid_path), "shadowmountplus");
+  onion_payload_pid_path(pid_path, sizeof(pid_path), "ftpsrv-ps5");
+  onion_test_remove_file(pid_path);
+  onion_payload_pid_path(pid_path, sizeof(pid_path), "kstuff");
   onion_test_remove_file(pid_path);
   onion_test_remove_file(path);
   return 0;
@@ -229,13 +199,9 @@ int test_payload_suite(void) {
                              test_strict_private_loader_policy);
   failures += onion_test_run("payload.load_requires_real_pid",
                              test_load_requires_real_pid);
-  failures += onion_test_run("payload.reserved_service_keys",
-                             test_reserved_service_keys);
   failures += onion_test_run("payload.running_without_live_pid",
                              test_payload_running_without_live_pid);
-  failures += onion_test_run("payload.launch_runtime_records_pid",
-                             test_launch_runtime_records_pid);
-  failures += onion_test_run("payload.legacy_user_payloads",
-                             test_legacy_user_payloads_still_load);
+  failures += onion_test_run("payload.builtin_identity_payloads_allowed",
+                             test_builtin_identity_payloads_allowed);
   return failures;
 }

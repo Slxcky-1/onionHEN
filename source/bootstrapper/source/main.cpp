@@ -49,7 +49,6 @@ along with this program; see the file COPYING. If not, see
 #include <string.h>
 #include <stdio.h>
 #include <onion/ready.h>
-#include <onion/builtin_services.h>
 #include <onion/settings.hpp>
 #include <onion/log_settings.hpp>
 #include <onion/platform.h>
@@ -78,10 +77,6 @@ along with this program; see the file COPYING. If not, see
 
  extern uint8_t kstuff_start[];
  extern const unsigned int kstuff_size;
- extern uint8_t ftpsrv_start[];
- extern const unsigned int ftpsrv_size;
- extern uint8_t shadowmount_start[];
- extern const unsigned int shadowmount_size;
 
  }
 
@@ -682,21 +677,6 @@ static bool launch_blob(const uint8_t *elf, size_t size, const char *label,
   return true;
 }
 
-static bool launch_private_service_blob(const uint8_t *elf, size_t size,
-                                        const char *label,
-                                        const char *runtime_filename,
-                                        const char *pid_key,
-                                        const char *args = nullptr) {
-  const pid_t pid = onion_payload_launch_runtime(pid_key, elf, size,
-                                                 runtime_filename, args);
-  if (pid <= 1) {
-    LOG_ERROR("failed to launch %s through private elfldr", label);
-    return false;
-  }
-  LOG_DEBUG("  running: %s pid=%d", label, static_cast<int>(pid));
-  return true;
-}
-
 /**
  * Launch util → kstuff → daemon via the selected elfldr port (serialized).
  * Soft-fails kstuff; hard-fails missing elfldr / util / daemon.
@@ -793,33 +773,6 @@ static int launch_chain(const OrbisKernelSwVersion &sys_ver) {
     onion_ready_signal(ONION_READY_KSTUFF);
   }
 
-  kill_by_name("ftpsrv.elf", "ftpsrv");
-  if (boot_settings.ftp_autoload) {
-    char ftp_args[32];
-    snprintf(ftp_args, sizeof(ftp_args), "-p %u", ONION_FTPSRV_PORT);
-    LOG_DEBUG("Loading ftpsrv on TCP %u via private %u ...",
-              ONION_FTPSRV_PORT, ONION_ELFLDR_PORT);
-    if (!launch_private_service_blob(
-            ftpsrv_start, (size_t)ftpsrv_size, "ftpsrv", "ftpsrv.elf",
-            "ftpsrv", ftp_args)) {
-      LOG_WARN("failed to launch ftpsrv; continuing without FTP service");
-    }
-  } else {
-    LOG_DEBUG("FTP server disabled (ftp.autoload=false)");
-  }
-
-  kill_by_name("shadowmountplus.elf", "shadowmountplus");
-  if (boot_settings.shadowmount_autoload) {
-    LOG_DEBUG("Loading ShadowMount+ via %u ...", g_payload_loader_port);
-    const bool launched = launch_private_service_blob(
-        shadowmount_start, (size_t)shadowmount_size, "shadowmountplus",
-        "shadowmountplus.elf", "shadowmountplus");
-    if (!launched)
-      LOG_WARN("failed to launch ShadowMount+; continuing without it");
-  } else {
-    LOG_DEBUG("ShadowMount+ disabled (shadowmount.autoload=false)");
-  }
-
   LOG_DEBUG("Starting daemon via %u (toolbox inject) ...",
               g_payload_loader_port);
   kill_by_name("onion_daemon.elf", "daemon.elf");
@@ -844,9 +797,6 @@ static void load_autostart_payloads(void) {
     return;
   }
 
-  onion::Settings autostart_settings{};
-  (void)onion::settings_load(&autostart_settings);
-
   char **payload_paths = find_payload_files();
   if (!payload_paths || payload_count <= 0)
     return;
@@ -855,16 +805,6 @@ static void load_autostart_payloads(void) {
   for (int i = 0; i < payload_count; i++) {
     if (strstr(payload_paths[i], "elfldr") != nullptr)
       continue;
-    char key[64];
-    if (onion_payload_elf_key_from_name(loaded_filenames[i], key,
-                                        sizeof(key)) &&
-        ((onion_builtin_ftp_key(key) && autostart_settings.ftp_autoload) ||
-         (onion_builtin_shadowmount_key(key) &&
-          autostart_settings.shadowmount_autoload))) {
-      LOG_WARN("skipping leftover %s; built-in service autoload is enabled",
-               loaded_filenames[i]);
-      continue;
-    }
     LOG_DEBUG("Loading payload: %s", payload_paths[i]);
     if (!load_payload(payload_paths[i], loaded_filenames[i])) {
       notify("notify.payload.load_failed_path", payload_paths[i]);

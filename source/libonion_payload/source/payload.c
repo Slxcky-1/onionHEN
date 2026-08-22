@@ -187,17 +187,16 @@ static bool valid_payload_key(const char *title_id) {
          strcmp(title_id, "..") != 0 && strchr(title_id, '/') == NULL;
 }
 
-static pid_t launch_via_onion(const char *title_id, const char *abs_path,
-                              const uint8_t *elf, size_t elf_sz,
-                              const char *args) {
+static pid_t launch_user_payload(const char *title_id, const char *abs_path,
+                                 const uint8_t *elf, size_t elf_sz) {
   if (!elfldr_remote_onion_available()) {
     LOG_ERROR("Private elfldr :%u unavailable; launch failed for %s",
               ONION_ELFLDR_PORT, title_id);
     return -1;
   }
 
-  const pid_t pid = elfldr_remote_onion_write_and_launch_get_pid_with_args(
-      abs_path, elf, elf_sz, args);
+  const pid_t pid =
+      elfldr_remote_onion_write_and_launch_get_pid(abs_path, elf, elf_sz);
   if (pid <= 1) {
     LOG_ERROR("Private elfldr :%u returned no valid PID for %s (pid=%d)",
               ONION_ELFLDR_PORT, title_id, (int)pid);
@@ -227,39 +226,7 @@ pid_t onion_payload_launch_elfldr(const char *title_id, const uint8_t *elf,
   char epath[256];
   snprintf(epath, sizeof(epath), "/data/OnionHEN/payloads/%s.elf", title_id);
   LOG_INFO("loading payload via elfldr key=%s path=%s", title_id, epath);
-  return launch_via_onion(title_id, epath, elf, elf_sz, NULL);
-}
-
-pid_t onion_payload_launch_runtime(const char *title_id, const uint8_t *elf,
-                                   size_t elf_sz, const char *runtime_filename,
-                                   const char *args) {
-  if (!valid_payload_key(title_id) || !runtime_filename ||
-      !runtime_filename[0] || strchr(runtime_filename, '/') != NULL ||
-      !onion_payload_is_elf(elf, elf_sz)) {
-    LOG_ERROR("launch_runtime: invalid args title=%s file=%s elf_sz=%zu",
-              title_id ? title_id : "(null)",
-              runtime_filename ? runtime_filename : "(null)", elf_sz);
-    return -1;
-  }
-
-  mkdir("/data/OnionHEN", 0777);
-  mkdir("/data/OnionHEN/.runtime", 0777);
-
-  char path[256];
-  const int written =
-      snprintf(path, sizeof(path), "/data/OnionHEN/.runtime/%s",
-               runtime_filename);
-  if (written <= 0 || (size_t)written >= sizeof(path))
-    return -1;
-
-  LOG_INFO("loading runtime ELF via elfldr key=%s path=%s", title_id, path);
-  const pid_t pid = launch_via_onion(title_id, path, elf, elf_sz, args);
-  (void)unlink(path);
-
-  char pid_path[256];
-  onion_payload_pid_path(pid_path, sizeof(pid_path), title_id);
-  onion_payload_write_pid_file(pid_path, pid);
-  return pid;
+  return launch_user_payload(title_id, epath, elf, elf_sz);
 }
 
 uint8_t *onion_payload_read_file(const char *path, size_t *out_size) {

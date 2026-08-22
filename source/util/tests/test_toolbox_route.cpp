@@ -100,7 +100,7 @@ static int test_plugin_config_page(void) {
 static int test_plugins_registry(void) {
   using namespace onion::plugins;
 
-  TEST_ASSERT_EQ_INT(3, static_cast<int>(kRegistrySize));
+  TEST_ASSERT_EQ_INT(2, static_cast<int>(kRegistrySize));
   TEST_ASSERT_TRUE(find_by_key("ftpsrv") != nullptr);
   TEST_ASSERT_TRUE(find_by_key("missing") == nullptr);
   TEST_ASSERT_TRUE(find_by_toggle_id("id_plugin_kstuff") != nullptr);

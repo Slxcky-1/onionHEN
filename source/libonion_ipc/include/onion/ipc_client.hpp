@@ -72,6 +72,8 @@ public:
   // High-level commands
   int GetDaemonPid();
   IPC_Ret ToggleSetting(DaemonCommands cmd, bool turn_on);
+  /** Query the in-process FTP module without inspecting a PID marker. */
+  bool FtpStatus();
   void KillDaemon();
   /** Crit Unix IPC: util → restart ShellUI → daemon exit (BREW_SHUTDOWN_STACK). */
   void ShutdownStack();
