@@ -452,7 +452,7 @@ int test_unknown_firmware_fails_closed(void) {
       static_cast<int>(onion::plugin_ui::Status::Ok),
       static_cast<int>(onion::plugin_ui::decode_document(make_document(), document)));
   const auto profile =
-      onion::shellui::dynamic_ui::FirmwareProfile::for_system_version(0x13000000);
+      onion::shellui::dynamic_ui::FirmwareProfile::for_system_version(0x14000000);
   const auto rendered =
       onion::shellui::dynamic_ui::render_page(document, "main", profile);
   TEST_ASSERT_EQ_INT(

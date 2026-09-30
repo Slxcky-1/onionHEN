@@ -77,6 +77,8 @@ OnionHEN is a practical homebrew stack for jailbroken PS5 consoles.
 - **Resilient runtime** — the critical daemon and utility daemon run apart; the main daemon can restart the utility
 - **Shared configuration** — the Toolbox and daemons use one versioned `config.ini`
 
+**Supported firmware:** 4.03 – 13.60. Kernel symbols for 13.00, 13.20, 13.40, 13.42, and 13.60 come from the Relapse offset tables (kdata-relative). Build against ps5-payload-sdk v0.42 or newer so `KERNEL_ADDRESS_*` also resolve on 13.60.
+
 OnionHEN does not include a kernel exploit. The first hop still needs an
 external `elfldr` on **9021**. After that, OnionHEN starts its own private
 loader on **9020** for later ELF and user-payload launches.
