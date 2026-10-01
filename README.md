@@ -65,7 +65,7 @@ OnionHEN is a practical homebrew stack for jailbroken PS5 consoles.
 - **System preparation** — raise privileges, remount filesystems, and block the update partition
 - **fSELF / fPKG** — bundled kstuff for homebrew SELF / PKG; loads by default, can be turned off in the Toolbox
 - **Plugin runtime** — discovers, validates, starts, stops, and removes descriptor-bearing plugin ELFs
-- **PS5 FTP server** — available as the optional external `onionHEN-ftpsrv-plugin`
+- **PS5 FTP server** — bundled `onionHEN-ftpsrv-plugin`, auto-starts on TCP **1337**
 - **ShadowMount+** — available as the optional external `onionHEN-shadowmountplus-plugin`
 - **Remote Play pairing** — enable the native PS5 Remote Play service, generate a pairing PIN, and register a client from the Network section
 - **User payload manager** — start and stop user-provided `.elf` payloads, with optional auto-start
@@ -111,12 +111,15 @@ ready.
 
 ### FTP server
 
-FTP is provided by the separate
-[`onionHEN-ftpsrv-plugin`](https://github.com/OnionBuddies/onionHEN-ftpsrv-plugin).
-Install it as `/data/OnionHEN/plugins/FTPS00001.elf`; OnionHEN discovers and
-starts the plugin, and its dynamic settings page provides enable, port, and
-restart controls. The plugin retains upstream `ftpsrv` commands such as
-`KILL`, `SELF`, `SCHK`, `MTRW`, and `AUTHID` where supported.
+OnionHEN embeds [`onionHEN-ftpsrv-plugin`](https://github.com/OnionBuddies/onionHEN-ftpsrv-plugin)
+and installs it to `/data/OnionHEN/plugins/FTPS00001.elf` on first boot, with
+auto-start enabled. The listener is **TCP 1337** by default. Toolbox → Plugins
+→ FTP Server has enable, port, and restart controls. Turning auto-start off
+keeps that choice on later boots. The bundled plugin is rebuilt from
+plugin `main` (`8823e89`) with `ftpsrv` 1.16-ng-stable, including on-the-fly
+SELF decryption through firmware 13.60. Upstream commands such as `KILL`,
+`SELF`, `SCHK`, `MTRW`, `AUTHID`, `LOWER`, and `UPPER` stay available where
+the firmware supports them.
 
 ### ShadowMount+
 

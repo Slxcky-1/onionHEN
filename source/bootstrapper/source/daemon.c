@@ -10,6 +10,9 @@
 #ifndef ONIONHEN_KSTUFF_ELF
 #define ONIONHEN_KSTUFF_ELF "../assets/kstuff.elf"
 #endif
+#ifndef ONIONHEN_FTPSRV_ELF
+#define ONIONHEN_FTPSRV_ELF "../assets/FTPS00001.elf"
+#endif
 #ifndef ONIONHEN_ICON_ASSET_DIR
 #define ONIONHEN_ICON_ASSET_DIR "../assets"
 #endif
@@ -79,5 +82,17 @@ __asm__(".intel_syntax noprefix\n"
     ".align  4\n"
     "kstuff_size:\n"
     ".int    kstuff_end - kstuff_start\n"
+
+    ".global ftpsrv_plugin_start\n"
+    ".type   ftpsrv_plugin_start, @object\n"
+    ".align  16\n"
+    "ftpsrv_plugin_start:\n"
+    ".incbin \"" ONIONHEN_FTPSRV_ELF "\"\n"
+    "ftpsrv_plugin_end:\n"
+    ".global ftpsrv_plugin_size\n"
+    ".type   ftpsrv_plugin_size, @object\n"
+    ".align  4\n"
+    "ftpsrv_plugin_size:\n"
+    ".int    ftpsrv_plugin_end - ftpsrv_plugin_start\n"
 
 );

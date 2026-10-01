@@ -21,6 +21,11 @@ KSTUFF_URL="https://github.com/EchoStretch/kstuff-lite/releases/download/v1.11/k
 KSTUFF_SOURCE_DIR="${TP}/kstuff-lite"
 # Real release blob is hundreds of KB+; stubs are tiny markers.
 KSTUFF_MIN_BYTES=65536
+# Official GitHub release v0.0.1 is 12.70-only. The bundled ELF is rebuilt from
+# onionHEN-ftpsrv-plugin 8823e89 (ftpsrv 1.16-ng-stable, SELF through 13.60).
+FTPSRV_URL=""
+FTPSRV_SHA256="400b4d0132584d1e20786d9dc50feda1d64cffd3ee4cbf6f2787b2788bb20888"
+FTPSRV_MIN_BYTES=65536
 
 log()  { printf '\n\033[1;34m==>\033[0m %s\n' "$*"; }
 ok()   { printf '\033[1;32m[ok]\033[0m %s\n' "$*"; }
@@ -180,6 +185,45 @@ sync_kstuff() {
   die "kstuff.elf unavailable (prefer release download)"
 }
 
+ftpsrv_looks_cached() {
+  local path="$1"
+  [[ -f "${path}" ]] || return 1
+  local sz
+  sz="$(wc -c < "${path}" | tr -d ' ')"
+  if [[ "${sz}" -lt "${FTPSRV_MIN_BYTES}" ]]; then
+    return 1
+  fi
+  if head -c 16 "${path}" 2>/dev/null | grep -q 'OnionHEN-STUB'; then
+    return 1
+  fi
+  return 0
+}
+
+sync_ftpsrv() {
+  local dest="${CACHE}/FTPS00001.elf"
+
+  if ftpsrv_looks_cached "${dest}"; then
+    local got
+    got="$(file_sha256 "${dest}")"
+    if [[ "${got}" == "${FTPSRV_SHA256}" ]]; then
+      ok "FTPS00001.elf 13.60 rebuild ($(wc -c < "${dest}" | tr -d ' ') bytes)"
+      return 0
+    fi
+    warn "FTPS00001.elf checksum mismatch (got ${got})"
+  fi
+
+  if [[ -n "${FTPSRV_URL}" ]] && download_verified "${FTPSRV_URL}" "${dest}" "${FTPSRV_SHA256}"; then
+    ok "FTPS00001.elf (onionHEN-ftpsrv-plugin 13.60 rebuild)"
+    return 0
+  fi
+
+  if [[ "${STUB_MISSING}" -eq 1 ]]; then
+    stub "${dest}" "FTPS00001.elf"
+    return 0
+  fi
+  die "FTPS00001.elf unavailable (rebuild onionHEN-ftpsrv-plugin main / 1.16-ng-stable; official GitHub v0.0.1 is 12.70-only)"
+}
+
 main() {
   log "OnionHEN dependency sync"
   echo "  third_party = ${TP}"
@@ -195,9 +239,10 @@ main() {
   fi
 
   sync_kstuff
+  sync_ftpsrv
 
   log "Dependency sync done"
-  ls -lah "${CACHE}/kstuff.elf" 2>/dev/null || true
+  ls -lah "${CACHE}/kstuff.elf" "${CACHE}/FTPS00001.elf" 2>/dev/null || true
 }
 
 main

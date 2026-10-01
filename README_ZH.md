@@ -64,7 +64,7 @@ OnionHEN 面向已越狱的 PS5，提供一套能日常使用、也方便维护�
 - **系统准备** — 提权、重新挂载文件系统、阻断系统更新分区
 - **fSELF / fPKG** — 内嵌 kstuff，用来跑自制 SELF / PKG；默认加载，可在工具箱关掉
 - **插件运行时** — 发现、校验、启动、停止和删除带 descriptor 的插件 ELF
-- **PS5 FTP 服务器** — 由可选的外部 `onionHEN-ftpsrv-plugin` 提供
+- **PS5 FTP 服务器** — 内置 `onionHEN-ftpsrv-plugin`，默认自动启动在 TCP **1337**
 - **ShadowMount+** — 由可选的外部 `onionHEN-shadowmountplus-plugin` 提供
 - **远程游玩配对** — 在网络菜单中启用 PS5 原生远程游玩服务、生成配对 PIN 并注册客户端
 - **用户 Payload 管理** — 启动和停止用户添加的普通 `.elf` payload，可选自动启动
@@ -108,11 +108,12 @@ OnionHEN.elf → bootstrapper → onion_elfldr.elf (:9020) → util.elf → kstu
 
 ### FTP 服务器
 
-FTP 由独立的
-[`onionHEN-ftpsrv-plugin`](https://github.com/OnionBuddies/onionHEN-ftpsrv-plugin)
-提供。将其安装为 `/data/OnionHEN/plugins/FTPS00001.elf` 后，OnionHEN 会自动发现
-并启动；插件动态设置页提供启用、端口和重启控制。插件保留上游 `ftpsrv` 的
-`KILL`、`SELF`、`SCHK`、`MTRW`、`AUTHID` 等命令（视固件支持而定）。
+OnionHEN 内置 [`onionHEN-ftpsrv-plugin`](https://github.com/OnionBuddies/onionHEN-ftpsrv-plugin)，
+首次启动会安装到 `/data/OnionHEN/plugins/FTPS00001.elf` 并打开自动启动。默认监听
+**TCP 1337**。工具箱 → 插件 → FTP Server 可开关、改端口和重启。关闭自动启动后下次
+启动会记住该选择。内置插件按 plugin `main`（`8823e89`）重建，带 `ftpsrv`
+1.16-ng-stable，SELF 即时解密支持到固件 13.60。保留上游 `KILL`、`SELF`、`SCHK`、
+`MTRW`、`AUTHID`、`LOWER`、`UPPER` 等命令（视固件支持而定）。
 
 ### ShadowMount+
 
