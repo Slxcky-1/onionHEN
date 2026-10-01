@@ -406,7 +406,7 @@ struct IPCMessage {
 ### 4.3 网络服务
 
 - 首跳依赖外部 **9021 elfldr**；它同时是私有 9020 的恢复根。用户 Payload 严格使用内置 **9020 onion_elfldr**，不回退 9021
-- **FTP**：由可选的外部 `onionHEN-ftpsrv-plugin` 提供；daemon 负责进程生命周期，插件通过动态 UI 提供启用、端口与重启控制
+- **FTP**：内置 `onionHEN-ftpsrv-plugin`（plugin `main` / ftpsrv 1.16-ng-stable，SELF 解密到 13.60），bootstrapper 写入 `/data/OnionHEN/plugins/FTPS00001.elf` 并默认自动启动（TCP 1337）；daemon 负责进程生命周期，插件通过动态 UI 提供启用、端口与重启控制
 - **ShadowMount+**：由可选的外部 `onionHEN-shadowmountplus-plugin` 提供；daemon 负责进程生命周期，插件通过动态 UI 提供立即扫描操作
 - **DPI v2**：由可选的外部 `onionHEN-dpiv2-plugin` 提供；浏览器负责上传与安装操作，插件动态 UI 提供启停、API/WebUI 端口与重启配置
 - **Remote Play**：ShellUI 调用 PS5 原生 Remote Play API 完成 PIN 生成和客户端注册确认
