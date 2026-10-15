@@ -246,6 +246,7 @@ Run `./scripts/build.sh --help` for the complete option list.
 | `build/bin/bootstrapper.elf.lzma` | Bootstrapper embedded by the final payload |
 | `build/bin/daemon.elf` | Critical daemon |
 | `build/bin/util.elf` | Utility daemon |
+| `build/bin/onion_janitor.elf` | Emulator mount janitor (embedded in the bootstrapper, starts at boot) |
 | `build/bin/shellui.elf` | Toolbox injection payload |
 | `build/lib/*.a` | In-tree static libraries |
 

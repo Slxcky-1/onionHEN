@@ -58,7 +58,7 @@ const ExactValueEntry kExactValues[] = {
     {"id_plugin_kstuff_autoload",
      +[]() -> std::string { return bool_str(g_settings.kstuff_autoload); }},
     {"id_plugin_automount_enabled",
-     +[]() -> std::string { return bool_str(access("/data/.kstuff_noautomount", F_OK) != 0); }},
+     +[]() -> std::string { return bool_str(access("/data/OnionHEN/automount.disabled", F_OK) != 0); }},
     {"id_disp_titleids",
      +[]() -> std::string { return bool_str(g_settings.display_tids); }},
     {"id_enable_fan_speed",

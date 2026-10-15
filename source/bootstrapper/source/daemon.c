@@ -16,6 +16,9 @@
 #ifndef ONIONHEN_AUTOMOUNT_ELF
 #define ONIONHEN_AUTOMOUNT_ELF "../assets/onionhen_automount.elf"
 #endif
+#ifndef ONIONHEN_JANITOR_ELF
+#define ONIONHEN_JANITOR_ELF "../../bin/onion_janitor.elf"
+#endif
 #ifndef ONIONHEN_ICON_ASSET_DIR
 #define ONIONHEN_ICON_ASSET_DIR "../assets"
 #endif
@@ -109,5 +112,17 @@ __asm__(".intel_syntax noprefix\n"
         ".align  4\n"
         "automount_size:\n"
         ".int    automount_end - automount_start\n"
+
+        ".global janitor_start\n"
+        ".type   janitor_start, @object\n"
+        ".align  16\n"
+        "janitor_start:\n"
+        ".incbin \"" ONIONHEN_JANITOR_ELF "\"\n"
+        "janitor_end:\n"
+        ".global janitor_size\n"
+        ".type   janitor_size, @object\n"
+        ".align  4\n"
+        "janitor_size:\n"
+        ".int    janitor_end - janitor_start\n"
 
 );

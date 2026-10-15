@@ -55,10 +55,10 @@ static OnPressResult id_download_cheats(OnPressContext &ctx) {
 OnPressResult onpress_automount_enabled(OnPressContext &ctx) {
   const bool enabled = value_as_int(ctx);
   if (enabled) {
-    unlink("/data/.kstuff_noautomount");
+    unlink("/data/OnionHEN/automount.disabled");
     notify("notify.automount.next_boot_on");
   } else {
-    touch_file("/data/.kstuff_noautomount");
+    touch_file("/data/OnionHEN/automount.disabled");
     notify("notify.automount.next_boot_off");
   }
   return OnPressResult::Handled;

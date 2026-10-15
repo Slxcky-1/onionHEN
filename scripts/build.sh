@@ -347,10 +347,10 @@ main() {
   fi
 
   # Phase 2 — daemons
-  log "Phase 2/5: util + daemon"
-  build_targets util daemon
+  log "Phase 2/5: util + daemon + janitor"
+  build_targets util daemon onion_janitor
 
-  for f in daemon.elf util.elf; do
+  for f in daemon.elf util.elf onion_janitor.elf; do
     [[ -f "${BIN}/${f}" ]] || die "missing ${BIN}/${f} after phase 2"
     ok "built ${f}"
   done

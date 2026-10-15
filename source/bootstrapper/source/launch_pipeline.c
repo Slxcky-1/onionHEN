@@ -29,8 +29,11 @@ extern uint8_t kstuff_start[];
 extern const unsigned int kstuff_size;
 extern uint8_t automount_start[];
 extern const unsigned int automount_size;
+extern uint8_t janitor_start[];
+extern const unsigned int janitor_size;
 
-#define ONION_AUTOMOUNT_SENTINEL "/data/.kstuff_noautomount"
+#define ONION_AUTOMOUNT_SENTINEL "/data/OnionHEN/automount.disabled"
+#define ONION_JANITOR_DISABLE "/data/OnionHEN/janitor.disabled"
 
 int sceKernelGetProcessName(int pid, char *name);
 int sceKernelMprotect(void *addr, size_t len, int prot);
@@ -223,14 +226,29 @@ static void launch_automount(LaunchContext *context) {
     LOG_DEBUG("Automount disabled via " ONION_AUTOMOUNT_SENTINEL);
     return;
   }
-  if (onion_find_pid_substr("shadowmountplus.elf") > 0) {
+  if (onion_find_pid_substr("hyperhen_mount.elf") > 0) {
     LOG_DEBUG("Automount already running -- skip embedded launch");
     return;
   }
   LOG_DEBUG("Starting embedded automount via %u ...", context->loader_port);
   if (!launch_blob(context, automount_start, (size_t)automount_size,
-                   "automount", "shadowmountplus.elf"))
+                   "automount", "hyperhen_mount.elf"))
     LOG_WARN("automount launch failed -- continuing");
+}
+
+static void launch_janitor(LaunchContext *context) {
+  if (access(ONION_JANITOR_DISABLE, F_OK) == 0) {
+    LOG_DEBUG("Janitor disabled via " ONION_JANITOR_DISABLE);
+    return;
+  }
+  if (onion_find_pid_substr("onion_janitor.elf") > 0) {
+    LOG_DEBUG("Janitor already running -- skip");
+    return;
+  }
+  LOG_DEBUG("Starting janitor via %u ...", context->loader_port);
+  if (!launch_blob(context, janitor_start, (size_t)janitor_size, "janitor",
+                   "onion_janitor.elf"))
+    LOG_WARN("janitor launch failed -- continuing");
 }
 
 int bootstrap_launch_services(uint32_t firmware_version, bool kstuff_autoload) {
@@ -253,6 +271,7 @@ int bootstrap_launch_services(uint32_t firmware_version, bool kstuff_autoload) {
     return -2;
   launch_kstuff(&context, firmware_version, kstuff_autoload);
   const bool daemon_ok = launch_daemon(&context);
+  launch_janitor(&context);
   launch_automount(&context);
   return daemon_ok ? 0 : -2;
 }

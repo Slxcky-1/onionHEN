@@ -438,7 +438,7 @@ static bool plugins_model(ps5ui::Node &model) {
   for (const auto &d : kRegistry) {
     const char *status = d.sub_key;
     if (std::string_view(d.key) == "automount")
-      status = access("/data/.kstuff_noautomount", F_OK) != 0
+      status = access("/data/OnionHEN/automount.disabled", F_OK) != 0
                    ? "plugin.automount.status.enabled"
                    : "plugin.automount.status.disabled";
     if (std::string_view(d.key) == "kstuff")
@@ -491,7 +491,7 @@ static bool kstuff_model(ps5ui::Node &model) {
 static bool automount_model(ps5ui::Node &model) {
   using namespace onion::plugins;
   const Descriptor *d = find_by_key("automount");
-  const bool enabled = access("/data/.kstuff_noautomount", F_OK) != 0;
+  const bool enabled = access("/data/OnionHEN/automount.disabled", F_OK) != 0;
   ps5ui::Page page("id_plugin_config", toolbox_i18n::tr(d->title_key));
   page.toggle("id_plugin_automount_enabled",
               toolbox_i18n::tr("automount.enabled"),
