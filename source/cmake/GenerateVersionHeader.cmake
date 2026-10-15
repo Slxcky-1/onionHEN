@@ -2,7 +2,7 @@ if(NOT DEFINED REPO_ROOT OR NOT DEFINED OUTPUT_FILE)
   message(FATAL_ERROR "REPO_ROOT and OUTPUT_FILE are required")
 endif()
 
-set(_version "v0.0.14-r3 Unofficial By </ElonTusk>")
+set(_version "v0.0.14-r5 Unofficial By </ElonTusk>")
 
 string(CONCAT _contents
     "#pragma once\n\n"
