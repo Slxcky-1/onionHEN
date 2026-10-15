@@ -28,6 +28,7 @@ extern const unsigned int onion_elfldr_size;
 extern uint8_t kstuff_start[];
 extern const unsigned int kstuff_size;
 
+
 int sceKernelGetProcessName(int pid, char *name);
 int sceKernelMprotect(void *addr, size_t len, int prot);
 
@@ -193,7 +194,6 @@ static void launch_kstuff(LaunchContext *context, uint32_t firmware_version,
     if (sceKernelMprotect(probe, sizeof(probe), 0x7) == 0) {
       LOG_DEBUG("kstuff mprotect OK -- signal ready");
       onion_ready_signal(ONION_READY_KSTUFF);
-      sleep(1);
       return;
     }
     sleep(1);
@@ -227,7 +227,6 @@ int bootstrap_launch_services(uint32_t firmware_version, bool kstuff_autoload) {
   };
   LOG_DEBUG("payload loader port: %u", context.loader_port);
   LOG_DEBUG("launching embedded ELFs (serialized)");
-  sleep(3);
 
   prepare_service_markers();
   if (!launch_util(&context))

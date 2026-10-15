@@ -437,6 +437,10 @@ static bool plugins_model(ps5ui::Node &model) {
   /* The same model supplies initial XML and updates to existing elements. */
   for (const auto &d : kRegistry) {
     const char *status = d.sub_key;
+    if (std::string_view(d.key) == "automount")
+      status = access("/data/.kstuff_noautomount", F_OK) != 0
+                   ? "plugin.automount.status.enabled"
+                   : "plugin.automount.status.disabled";
     if (std::string_view(d.key) == "kstuff")
       status = g_settings.kstuff_autoload ? "plugin.kstuff.status.autoload"
                                           : "plugin.kstuff.status.manual";
@@ -484,6 +488,25 @@ static bool kstuff_model(ps5ui::Node &model) {
   return true;
 }
 
+static bool automount_model(ps5ui::Node &model) {
+  using namespace onion::plugins;
+  const Descriptor *d = find_by_key("automount");
+  const bool enabled = access("/data/.kstuff_noautomount", F_OK) != 0;
+  ps5ui::Page page("id_plugin_config", toolbox_i18n::tr(d->title_key));
+  page.toggle("id_plugin_automount_enabled",
+              toolbox_i18n::tr("automount.enabled"),
+              enabled,
+              toolbox_i18n::tr("automount.enabled.sub"));
+  model = page.root();
+  return true;
+}
+
+void generate_automount_config_xml(std::string &xml_buffer) {
+  ps5ui::Node model;
+  automount_model(model);
+  xml_buffer = onion::shellui::settings::publish(model, automount_model);
+}
+
 void generate_kstuff_config_xml(std::string &xml_buffer) {
   ps5ui::Node model;
   kstuff_model(model);
@@ -491,7 +514,10 @@ void generate_kstuff_config_xml(std::string &xml_buffer) {
 }
 
 void generate_plugin_config_xml(std::string &xml_buffer) {
-  generate_kstuff_config_xml(xml_buffer);
+  if (g_ui.active_plugin == "automount")
+    generate_automount_config_xml(xml_buffer);
+  else
+    generate_kstuff_config_xml(xml_buffer);
 }
 
 void generate_cheats_xml(std::string& new_xml, std::string& not_open_tid,
