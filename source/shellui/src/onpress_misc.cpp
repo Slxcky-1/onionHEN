@@ -52,6 +52,18 @@ static OnPressResult id_download_cheats(OnPressContext &ctx) {
   return OnPressResult::Consumed;
 }
 
+OnPressResult onpress_fwpin_enabled(OnPressContext &ctx) {
+  const bool enabled = value_as_int(ctx);
+  if (enabled) {
+    unlink("/data/OnionHEN/fwpin.disabled");
+    notify("notify.fwpin.next_boot_on");
+  } else {
+    touch_file("/data/OnionHEN/fwpin.disabled");
+    notify("notify.fwpin.next_boot_off");
+  }
+  return OnPressResult::Handled;
+}
+
 OnPressResult onpress_automount_enabled(OnPressContext &ctx) {
   const bool enabled = value_as_int(ctx);
   if (enabled) {

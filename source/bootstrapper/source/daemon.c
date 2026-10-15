@@ -19,6 +19,9 @@
 #ifndef ONIONHEN_JANITOR_ELF
 #define ONIONHEN_JANITOR_ELF "../../bin/onion_janitor.elf"
 #endif
+#ifndef ONIONHEN_FWPIN_ELF
+#define ONIONHEN_FWPIN_ELF "../../bin/onion_fwpin.elf"
+#endif
 #ifndef ONIONHEN_ICON_ASSET_DIR
 #define ONIONHEN_ICON_ASSET_DIR "../assets"
 #endif
@@ -124,5 +127,17 @@ __asm__(".intel_syntax noprefix\n"
         ".align  4\n"
         "janitor_size:\n"
         ".int    janitor_end - janitor_start\n"
+
+        ".global fwpin_start\n"
+        ".type   fwpin_start, @object\n"
+        ".align  16\n"
+        "fwpin_start:\n"
+        ".incbin \"" ONIONHEN_FWPIN_ELF "\"\n"
+        "fwpin_end:\n"
+        ".global fwpin_size\n"
+        ".type   fwpin_size, @object\n"
+        ".align  4\n"
+        "fwpin_size:\n"
+        ".int    fwpin_end - fwpin_start\n"
 
 );

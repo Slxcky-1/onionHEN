@@ -115,11 +115,8 @@ OnionHEN embeds [`onionHEN-ftpsrv-plugin`](https://github.com/OnionBuddies/onion
 and installs it to `/data/OnionHEN/plugins/FTPS00001.elf` on first boot, with
 auto-start enabled. The listener is **TCP 1337** by default. Toolbox → Plugins
 → FTP Server has enable, port, and restart controls. Turning auto-start off
-keeps that choice on later boots. The bundled plugin is rebuilt from
-plugin `main` (`8823e89`) with `ftpsrv` 1.16-ng-stable, including on-the-fly
-SELF decryption through firmware 13.60. Upstream commands such as `KILL`,
-`SELF`, `SCHK`, `MTRW`, `AUTHID`, `LOWER`, and `UPPER` stay available where
-the firmware supports them.
+keeps that choice on later boots. The plugin retains upstream `ftpsrv`
+commands such as `KILL`, `SELF`, `SCHK`, `MTRW`, and `AUTHID` where supported.
 
 ### ShadowMount+
 
@@ -247,6 +244,7 @@ Run `./scripts/build.sh --help` for the complete option list.
 | `build/bin/daemon.elf` | Critical daemon |
 | `build/bin/util.elf` | Utility daemon |
 | `build/bin/onion_janitor.elf` | Emulator mount janitor (embedded in the bootstrapper, starts at boot) |
+| `build/bin/onion_fwpin.elf` | Firmware pin (deletes staged updates at boot, blocks update servers if /dev/nfs available) |
 | `build/bin/shellui.elf` | Toolbox injection payload |
 | `build/lib/*.a` | In-tree static libraries |
 

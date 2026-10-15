@@ -322,7 +322,13 @@
     "plugins.external.progress_stopping": "กำลังหยุดปลั๊กอิน...",
     "plugins.external.progress_stopping_sub": "โปรดรอสักครู่ขณะปลั๊กอินกำลังปิดการทำงาน",
     "plugins.external.progress_completed": "เสร็จสมบูรณ์",
-    "plugins.external.progress_failed": "การดำเนินการล้มเหลว"
+    "plugins.external.progress_failed": "การดำเนินการล้มเหลว",
+    "plugin.fwpin.title": "Firmware Pin",
+    "plugin.fwpin.sub": "Deletes staged updates at boot to prevent accidental firmware update",
+    "plugin.fwpin.status.enabled": "Active at boot",
+    "plugin.fwpin.status.disabled": "Disabled (sentinel present)",
+    "fwpin.enabled": "Enable Firmware Pin at OnionHEN startup",
+    "fwpin.enabled.sub": "Deletes PS5UPDATE.PUP and pins update servers (if /dev/nfs available)"
   },
   "notifications": {
     "notify.payload.config_invalid": "กรุณาป้อนจำนวนเต็มตั้งแต่ 0 ถึง %d",
@@ -474,6 +480,8 @@
     "notify.account.already": "บัญชีนี้เปิดใช้งานอยู่แล้ว",
     "notify.account.failed": "เปิดใช้งานบัญชีไม่สำเร็จ",
     "notify.account.invalid": "ไม่สามารถอ่านบัญชีผู้ใช้ปัจจุบันได้",
-    "notify.brand": "OnionHEN"
+    "notify.brand": "OnionHEN",
+    "notify.fwpin.next_boot_on": "Firmware Pin enabled — takes effect on next boot",
+    "notify.fwpin.next_boot_off": "Firmware Pin disabled — takes effect on next boot"
   }
 }

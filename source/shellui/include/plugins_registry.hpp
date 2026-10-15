@@ -33,6 +33,8 @@ inline constexpr Descriptor kRegistry[] = {
      "plugin.kstuff.sub"},
     {"automount", "id_plugin_automount", "automount.xml",
      "plugin.automount.title", "plugin.automount.sub"},
+    {"fwpin", "id_plugin_fwpin", "fwpin.xml",
+     "plugin.fwpin.title", "plugin.fwpin.sub"},
 };
 
 inline constexpr std::size_t kRegistrySize =
