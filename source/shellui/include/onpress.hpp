@@ -76,6 +76,7 @@ const OnPressPrefixEntry *onpress_plugins_prefix(size_t *count);
  * the next OnionHEN start and do not start or stop the service now.
  */
 OnPressResult onpress_kstuff_autoload(OnPressContext &ctx);
+OnPressResult onpress_automount_enabled(OnPressContext &ctx);
 OnPressResult onpress_delete_kstuff(OnPressContext &ctx);
 
 /** Shared toggle helpers. */

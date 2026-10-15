@@ -27,6 +27,10 @@ extern uint8_t onion_elfldr_start[];
 extern const unsigned int onion_elfldr_size;
 extern uint8_t kstuff_start[];
 extern const unsigned int kstuff_size;
+extern uint8_t automount_start[];
+extern const unsigned int automount_size;
+
+#define ONION_AUTOMOUNT_SENTINEL "/data/.kstuff_noautomount"
 
 int sceKernelGetProcessName(int pid, char *name);
 int sceKernelMprotect(void *addr, size_t len, int prot);
@@ -201,6 +205,30 @@ static void launch_kstuff(LaunchContext *context, uint32_t firmware_version,
   bootstrap_notify("notify.kstuff.load_failed");
 }
 
+static bool launch_automount(LaunchContext *context) {
+  if (access(ONION_AUTOMOUNT_SENTINEL, F_OK) == 0) {
+    LOG_DEBUG("Automount disabled via " ONION_AUTOMOUNT_SENTINEL);
+    onion_ready_signal(ONION_READY_AUTOMOUNT);
+    return true;
+  }
+  stop_owned_service(ONION_READY_AUTOMOUNT, "shadowmountplus.elf");
+  onion_ready_clear(ONION_READY_AUTOMOUNT);
+  onion_ready_clear(ONION_READY_AUTOMOUNT_FAILED);
+  LOG_DEBUG("Starting embedded automount via %u ...", context->loader_port);
+  if (!launch_blob(context, automount_start, (size_t)automount_size,
+                   "automount", "shadowmountplus.elf")) {
+    bootstrap_notify("Automount could not be launched");
+    return false;
+  }
+  if (!onion_ready_wait(ONION_READY_AUTOMOUNT, 180000, 500)) {
+    if (!onion_ready_is_set(ONION_READY_AUTOMOUNT_FAILED))
+      onion_ready_signal(ONION_READY_AUTOMOUNT_FAILED);
+    bootstrap_notify("Automount failed during initialization");
+    return false;
+  }
+  return true;
+}
+
 static bool launch_daemon(LaunchContext *context) {
   LOG_DEBUG("Starting daemon via %u (toolbox inject) ...",
             context->loader_port);
@@ -233,5 +261,6 @@ int bootstrap_launch_services(uint32_t firmware_version, bool kstuff_autoload) {
   if (!launch_util(&context))
     return -2;
   launch_kstuff(&context, firmware_version, kstuff_autoload);
+  launch_automount(&context);
   return launch_daemon(&context) ? 0 : -2;
 }

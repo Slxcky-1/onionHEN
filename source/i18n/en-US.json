@@ -126,7 +126,7 @@
     "overlay.pos.top": "Top edge",
     "overlay.pos.bottom": "Bottom edge",
     "overlay.align": "Monitor bar alignment",
-    "overlay.align.sub": "Pack metrics left, center, or right",
+    "overlay.align.sub": "One metric packs left, center, or right. Several metrics stretch across the display",
     "overlay.align.left": "Left",
     "overlay.align.center": "Center",
     "overlay.align.right": "Right",
@@ -314,7 +314,15 @@
     "plugin.kstuff.title": "Kstuff",
     "plugin.kstuff.sub": "Kernel patch for fSELF / fPKG support, loaded at OnionHEN startup",
     "plugin.kstuff.status.autoload": "Loads with OnionHEN",
-    "plugin.kstuff.status.manual": "Not loaded automatically"
+    "plugin.kstuff.status.manual": "Not loaded automatically",
+    "plugin.automount.title": "Automount",
+    "plugin.automount.sub": "ShadowMountPlus — auto-mounts external drives at OnionHEN startup",
+    "plugin.automount.status.enabled": "Mounts on startup",
+    "plugin.automount.status.disabled": "Disabled (sentinel present)",
+    "automount.enabled": "Enable automount at OnionHEN startup",
+    "automount.enabled.sub": "When enabled, ShadowMountPlus mounts external drives after kstuff loads",
+    "notify.automount.next_boot_on": "Automount enabled — takes effect on next boot",
+    "notify.automount.next_boot_off": "Automount disabled — takes effect on next boot"
   },
   "notifications": {
     "notify.payload.config_invalid": "Enter a whole number from 0 to %d.",
