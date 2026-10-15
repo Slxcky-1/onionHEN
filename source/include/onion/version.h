@@ -2,7 +2,7 @@
 
 /* Fallback for non-CMake tooling; PS5 builds shadow this with a generated file. */
 #ifndef ONIONHEN_VERSION
-#define ONIONHEN_VERSION "v0.0.14-r5 Unofficial By </ElonTusk>"
+#define ONIONHEN_VERSION "v0.0.14-r7 Unofficial By </ElonTusk>"
 #endif
 
 #ifndef ONIONHEN_AUTHOR
