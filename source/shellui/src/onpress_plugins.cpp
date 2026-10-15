@@ -66,6 +66,7 @@ OnPressResult external_plugin_control(OnPressContext &ctx) {
 static const OnPressExactEntry kPluginsExact[] = {
     {"id_plugin_kstuff_autoload", onpress_kstuff_autoload},
     {"id_plugin_delete_kstuff", onpress_delete_kstuff},
+    {"id_plugin_automount_enabled", onpress_automount_enabled},
 };
 
 static const OnPressPrefixEntry kPluginsPrefix[] = {

@@ -31,6 +31,8 @@ struct Descriptor {
 inline constexpr Descriptor kRegistry[] = {
     {"kstuff", "id_plugin_kstuff", "kstuff.xml", "plugin.kstuff.title",
      "plugin.kstuff.sub"},
+    {"automount", "id_plugin_automount", "automount.xml",
+     "plugin.automount.title", "plugin.automount.sub"},
 };
 
 inline constexpr std::size_t kRegistrySize =

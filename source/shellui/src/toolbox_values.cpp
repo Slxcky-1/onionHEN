@@ -16,6 +16,7 @@
 #include <onion/ipc_client.hpp>
 
 #include <algorithm>
+#include <unistd.h>
 #include <cstring>
 #include <ranges>
 #include <string>
@@ -56,6 +57,8 @@ const ExactValueEntry kExactValues[] = {
      +[]() -> std::string { return bool_str(g_settings.overlay_ram); }},
     {"id_plugin_kstuff_autoload",
      +[]() -> std::string { return bool_str(g_settings.kstuff_autoload); }},
+    {"id_plugin_automount_enabled",
+     +[]() -> std::string { return bool_str(access("/data/.kstuff_noautomount", F_OK) != 0); }},
     {"id_disp_titleids",
      +[]() -> std::string { return bool_str(g_settings.display_tids); }},
     {"id_enable_fan_speed",
