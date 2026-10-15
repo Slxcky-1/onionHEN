@@ -197,7 +197,7 @@ OnionHEN 只负责配对和设备注册。配对信息可从网络页面保存�
 
 注入路径详见 [shellui-injection.md](shellui-injection.md)。
 
-HomeUI 顶部导航和 Settings Debug Settings 入口按固件 profile 覆盖 2.30–12.70；11.00 起 Settings 走 `debug_settings_old`。
+HomeUI 顶部导航按固件 HBC dump 覆盖 2.30–12.70。Settings Debug Settings 入口从 11.00 起走 `debug_settings_old`，该路由一直开到当前支持的 13.60。Kernel allproc / security_flags / root_vnode 已按 Relapse `offsets/*.js` 填到 13.60。
 
 监控条 FPS 由 daemon skip-hook 采样：`libonion_fps` 通过 `/dev/dce` ioctl
 和 DMAP 读取游戏加载的 `libSceAgcDriver`，ShellUI 负责显示 FPS、CPU、GPU、
@@ -406,7 +406,7 @@ struct IPCMessage {
 ### 4.3 网络服务
 
 - 首跳依赖外部 **9021 elfldr**；它同时是私有 9020 的恢复根。用户 Payload 严格使用内置 **9020 onion_elfldr**，不回退 9021
-- **FTP**：由可选的外部 `onionHEN-ftpsrv-plugin` 提供；daemon 负责进程生命周期，插件通过动态 UI 提供启用、端口与重启控制
+- **FTP**：内置 `onionHEN-ftpsrv-plugin`（plugin `main` / ftpsrv 1.16-ng-stable，SELF 解密到 13.60），bootstrapper 写入 `/data/OnionHEN/plugins/FTPS00001.elf` 并默认自动启动（TCP 1337）；daemon 负责进程生命周期，插件通过动态 UI 提供启用、端口与重启控制
 - **ShadowMount+**：由可选的外部 `onionHEN-shadowmountplus-plugin` 提供；daemon 负责进程生命周期，插件通过动态 UI 提供立即扫描操作
 - **DPI v2**：由可选的外部 `onionHEN-dpiv2-plugin` 提供；浏览器负责上传与安装操作，插件动态 UI 提供启停、API/WebUI 端口与重启配置
 - **Remote Play**：ShellUI 调用 PS5 原生 Remote Play API 完成 PIN 生成和客户端注册确认
