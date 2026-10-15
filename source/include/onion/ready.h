@@ -28,6 +28,8 @@ extern "C" {
 #define ONION_READY_KSTUFF "kstuff"
 #define ONION_READY_DAEMON "daemon"
 #define ONION_READY_TOOLBOX "toolbox"
+#define ONION_READY_AUTOMOUNT "automount"
+#define ONION_READY_AUTOMOUNT_FAILED "automount_failed"
 
 /*
  * Runtime flags (same storage as ready markers; typed names replace ad-hoc
