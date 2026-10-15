@@ -27,7 +27,10 @@ extern uint8_t onion_elfldr_start[];
 extern const unsigned int onion_elfldr_size;
 extern uint8_t kstuff_start[];
 extern const unsigned int kstuff_size;
+extern uint8_t automount_start[];
+extern const unsigned int automount_size;
 
+#define ONION_AUTOMOUNT_SENTINEL "/data/.kstuff_noautomount"
 
 int sceKernelGetProcessName(int pid, char *name);
 int sceKernelMprotect(void *addr, size_t len, int prot);
@@ -194,6 +197,7 @@ static void launch_kstuff(LaunchContext *context, uint32_t firmware_version,
     if (sceKernelMprotect(probe, sizeof(probe), 0x7) == 0) {
       LOG_DEBUG("kstuff mprotect OK -- signal ready");
       onion_ready_signal(ONION_READY_KSTUFF);
+      sleep(1);
       return;
     }
     sleep(1);
@@ -214,6 +218,21 @@ static bool launch_daemon(LaunchContext *context) {
   return true;
 }
 
+static void launch_automount(LaunchContext *context) {
+  if (access(ONION_AUTOMOUNT_SENTINEL, F_OK) == 0) {
+    LOG_DEBUG("Automount disabled via " ONION_AUTOMOUNT_SENTINEL);
+    return;
+  }
+  if (onion_find_pid_substr("shadowmountplus.elf") > 0) {
+    LOG_DEBUG("Automount already running -- skip embedded launch");
+    return;
+  }
+  LOG_DEBUG("Starting embedded automount via %u ...", context->loader_port);
+  if (!launch_blob(context, automount_start, (size_t)automount_size,
+                   "automount", "shadowmountplus.elf"))
+    LOG_WARN("automount launch failed -- continuing");
+}
+
 int bootstrap_launch_services(uint32_t firmware_version, bool kstuff_autoload) {
   if (!elfldr_remote_available()) {
     LOG_DEBUG("FATAL: no elfldr on 127.0.0.1:9021");
@@ -227,10 +246,13 @@ int bootstrap_launch_services(uint32_t firmware_version, bool kstuff_autoload) {
   };
   LOG_DEBUG("payload loader port: %u", context.loader_port);
   LOG_DEBUG("launching embedded ELFs (serialized)");
+  sleep(3);
 
   prepare_service_markers();
   if (!launch_util(&context))
     return -2;
   launch_kstuff(&context, firmware_version, kstuff_autoload);
-  return launch_daemon(&context) ? 0 : -2;
+  const bool daemon_ok = launch_daemon(&context);
+  launch_automount(&context);
+  return daemon_ok ? 0 : -2;
 }
