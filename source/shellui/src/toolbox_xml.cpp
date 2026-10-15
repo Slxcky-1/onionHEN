@@ -441,6 +441,10 @@ static bool plugins_model(ps5ui::Node &model) {
       status = access("/data/OnionHEN/automount.disabled", F_OK) != 0
                    ? "plugin.automount.status.enabled"
                    : "plugin.automount.status.disabled";
+    if (std::string_view(d.key) == "fwpin")
+      status = access("/data/OnionHEN/fwpin.disabled", F_OK) != 0
+                   ? "plugin.fwpin.status.enabled"
+                   : "plugin.fwpin.status.disabled";
     if (std::string_view(d.key) == "kstuff")
       status = g_settings.kstuff_autoload ? "plugin.kstuff.status.autoload"
                                           : "plugin.kstuff.status.manual";
@@ -507,6 +511,25 @@ void generate_automount_config_xml(std::string &xml_buffer) {
   xml_buffer = onion::shellui::settings::publish(model, automount_model);
 }
 
+static bool fwpin_model(ps5ui::Node &model) {
+  using namespace onion::plugins;
+  const Descriptor *d = find_by_key("fwpin");
+  const bool enabled = access("/data/OnionHEN/fwpin.disabled", F_OK) != 0;
+  ps5ui::Page page("id_plugin_config", toolbox_i18n::tr(d->title_key));
+  page.toggle("id_plugin_fwpin_enabled",
+              toolbox_i18n::tr("fwpin.enabled"),
+              enabled,
+              toolbox_i18n::tr("fwpin.enabled.sub"));
+  model = page.root();
+  return true;
+}
+
+void generate_fwpin_config_xml(std::string &xml_buffer) {
+  ps5ui::Node model;
+  fwpin_model(model);
+  xml_buffer = onion::shellui::settings::publish(model, fwpin_model);
+}
+
 void generate_kstuff_config_xml(std::string &xml_buffer) {
   ps5ui::Node model;
   kstuff_model(model);
@@ -516,6 +539,8 @@ void generate_kstuff_config_xml(std::string &xml_buffer) {
 void generate_plugin_config_xml(std::string &xml_buffer) {
   if (g_ui.active_plugin == "automount")
     generate_automount_config_xml(xml_buffer);
+  else if (g_ui.active_plugin == "fwpin")
+    generate_fwpin_config_xml(xml_buffer);
   else
     generate_kstuff_config_xml(xml_buffer);
 }

@@ -322,7 +322,13 @@
     "automount.enabled": "Enable automount at OnionHEN startup",
     "automount.enabled.sub": "External drives are mounted after kstuff loads",
     "notify.automount.next_boot_on": "Automount enabled",
-    "notify.automount.next_boot_off": "Automount disabled"
+    "notify.automount.next_boot_off": "Automount disabled",
+    "plugin.fwpin.title": "Firmware Pin",
+    "plugin.fwpin.sub": "Deletes staged updates at boot to prevent accidental firmware update",
+    "plugin.fwpin.status.enabled": "Active at boot",
+    "plugin.fwpin.status.disabled": "Disabled (sentinel present)",
+    "fwpin.enabled": "Enable Firmware Pin at OnionHEN startup",
+    "fwpin.enabled.sub": "Deletes PS5UPDATE.PUP and pins update servers (if /dev/nfs available)"
   },
   "notifications": {
     "notify.payload.config_invalid": "请输入 0 到 %d 之间的整数。",
@@ -474,6 +480,8 @@
     "notify.account.already": "此账号已激活",
     "notify.account.failed": "账号激活失败",
     "notify.account.invalid": "无法读取当前用户账号",
-    "notify.brand": "OnionHEN"
+    "notify.brand": "OnionHEN",
+    "notify.fwpin.next_boot_on": "Firmware Pin enabled — takes effect on next boot",
+    "notify.fwpin.next_boot_off": "Firmware Pin disabled — takes effect on next boot"
   }
 }

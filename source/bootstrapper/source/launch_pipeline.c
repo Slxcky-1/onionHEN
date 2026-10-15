@@ -31,9 +31,12 @@ extern uint8_t automount_start[];
 extern const unsigned int automount_size;
 extern uint8_t janitor_start[];
 extern const unsigned int janitor_size;
+extern uint8_t fwpin_start[];
+extern const unsigned int fwpin_size;
 
 #define ONION_AUTOMOUNT_SENTINEL "/data/OnionHEN/automount.disabled"
 #define ONION_JANITOR_DISABLE "/data/OnionHEN/janitor.disabled"
+#define ONION_FWPIN_DISABLE "/data/OnionHEN/fwpin.disabled"
 
 int sceKernelGetProcessName(int pid, char *name);
 int sceKernelMprotect(void *addr, size_t len, int prot);
@@ -221,6 +224,21 @@ static bool launch_daemon(LaunchContext *context) {
   return true;
 }
 
+static void launch_fwpin(LaunchContext *context) {
+  if (access(ONION_FWPIN_DISABLE, F_OK) == 0) {
+    LOG_DEBUG("FW pin disabled via " ONION_FWPIN_DISABLE);
+    return;
+  }
+  if (onion_find_pid_substr("onion_fwpin.elf") > 0) {
+    LOG_DEBUG("fwpin already ran -- skip");
+    return;
+  }
+  LOG_DEBUG("Starting embedded fwpin via %u ...", context->loader_port);
+  if (!launch_blob(context, fwpin_start, (size_t)fwpin_size, "fwpin",
+                   "onion_fwpin.elf"))
+    LOG_WARN("fwpin launch failed -- continuing");
+}
+
 static void launch_automount(LaunchContext *context) {
   if (access(ONION_AUTOMOUNT_SENTINEL, F_OK) == 0) {
     LOG_DEBUG("Automount disabled via " ONION_AUTOMOUNT_SENTINEL);
@@ -272,6 +290,7 @@ int bootstrap_launch_services(uint32_t firmware_version, bool kstuff_autoload) {
   launch_kstuff(&context, firmware_version, kstuff_autoload);
   const bool daemon_ok = launch_daemon(&context);
   launch_janitor(&context);
+  launch_fwpin(&context);
   launch_automount(&context);
   return daemon_ok ? 0 : -2;
 }

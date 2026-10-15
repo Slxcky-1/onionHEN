@@ -322,7 +322,13 @@
     "plugins.external.progress_stopping": "Plugin wird gestoppt...",
     "plugins.external.progress_stopping_sub": "Bitte warten, während das Plugin beendet wird",
     "plugins.external.progress_completed": "Abgeschlossen",
-    "plugins.external.progress_failed": "Vorgang fehlgeschlagen"
+    "plugins.external.progress_failed": "Vorgang fehlgeschlagen",
+    "plugin.fwpin.title": "Firmware Pin",
+    "plugin.fwpin.sub": "Deletes staged updates at boot to prevent accidental firmware update",
+    "plugin.fwpin.status.enabled": "Active at boot",
+    "plugin.fwpin.status.disabled": "Disabled (sentinel present)",
+    "fwpin.enabled": "Enable Firmware Pin at OnionHEN startup",
+    "fwpin.enabled.sub": "Deletes PS5UPDATE.PUP and pins update servers (if /dev/nfs available)"
   },
   "notifications": {
     "notify.payload.config_invalid": "Gib eine ganze Zahl zwischen 0 und %d ein.",
@@ -474,6 +480,8 @@
     "notify.account.already": "Dieses Konto ist bereits aktiviert",
     "notify.account.failed": "Kontoaktivierung fehlgeschlagen",
     "notify.account.invalid": "Aktuelles Benutzerkonto konnte nicht gelesen werden",
-    "notify.brand": "OnionHEN"
+    "notify.brand": "OnionHEN",
+    "notify.fwpin.next_boot_on": "Firmware Pin enabled — takes effect on next boot",
+    "notify.fwpin.next_boot_off": "Firmware Pin disabled — takes effect on next boot"
   }
 }

@@ -322,7 +322,13 @@
     "plugins.external.progress_stopping": "Остановка плагина...",
     "plugins.external.progress_stopping_sub": "Пожалуйста, подождите, пока плагин завершает работу",
     "plugins.external.progress_completed": "Завершено",
-    "plugins.external.progress_failed": "Сбой операции"
+    "plugins.external.progress_failed": "Сбой операции",
+    "plugin.fwpin.title": "Firmware Pin",
+    "plugin.fwpin.sub": "Deletes staged updates at boot to prevent accidental firmware update",
+    "plugin.fwpin.status.enabled": "Active at boot",
+    "plugin.fwpin.status.disabled": "Disabled (sentinel present)",
+    "fwpin.enabled": "Enable Firmware Pin at OnionHEN startup",
+    "fwpin.enabled.sub": "Deletes PS5UPDATE.PUP and pins update servers (if /dev/nfs available)"
   },
   "notifications": {
     "notify.payload.config_invalid": "Введите целое число от 0 до %d.",
@@ -474,6 +480,8 @@
     "notify.account.already": "Эта учётная запись уже активирована",
     "notify.account.failed": "Не удалось активировать учётную запись",
     "notify.account.invalid": "Не удалось прочитать учётную запись текущего пользователя",
-    "notify.brand": "OnionHEN"
+    "notify.brand": "OnionHEN",
+    "notify.fwpin.next_boot_on": "Firmware Pin enabled — takes effect on next boot",
+    "notify.fwpin.next_boot_off": "Firmware Pin disabled — takes effect on next boot"
   }
 }

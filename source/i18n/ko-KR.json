@@ -322,7 +322,13 @@
     "plugins.external.progress_stopping": "플러그인을 중지하는 중...",
     "plugins.external.progress_stopping_sub": "플러그인 프로세스를 종료하고 리소스를 정리하는 중입니다. 잠시 기다려 주세요",
     "plugins.external.progress_completed": "완료됨",
-    "plugins.external.progress_failed": "작업 실패"
+    "plugins.external.progress_failed": "작업 실패",
+    "plugin.fwpin.title": "Firmware Pin",
+    "plugin.fwpin.sub": "Deletes staged updates at boot to prevent accidental firmware update",
+    "plugin.fwpin.status.enabled": "Active at boot",
+    "plugin.fwpin.status.disabled": "Disabled (sentinel present)",
+    "fwpin.enabled": "Enable Firmware Pin at OnionHEN startup",
+    "fwpin.enabled.sub": "Deletes PS5UPDATE.PUP and pins update servers (if /dev/nfs available)"
   },
   "notifications": {
     "notify.payload.config_invalid": "0에서 %d 사이의 정수를 입력하세요.",
@@ -474,6 +480,8 @@
     "notify.account.already": "이 계정은 이미 활성화되어 있습니다",
     "notify.account.failed": "계정 활성화에 실패했습니다",
     "notify.account.invalid": "현재 사용자 계정을 읽을 수 없습니다",
-    "notify.brand": "OnionHEN"
+    "notify.brand": "OnionHEN",
+    "notify.fwpin.next_boot_on": "Firmware Pin enabled — takes effect on next boot",
+    "notify.fwpin.next_boot_off": "Firmware Pin disabled — takes effect on next boot"
   }
 }
