@@ -46,12 +46,12 @@ int sceKernelGetAppInfo(int pid, app_info_t *info);
 #define LINK_GRACE_MS 15000
 #define RETRY_MS 3000
 #define MAX_SLOTS 64
-#define NT 10
+#define NT 11
 #define SANDBOX "/mnt/sandbox/"
 
 static const char *const kTitles[NT] = {"PPSA99203", "PPSA99008", "PPSA99764",
                                         "PPSA99360", "PPSA99009", "PPSA50011",
-                                        "PPSA97358", "PPSA42674", "PPSA99169", "PPSA99303"};
+                                        "PPSA97358", "PPSA42674", "PPSA99169", "PPSA99303", "PPSA99810"};
 
 typedef struct {
   char name[40];
