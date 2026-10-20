@@ -241,16 +241,13 @@ static void launch_fwpin(LaunchContext *context) {
 
 static void launch_automount(LaunchContext *context) {
   if (access(ONION_AUTOMOUNT_SENTINEL, F_OK) == 0) {
-    LOG_DEBUG("Automount disabled via " ONION_AUTOMOUNT_SENTINEL);
     return;
   }
-  if (onion_find_pid_substr("hyperhen_mount.elf") > 0) {
-    LOG_DEBUG("Automount already running -- skip embedded launch");
+  if (onion_find_pid_substr("shadowmount.elf") > 0) {
     return;
   }
-  LOG_DEBUG("Starting embedded automount via %u ...", context->loader_port);
   if (!launch_blob(context, automount_start, (size_t)automount_size,
-                   "automount", "hyperhen_mount.elf"))
+                   "automount", "shadowmount.elf"))
     LOG_WARN("automount launch failed -- continuing");
 }
 
