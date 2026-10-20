@@ -15,6 +15,6 @@ set(CMAKE_C_FLAGS "${ONION_PS5_TARGET_FLAGS} ")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-keyword-macro -fPIC -fPIE -march=znver2 -Wall -Werror -fstack-protector-all -O2")
 
 target_link_directories(${PROJECT_NAME} PUBLIC "${ONIONHEN_PS5_STUB_DIR}")
-target_link_libraries(${PROJECT_NAME} PUBLIC kernel_sys)
+target_link_libraries(${PROJECT_NAME} PUBLIC kernel_sys SceUserService)
 
 onion_strip_debug(${PROJECT_NAME})

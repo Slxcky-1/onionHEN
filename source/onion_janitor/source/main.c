@@ -38,6 +38,7 @@ typedef struct app_info {
   char unknown2[0x3c];
 } app_info_t;
 int sceKernelGetAppInfo(int pid, app_info_t *info);
+int sceUserServiceInitialize(const void *params);
 
 #define LOG_PATH "/data/OnionHEN/janitor.log"
 #define SELF_NAME "onion_janitor.elf"
@@ -377,6 +378,7 @@ static void poll_once(void) {
 
 int main(void) {
   (void)syscall(SYS_thr_set_name, -1, SELF_NAME);
+  sceUserServiceInitialize(NULL);
   int running[NT];
   int other = 0;
   if (get_running(running, &other) == 0 && other)
