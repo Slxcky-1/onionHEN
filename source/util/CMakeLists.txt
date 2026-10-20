@@ -62,29 +62,37 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_compile_definitions(${PROJECT_NAME} PRIVATE CBC=1)
 set(ONION_CURL_ROOT "${PS5_PAYLOAD_SDK}/target/user/homebrew")
 set(ONION_CURL_CA_BUNDLE "${ONION_CURL_ROOT}/etc/ca-bundle.crt")
-if(NOT EXISTS "${ONION_CURL_ROOT}/include/curl/curl.h" OR
-   NOT EXISTS "${ONION_CURL_ROOT}/lib/libcurl.a" OR
-   NOT EXISTS "${ONION_CURL_CA_BUNDLE}")
-	message(FATAL_ERROR
-		"PS5 payload SDK libcurl and CA bundle are required for cheat catalog HTTP "
-		"(looked in ${ONION_CURL_ROOT}).")
+if(EXISTS "${ONION_CURL_ROOT}/include/curl/curl.h" AND
+   EXISTS "${ONION_CURL_ROOT}/lib/libcurl.a" AND
+   EXISTS "${ONION_CURL_CA_BUNDLE}")
+  set(ONION_HAS_CURL TRUE)
+else()
+  set(ONION_HAS_CURL FALSE)
+  message(WARNING "libcurl not found in ${ONION_CURL_ROOT} -- cheat catalog HTTP sync disabled")
+  set_source_files_properties(
+    "${D_SRC}/cheats/sync/http_transport_ps5.cpp"
+    PROPERTIES HEADER_FILE_ONLY TRUE)
+  target_sources(${PROJECT_NAME} PRIVATE
+    "${D_SRC}/cheats/sync/http_transport_ps5_stub.cpp")
 endif()
-target_compile_definitions(${PROJECT_NAME} PRIVATE
-	CURL_STATICLIB
-	ONION_CURL_CA_BUNDLE="${ONION_CURL_CA_BUNDLE}"
-)
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
-	"${ONION_CURL_ROOT}/include")
-# The CA bundle is embedded with .incbin, which is invisible to the compiler's
-# normal dependency scanner.
-set_source_files_properties(
-	"${D_SRC}/cheats/sync/http_transport_ps5.cpp"
-	PROPERTIES OBJECT_DEPENDS "${ONION_CURL_CA_BUNDLE}"
-)
+if(ONION_HAS_CURL)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE
+    CURL_STATICLIB
+    ONION_CURL_CA_BUNDLE="${ONION_CURL_CA_BUNDLE}"
+  )
+  target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
+    "${ONION_CURL_ROOT}/include")
+  # The CA bundle is embedded with .incbin, which is invisible to the compiler's
+  # normal dependency scanner.
+  set_source_files_properties(
+    "${D_SRC}/cheats/sync/http_transport_ps5.cpp"
+    PROPERTIES OBJECT_DEPENDS "${ONION_CURL_CA_BUNDLE}"
+  )
+endif()
 target_link_directories(${PROJECT_NAME} PUBLIC
   "${ONIONHEN_PS5_STUB_DIR}"
   "${ONIONHEN_THIRD_PARTY_DIR}/keystone/lib"
-  "${ONION_CURL_ROOT}/lib"
+  $<$<BOOL:${ONION_HAS_CURL}>:${ONION_CURL_ROOT}/lib>
   "${PS5_PAYLOAD_SDK}/target/lib"
 )
 target_link_options(${PROJECT_NAME} PRIVATE "-Wl,--gc-sections" "-Wl,--icf=safe")
@@ -106,12 +114,12 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     SceNetCtl
     SceNet
     kernel_sys
-    curl
-    psl
-    ssl
-    crypto
-    zstd
-    z
+    $<$<BOOL:${ONION_HAS_CURL}>:curl>
+    $<$<BOOL:${ONION_HAS_CURL}>:psl>
+    $<$<BOOL:${ONION_HAS_CURL}>:ssl>
+    $<$<BOOL:${ONION_HAS_CURL}>:crypto>
+    $<$<BOOL:${ONION_HAS_CURL}>:zstd>
+    $<$<BOOL:${ONION_HAS_CURL}>:z>
 )
 set_source_files_properties(
   ${ONIONHEN_THIRD_PARTY_DIR}/cheat_support/aes.c
