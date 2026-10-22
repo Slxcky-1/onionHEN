@@ -7,13 +7,14 @@
  * Once the sandbox is gone ShadowMount+ releases its own /system_ex/app link by itself.
  *
  * Safety rules:
- *  - only the emulator title IDs listed below are ever touched;
+ *  - only title IDs found in HOMEBREW_DIR at startup are ever touched;
  *  - a sandbox slot is never touched if it has an app0 mount, if its app is running and it is that app's
- *    newest slot, or if it is the newest emulator slot overall (that one may be a launch in progress);
+ *    newest slot;
  *  - a leftover must stay stale for SLOT_GRACE_MS before it is removed;
  *  - an app link is only removed as a fallback, LINK_GRACE_MS after we saw the app running and it closed;
  *  - if the mount table or process table cannot be read, nothing is done.
  * Log: /data/OnionHEN/janitor.log */
+#include <dirent.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -41,18 +42,18 @@ int sceKernelGetAppInfo(int pid, app_info_t *info);
 int sceUserServiceInitialize(const void *params);
 
 #define LOG_PATH "/data/OnionHEN/janitor.log"
+#define HOMEBREW_DIR "/data/homebrew"
 #define SELF_NAME "onion_janitor.elf"
 #define POLL_US 250000
 #define SLOT_GRACE_MS 1500
 #define LINK_GRACE_MS 15000
 #define RETRY_MS 3000
 #define MAX_SLOTS 64
-#define NT 11
+#define MAX_TITLES 32
 #define SANDBOX "/mnt/sandbox/"
 
-static const char *const kTitles[NT] = {"PPSA99203", "PPSA99008", "PPSA99764",
-                                        "PPSA99360", "PPSA99009", "PPSA50011",
-                                        "PPSA97358", "PPSA42674", "PPSA99169", "PPSA99303", "PPSA99810"};
+static char g_titles[MAX_TITLES][10];
+static int g_nt = 0;
 
 typedef struct {
   char name[40];
@@ -69,9 +70,9 @@ typedef struct {
 
 static FILE *g_log;
 static track_t g_track[MAX_SLOTS];
-static int g_seen_running[NT];
-static int g_was_running[NT];
-static int64_t g_link_idle_since[NT];
+static int g_seen_running[MAX_TITLES];
+static int g_was_running[MAX_TITLES];
+static int64_t g_link_idle_since[MAX_TITLES];
 static struct statfs *g_mbuf;
 static size_t g_mcap;
 static char *g_pbuf;
@@ -101,6 +102,34 @@ static void say(const char *fmt, ...) {
   fflush(g_log);
 }
 
+static int is_title_id(const char *name) {
+  size_t l = strlen(name);
+  if (l != 9) return 0;
+  if (strncmp(name, "PPSA", 4) != 0 && strncmp(name, "CUSA", 4) != 0) return 0;
+  for (int i = 4; i < 9; i++)
+    if (name[i] < '0' || name[i] > '9') return 0;
+  return 1;
+}
+
+/* Scan HOMEBREW_DIR for PPSA/CUSA title directories at startup. */
+static void scan_titles(void) {
+  DIR *d = opendir(HOMEBREW_DIR);
+  if (!d) return;
+  struct dirent *e;
+  while ((e = readdir(d)) != NULL && g_nt < MAX_TITLES) {
+    if (e->d_type != DT_DIR && e->d_type != DT_UNKNOWN) continue;
+    if (!is_title_id(e->d_name)) continue;
+    int dup = 0;
+    for (int i = 0; i < g_nt; i++)
+      if (strcmp(g_titles[i], e->d_name) == 0) { dup = 1; break; }
+    if (!dup) {
+      memcpy(g_titles[g_nt], e->d_name, 10);
+      g_nt++;
+    }
+  }
+  closedir(d);
+}
+
 /* The returned table is a shared buffer: valid until the next get_mounts() call, never free it. */
 static int get_mounts(struct statfs **out) {
   int n = getfsstat(NULL, 0, MNT_NOWAIT);
@@ -122,17 +151,17 @@ static int get_mounts(struct statfs **out) {
 }
 
 static int title_of_slot(const char *slot) {
-  for (int i = 0; i < NT; i++) {
-    size_t l = strlen(kTitles[i]);
-    if (strncmp(slot, kTitles[i], l) == 0 && slot[l] == '_')
+  for (int i = 0; i < g_nt; i++) {
+    size_t l = strlen(g_titles[i]);
+    if (strncmp(slot, g_titles[i], l) == 0 && slot[l] == '_')
       return i;
   }
   return -1;
 }
 
 /* running[t] = 1 if a process of title t exists; returns -1 if the process table cannot be read */
-static int get_running(int running[NT], int *other_janitor) {
-  memset(running, 0, sizeof(int) * NT);
+static int get_running(int running[MAX_TITLES], int *other_janitor) {
+  memset(running, 0, sizeof(int) * MAX_TITLES);
   if (other_janitor)
     *other_janitor = 0;
   int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PROC, 0};
@@ -166,8 +195,8 @@ static int get_running(int running[NT], int *other_janitor) {
     char tid[11];
     memcpy(tid, ai.title_id, 10);
     tid[10] = '\0';
-    for (int t = 0; t < NT; t++)
-      if (strcmp(tid, kTitles[t]) == 0)
+    for (int t = 0; t < g_nt; t++)
+      if (strcmp(tid, g_titles[t]) == 0)
         running[t] = 1;
   }
   return 0;
@@ -205,12 +234,12 @@ static void cleanup_slot(const char *slot) {
     if (n <= 0)
       break;
     int acted = 0;
-    for (int i = n - 1; i >= 0; i--) { /* newest first: children before parents */
+    for (int i = n - 1; i >= 0; i--) {
       if (strcmp(fs[i].f_fstypename, "nullfs") != 0 ||
           strncmp(fs[i].f_mntonname, prefix, pl) != 0)
         continue;
       if (strncmp(fs[i].f_mntonname + pl, "app0", 4) == 0)
-        continue; /* never touch a live app mount */
+        continue;
       if (unmount(fs[i].f_mntonname, MNT_FORCE) == 0) {
         say("  unmounted %s (was from %s)", fs[i].f_mntonname,
             fs[i].f_mntfromname);
@@ -252,9 +281,10 @@ static track_t *track_find(const char *name, int create) {
 }
 
 static void poll_once(void) {
-  int running[NT];
+  scan_titles();
+  int running[MAX_TITLES];
   if (get_running(running, NULL) != 0)
-    return; /* cannot tell what is running: do nothing */
+    return;
   struct statfs *fs = NULL;
   int n = get_mounts(&fs);
   if (n <= 0)
@@ -262,10 +292,9 @@ static void poll_once(void) {
 
   slot_t slots[MAX_SLOTS];
   int ns = 0;
-  int link_mounted[NT] = {0};
-  int title_newest[NT];
-  int overall_newest = -1;
-  for (int t = 0; t < NT; t++)
+  int link_mounted[MAX_TITLES] = {0};
+  int title_newest[MAX_TITLES];
+  for (int t = 0; t < g_nt; t++)
     title_newest[t] = -1;
 
   for (int i = 0; i < n; i++) {
@@ -300,35 +329,30 @@ static void poll_once(void) {
         s->has_app0 = 1;
       if (i > title_newest[t])
         title_newest[t] = i;
-      if (i > overall_newest)
-        overall_newest = i;
     } else if (strncmp(on, "/system_ex/app/", 15) == 0) {
-      for (int t = 0; t < NT; t++)
-        if (strcmp(on + 15, kTitles[t]) == 0)
+      for (int t = 0; t < g_nt; t++)
+        if (strcmp(on + 15, g_titles[t]) == 0)
           link_mounted[t] = 1;
     }
   }
 
-  /* title start / exit notes */
-  for (int t = 0; t < NT; t++) {
+  for (int t = 0; t < g_nt; t++) {
     if (running[t] && !g_was_running[t])
-      say("%s started", kTitles[t]);
+      say("%s started", g_titles[t]);
     if (!running[t] && g_was_running[t])
-      say("%s exited", kTitles[t]);
+      say("%s exited", g_titles[t]);
     if (running[t])
       g_seen_running[t] = 1;
     g_was_running[t] = running[t];
   }
 
-  /* stale sandbox slots */
-  int live_slot[NT] = {0};
+  int live_slot[MAX_TITLES] = {0};
   int present[MAX_SLOTS] = {0};
   int64_t now = now_ms();
   for (int k = 0; k < ns; k++) {
     slot_t *s = &slots[k];
     int t = s->title;
-    int live = s->has_app0 || (running[t] && s->newest == title_newest[t]) ||
-               s->newest == overall_newest;
+    int live = s->has_app0 || (running[t] && s->newest == title_newest[t]);
     track_t *tr = track_find(s->name, 1);
     if (!tr)
       continue;
@@ -343,15 +367,14 @@ static void poll_once(void) {
     } else if (now - tr->stale_since >= SLOT_GRACE_MS &&
                now - tr->last_try >= RETRY_MS) {
       tr->last_try = now;
-      cleanup_slot(s->name); /* reuses the shared mount buffer: only the local slots[] are used after this */
+      cleanup_slot(s->name);
     }
   }
   for (int i = 0; i < MAX_SLOTS; i++)
     if (g_track[i].name[0] && !present[i])
       memset(&g_track[i], 0, sizeof(g_track[i]));
 
-  /* fallback: app links of closed emulators that nobody released */
-  for (int t = 0; t < NT; t++) {
+  for (int t = 0; t < g_nt; t++) {
     if (!link_mounted[t]) {
       g_seen_running[t] = running[t] ? 1 : 0;
       g_link_idle_since[t] = 0;
@@ -365,7 +388,7 @@ static void poll_once(void) {
       g_link_idle_since[t] = now;
     } else if (now - g_link_idle_since[t] >= LINK_GRACE_MS) {
       char link[64];
-      snprintf(link, sizeof(link), "/system_ex/app/%s", kTitles[t]);
+      snprintf(link, sizeof(link), "/system_ex/app/%s", g_titles[t]);
       if (unmount(link, MNT_FORCE) == 0)
         say("unmounted app link %s that stayed behind", link);
       else
@@ -379,13 +402,16 @@ static void poll_once(void) {
 int main(void) {
   (void)syscall(SYS_thr_set_name, -1, SELF_NAME);
   sceUserServiceInitialize(NULL);
-  int running[NT];
+  int running[MAX_TITLES];
   int other = 0;
   if (get_running(running, &other) == 0 && other)
-    return 0; /* already running */
+    return 0;
   g_log = fopen(LOG_PATH, "w");
-  say("started: watching %d emulator titles, stale grace %d ms, poll %d ms", NT,
-      SLOT_GRACE_MS, POLL_US / 1000);
+  scan_titles();
+  say("started: watching %d emulator titles (auto-detected from %s), stale grace %d ms, poll %d ms",
+      g_nt, HOMEBREW_DIR, SLOT_GRACE_MS, POLL_US / 1000);
+  for (int t = 0; t < g_nt; t++)
+    say("  watching: %s", g_titles[t]);
   for (;;) {
     poll_once();
     usleep(POLL_US);
