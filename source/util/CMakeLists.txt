@@ -88,6 +88,10 @@ if(ONION_HAS_CURL)
     "${D_SRC}/cheats/sync/http_transport_ps5.cpp"
     PROPERTIES OBJECT_DEPENDS "${ONION_CURL_CA_BUNDLE}"
   )
+  set_source_files_properties(
+    "${D_SRC}/cheats/sync/http_transport_ps5_stub.cpp"
+    PROPERTIES HEADER_FILE_ONLY TRUE
+  )
 endif()
 target_link_directories(${PROJECT_NAME} PUBLIC
   "${ONIONHEN_PS5_STUB_DIR}"
