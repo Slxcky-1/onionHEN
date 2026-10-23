@@ -7,7 +7,7 @@
  * Once the sandbox is gone ShadowMount+ releases its own /system_ex/app link by itself.
  *
  * Safety rules:
- *  - only title IDs found in HOMEBREW_DIR at startup are ever touched;
+ *  - only title IDs found in HOMEBREW_DIR are ever touched;
  *  - a sandbox slot is never touched if it has an app0 mount, if its app is running and it is that app's
  *    newest slot;
  *  - a leftover must stay stale for SLOT_GRACE_MS before it is removed;
@@ -34,8 +34,8 @@
 typedef struct app_info {
   uint32_t app_id;
   uint64_t unknown1;
-  uint32_t app_type;
-  char title_id[10];
+  /* Match the app-info layout used by OnionHEN util_platform. */
+  char title_id[14];
   char unknown2[0x3c];
 } app_info_t;
 int sceKernelGetAppInfo(int pid, app_info_t *info);
@@ -111,7 +111,7 @@ static int is_title_id(const char *name) {
   return 1;
 }
 
-/* Scan HOMEBREW_DIR for PPSA/CUSA title directories at startup. */
+/* Scan HOMEBREW_DIR for PPSA/CUSA title directories. */
 static void scan_titles(void) {
   DIR *d = opendir(HOMEBREW_DIR);
   if (!d) return;
